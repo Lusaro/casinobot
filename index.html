@@ -115,26 +115,38 @@ html,body{
 .modal-backdrop{position:fixed;inset:0;z-index:950;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px}
 .modal-backdrop.show{display:flex;animation:fadeIn .2s ease-out}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.modal{width:100%;max-width:360px;background:linear-gradient(160deg,#1a0b3d,#0d0620);border:1px solid rgba(255,255,255,.15);border-radius:22px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.7), 0 0 40px rgba(124,58,237,.35);animation:modalIn .3s cubic-bezier(.34,1.56,.64,1);max-height:85vh;overflow-y:auto}
+.modal{width:100%;max-width:380px;background:linear-gradient(160deg,#1a0b3d,#0d0620);border:1px solid rgba(255,255,255,.15);border-radius:22px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.7), 0 0 40px rgba(124,58,237,.35);animation:modalIn .3s cubic-bezier(.34,1.56,.64,1);max-height:88vh;overflow-y:auto}
 @keyframes modalIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
 .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .modal-title{font-weight:900;font-size:20px}
 .modal-close{cursor:pointer;font-size:18px;color:var(--hint);width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.05)}
 .modal-close:active{background:rgba(255,255,255,.15)}
 .modal-sub{color:var(--hint);font-size:13px;margin-bottom:14px}
+
+/* SHOP 2x2 GRID MIT BILDERN */
 .shop-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
-.shop-card{position:relative;background:linear-gradient(160deg,#241352,#14093a);border:2px solid rgba(196,181,253,.25);border-radius:16px;padding:14px 8px 10px;text-align:center;cursor:pointer;overflow:hidden;transition:transform .12s cubic-bezier(.34,1.56,.64,1), border-color .2s, box-shadow .2s}
+.shop-card{position:relative;background:linear-gradient(160deg,#241352,#14093a);border:2px solid rgba(196,181,253,.25);border-radius:16px;padding:12px 8px 10px;text-align:center;cursor:pointer;overflow:hidden;transition:transform .12s cubic-bezier(.34,1.56,.64,1), border-color .2s, box-shadow .2s}
 .shop-card:active{transform:scale(.94);border-color:#ffd25e;box-shadow:0 0 26px rgba(255,210,94,.55)}
 .shop-card.featured{border-color:rgba(236,72,153,.55);background:linear-gradient(160deg,#3a1550,#1a0530)}
 .shop-card.best{border-color:rgba(255,210,94,.7);background:linear-gradient(160deg,#3d2a0a,#1a0f00);box-shadow:0 0 24px rgba(255,210,94,.25)}
-.shop-ribbon{position:absolute;top:6px;right:-26px;transform:rotate(45deg);background:linear-gradient(135deg,#ff3366,#a10033);color:#fff;font-size:8px;font-weight:900;letter-spacing:.7px;padding:3px 28px;box-shadow:0 2px 8px rgba(0,0,0,.5)}
-.shop-ribbon.gold{background:linear-gradient(135deg,#ffd25e,#ff9f1c);color:#2a0f00}
-.shop-icon{font-size:34px;line-height:1;filter:drop-shadow(0 4px 10px rgba(255,210,94,.5));margin-bottom:6px}
-.shop-amount{font-size:20px;font-weight:900;letter-spacing:-.5px;background:linear-gradient(135deg,#fff,#ffd25e 60%,#ff9f1c);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1}
+
+/* Bild-Container */
+.shop-img-wrap{width:70px;height:70px;margin:2px auto 8px;position:relative;display:flex;align-items:center;justify-content:center}
+.shop-img-wrap img{max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.5))}
+
+/* Rabatt-Badge oben rechts an der Karte */
+.shop-badge{position:absolute;top:6px;right:6px;font-size:9px;font-weight:900;letter-spacing:.5px;padding:3px 8px;border-radius:999px;color:#fff;z-index:3;box-shadow:0 2px 8px rgba(0,0,0,.5);text-transform:uppercase}
+.shop-badge.neu{background:linear-gradient(135deg,#22d3ee,#7c3aed);animation:pulseBadge 1.6s ease-in-out infinite}
+.shop-badge.rabatt{background:linear-gradient(135deg,#ff3366,#a10033)}
+.shop-badge.best{background:linear-gradient(135deg,#ffd25e,#ff9f1c);color:#2a0f00}
+@keyframes pulseBadge{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+
+.shop-amount{font-size:19px;font-weight:900;letter-spacing:-.5px;background:linear-gradient(135deg,#fff,#ffd25e 60%,#ff9f1c);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1}
 .shop-coins-lbl{font-size:10px;font-weight:800;color:var(--hint);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px}
 .shop-old-price{font-size:11px;color:#6b648a;text-decoration:line-through;margin-top:6px}
 .shop-save{font-size:8px;font-weight:900;letter-spacing:1px;color:#ff3366;margin-top:2px}
 .shop-btn{margin-top:8px;padding:7px 0;border-radius:10px;font-size:12px;font-weight:900;letter-spacing:.5px;color:#2a0f00;background:linear-gradient(135deg,#ffd25e,#ff9f1c);box-shadow:0 4px 12px rgba(255,159,28,.5)}
+.shop-card:active .shop-btn{filter:brightness(1.15)}
 
 /* EFFEKTE */
 .loss-vignette{position:fixed;inset:0;z-index:880;pointer-events:none;background:radial-gradient(ellipse at center,transparent 30%,rgba(255,0,60,.35) 70%,rgba(255,0,60,.85) 100%);opacity:0}
@@ -176,7 +188,7 @@ html,body{
 .card-slot.epic{border-color:#ec4899;box-shadow:0 0 14px rgba(236,72,153,.5)}
 .card-slot.rare{border-color:#22d3ee}
 
-/* KARTEN-DROP OVERLAY */
+/* KARTEN-DROP */
 .card-drop{position:fixed;inset:0;z-index:960;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px;text-align:center}
 .card-drop.show{display:flex;animation:fadeIn .2s ease-out}
 .drop-label{font-size:12px;font-weight:900;letter-spacing:3px;color:#ffd25e;margin-bottom:14px;text-shadow:0 0 20px rgba(255,210,94,.8)}
@@ -213,7 +225,6 @@ html,body{
 </div>
 
 <div id="app" class="has-tabs">
-  <!-- HOME -->
   <div class="screen active" id="s-home">
     <div class="topbar">
       <div class="row1">
@@ -247,7 +258,6 @@ html,body{
     <div class="disclaimer">Nur Spielgeld · 18+</div>
   </div>
 
-  <!-- SAMMLUNG -->
   <div class="screen" id="s-collection">
     <div class="collection-header">
       <div class="collection-title">🏆 Deine Sammlung</div>
@@ -258,7 +268,6 @@ html,body{
     <div class="disclaimer">Gewinne Spiele, um neue Karten zu ziehen</div>
   </div>
 
-  <!-- GAME -->
   <div class="screen" id="s-game">
     <div class="topbar">
       <div class="row1">
@@ -280,50 +289,74 @@ html,body{
 
 <div class="toast" id="toast"></div>
 
-<!-- SHOP-MODAL -->
+<!-- ============================================================ -->
+<!-- SHOP-MODAL: 2×2 Grid mit Bildern und Rabatt-Badges           -->
+<!-- ============================================================ -->
 <div class="modal-backdrop" id="konto-modal">
   <div class="modal">
     <div class="modal-head">
       <div class="modal-title">🛒 Shop</div>
       <div class="modal-close" id="konto-close">✕</div>
     </div>
-    <div class="modal-sub">Klicke und hol dir deine Coins – 100% gratis:</div>
+    <div class="modal-sub">Hol dir Coins – 100% gratis:</div>
+
     <div class="shop-grid">
+
+      <!-- Karte 1: 100 Coins -->
       <div class="shop-card" data-bonus="100">
-        <div class="shop-icon">🪙</div><div class="shop-amount">100</div>
+        <div class="shop-img-wrap">
+          <img src="100.png" alt="">
+        </div>
+        <div class="shop-amount">100</div>
         <div class="shop-coins-lbl">Coins</div>
         <div class="shop-old-price">0,99 €</div>
         <div class="shop-save">JETZT SPAREN</div>
         <div class="shop-btn">GRATIS</div>
       </div>
+
+      <!-- Karte 2: 1.000 Coins mit 20% RABATT -->
       <div class="shop-card" data-bonus="1000">
-        <div class="shop-icon">💰</div><div class="shop-amount">1.000</div>
+        <div class="shop-badge rabatt">20% RABATT</div>
+        <div class="shop-img-wrap">
+          <img src="1k.png" alt="">
+        </div>
+        <div class="shop-amount">1.000</div>
         <div class="shop-coins-lbl">Coins</div>
         <div class="shop-old-price">4,99 €</div>
         <div class="shop-save">JETZT SPAREN</div>
         <div class="shop-btn">GRATIS</div>
       </div>
+
+      <!-- Karte 3: 5.000 Coins mit NEU-Badge -->
       <div class="shop-card featured" data-bonus="5000">
-        <div class="shop-ribbon">NEW</div>
-        <div class="shop-icon">🎁</div><div class="shop-amount">5.000</div>
+        <div class="shop-badge neu">NEU</div>
+        <div class="shop-img-wrap">
+          <img src="5k.png" alt="">
+        </div>
+        <div class="shop-amount">5.000</div>
         <div class="shop-coins-lbl">Coins</div>
         <div class="shop-old-price">9,99 €</div>
         <div class="shop-save">JETZT SPAREN</div>
         <div class="shop-btn">GRATIS</div>
       </div>
+
+      <!-- Karte 4: 10.000 Coins mit 50% RABATT -->
       <div class="shop-card best" data-bonus="10000">
-        <div class="shop-ribbon gold">BEST DEAL</div>
-        <div class="shop-icon">🏆</div><div class="shop-amount">10.000</div>
+        <div class="shop-badge best">50% RABATT</div>
+        <div class="shop-img-wrap">
+          <img src="10k.png" alt="">
+        </div>
+        <div class="shop-amount">10.000</div>
         <div class="shop-coins-lbl">Coins</div>
         <div class="shop-old-price">19,99 €</div>
         <div class="shop-save">JETZT SPAREN</div>
         <div class="shop-btn">GRATIS</div>
       </div>
+
     </div>
   </div>
 </div>
 
-<!-- KARTEN-DROP -->
 <div class="card-drop" id="card-drop">
   <div class="drop-label" id="drop-label">NEUE KARTE</div>
   <div class="drop-rare-lbl" id="drop-rare-lbl">GLÜCKSRAT!</div>
@@ -342,7 +375,6 @@ html,body{
   </div>
 </div>
 
-<!-- KARTEN-VOLLBILD -->
 <div class="card-view" id="card-view">
   <div class="card-view-close" id="card-view-close">✕</div>
   <div class="card-view-img" id="card-view-img"></div>
@@ -362,9 +394,6 @@ html,body{
 
 const API = "https://casinobot-qhy1.onrender.com";
 
-// ============================================================
-// KARTEN-DEFINITION (30 Karten)
-// ============================================================
 const RARITY = {
   common:    { name: "COMMON",    color: "#8b86b8", glow: "rgba(139,134,184,.5)" },
   rare:      { name: "RARE",      color: "#22d3ee", glow: "rgba(34,211,238,.6)" },
@@ -373,7 +402,6 @@ const RARITY = {
 };
 
 const CARDS = [
-  // COMMON (18)
   { id: 1,  name: "Kirsche",   icon: "🍒", rarity: "common", g: ["#ff4d6d", "#a10033"] },
   { id: 2,  name: "Zitrone",   icon: "🍋", rarity: "common", g: ["#ffd25e", "#a67c00"] },
   { id: 3,  name: "Glocke",    icon: "🔔", rarity: "common", g: ["#ffd25e", "#b45309"] },
@@ -392,8 +420,6 @@ const CARDS = [
   { id: 16, name: "Krone",     icon: "👑", rarity: "common", g: ["#ffd25e", "#b45309"] },
   { id: 17, name: "Bombe",     icon: "💣", rarity: "common", g: ["#4a4a4a", "#0a0a0a"] },
   { id: 18, name: "Barren",    icon: "🥇", rarity: "common", g: ["#ffd25e", "#a67c00"] },
-
-  // RARE (8)
   { id: 19, name: "Ring",      icon: "💍", rarity: "rare", g: ["#22d3ee", "#1e40af"] },
   { id: 20, name: "Pokal",     icon: "🏆", rarity: "rare", g: ["#ffd25e", "#7c3aed"] },
   { id: 21, name: "Rakete",    icon: "🚀", rarity: "rare", g: ["#ec4899", "#1a0b3d"] },
@@ -402,19 +428,12 @@ const CARDS = [
   { id: 24, name: "Schlüssel", icon: "🗝️", rarity: "rare", g: ["#22d3ee", "#0d47a1"] },
   { id: 25, name: "Kristall",  icon: "🔮", rarity: "rare", g: ["#c4b5fd", "#7c3aed"] },
   { id: 26, name: "Kaleidoskop",icon:"🎆", rarity: "rare", g: ["#ec4899", "#22d3ee"] },
-
-  // EPIC (3)
   { id: 27, name: "Phoenix",   icon: "🦅", rarity: "epic", g: ["#ff3366", "#ffd25e"] },
   { id: 28, name: "Galaxie",   icon: "🌌", rarity: "epic", g: ["#7c3aed", "#22d3ee"] },
   { id: 29, name: "Einhorn",   icon: "🦄", rarity: "epic", g: ["#ec4899", "#c4b5fd"] },
-
-  // LEGENDARY (1)
   { id: 30, name: "Goldener Drache", icon: "🐉", rarity: "legendary", g: ["#ffd25e", "#a10033"] },
 ];
 
-// ============================================================
-// REOPEN-FIX + TELEGRAM
-// ============================================================
 (function fixStaleLaunchParams() {
   try {
     const orig = performance.getEntriesByType.bind(performance);
@@ -464,9 +483,6 @@ const haptic = (t = "light") => { try { tg.HapticFeedback.impactOccurred(t); } c
 const notify = (t = "success") => { try { tg.HapticFeedback.notificationOccurred(t); } catch (e) {} };
 function showAlert(msg) { try { tg.showAlert(msg); } catch (e) { showToast(msg); } }
 
-// ============================================================
-// SOUND
-// ============================================================
 let audio = null;
 function initAudio() {
   if (audio) return audio;
@@ -520,9 +536,6 @@ document.body.addEventListener("touchstart", () => {
   if (audio && audio.state === "suspended") audio.resume();
 }, { once: true });
 
-// ============================================================
-// API
-// ============================================================
 async function api(path, opts = {}, _retry = 2) {
   if (!API || API.includes("DEIN-BACKEND")) throw new Error("API-URL nicht gesetzt");
   await waitForInit();
@@ -554,23 +567,15 @@ async function api(path, opts = {}, _retry = 2) {
   return r.json();
 }
 
-// ============================================================
-// CLOUDSTORAGE (Karten-Sammlung persistent)
-// ============================================================
-let collection = []; // Karten-IDs
+let collection = [];
 let dropBusy = false;
 
 function cloudGet(key) {
   return new Promise(resolve => {
     try {
       if (tg.CloudStorage && tg.CloudStorage.getItem) {
-        tg.CloudStorage.getItem(key, (err, val) => {
-          if (err || !val) return resolve(null);
-          resolve(val);
-        });
-      } else {
-        resolve(localStorage.getItem("ch_" + key));
-      }
+        tg.CloudStorage.getItem(key, (err, val) => { if (err || !val) return resolve(null); resolve(val); });
+      } else { resolve(localStorage.getItem("ch_" + key)); }
     } catch (e) { resolve(null); }
   });
 }
@@ -579,35 +584,22 @@ function cloudSet(key, val) {
     try {
       if (tg.CloudStorage && tg.CloudStorage.setItem) {
         tg.CloudStorage.setItem(key, val, () => resolve());
-      } else {
-        localStorage.setItem("ch_" + key, val);
-        resolve();
-      }
+      } else { localStorage.setItem("ch_" + key, val); resolve(); }
     } catch (e) { resolve(); }
   });
 }
 
 async function loadCollection() {
   const raw = await cloudGet("card_collection");
-  if (raw) {
-    try { collection = JSON.parse(raw); } catch (e) { collection = []; }
-  } else {
-    collection = [];
-  }
+  if (raw) { try { collection = JSON.parse(raw); } catch (e) { collection = []; } }
+  else { collection = []; }
   if (!Array.isArray(collection)) collection = [];
   renderCollection();
 }
-async function saveCollection() {
-  await cloudSet("card_collection", JSON.stringify(collection));
-}
+async function saveCollection() { await cloudSet("card_collection", JSON.stringify(collection)); }
 function hasCard(id) { return collection.includes(id); }
-function addCard(id) {
-  if (!hasCard(id)) collection.push(id);
-}
+function addCard(id) { if (!hasCard(id)) collection.push(id); }
 
-// ============================================================
-// STATE
-// ============================================================
 const state = { coins: 0, max_bet: 100, bet: 25, game: null, level: 1, streak: 0, best_streak: 0, wagered: 0, won: 0, busy: false };
 const $ = id => document.getElementById(id);
 
@@ -688,9 +680,6 @@ async function loadFeed() {
     </div>`).join("");
 }
 
-// ============================================================
-// SAMMLUNG RENDERN
-// ============================================================
 function renderCollection() {
   const grid = $("card-grid");
   const total = CARDS.length;
@@ -701,9 +690,7 @@ function renderCollection() {
   grid.innerHTML = CARDS.map(card => {
     const got = hasCard(card.id);
     const cls = `card-slot ${got ? "" : "locked"} ${got ? card.rarity : ""}`;
-    const style = got
-      ? `background:linear-gradient(160deg,${card.g[0]},${card.g[1]})`
-      : "";
+    const style = got ? `background:linear-gradient(160deg,${card.g[0]},${card.g[1]})` : "";
     return `<div class="${cls}" data-card="${card.id}" style="${style}">
       <div class="em">${card.icon}</div>
       <div class="name-lbl">${card.name}</div>
@@ -719,9 +706,6 @@ function renderCollection() {
   });
 }
 
-// ============================================================
-// KARTEN-DROP
-// ============================================================
 function rollCard() {
   const r = Math.random();
   let pool;
@@ -737,13 +721,11 @@ async function tryCardDrop(chance = 0.15) {
   if (Math.random() > chance) return;
   dropBusy = true;
   await new Promise(r => setTimeout(r, 600));
-
   const card = rollCard();
   const isNew = !hasCard(card.id);
   addCard(card.id);
   await saveCollection();
   renderCollection();
-
   showCardDrop(card, isNew);
 }
 
@@ -759,15 +741,12 @@ function showCardDrop(card, isNew) {
   const inner = $("drop-card-inner");
   inner.style.background = `linear-gradient(160deg,${card.g[0]},${card.g[1]})`;
   inner.style.boxShadow = `0 20px 60px rgba(0,0,0,.6), 0 0 40px ${r.glow}`;
-
   drop.classList.add("show");
   haptic("heavy");
   if (card.rarity === "legendary") { SFX.legendary(); burstConfetti(250); flashScreen("gold"); }
   else if (card.rarity === "epic") { SFX.mega(); burstConfetti(150); flashScreen("gold"); }
   else { SFX.cardDrop(); burstConfetti(80); }
-
   if (!isNew) {
-    // Duplikat → +500 Coins Belohnung
     setTimeout(async () => {
       try {
         const r2 = await api("/api/bonus", { method: "POST", body: JSON.stringify({ amount: 100 }) });
@@ -777,11 +756,7 @@ function showCardDrop(card, isNew) {
   }
 }
 
-// ============================================================
-// KARTEN-VOLLBILD
-// ============================================================
 let currentViewCard = null;
-
 function openCardView(cardId) {
   const card = CARDS.find(c => c.id === cardId);
   if (!card) return;
@@ -813,18 +788,14 @@ function downloadCard() {
   ctx.fillText(card.icon, 300, 400);
   ctx.fillStyle = "#fff"; ctx.font = "bold 40px sans-serif";
   ctx.fillText(card.name.toUpperCase(), 300, 680);
-  ctx.font = "bold 22px sans-serif";
-  ctx.fillStyle = "rgba(255,255,255,.9)";
+  ctx.font = "bold 22px sans-serif"; ctx.fillStyle = "rgba(255,255,255,.9)";
   ctx.fillText(r.name, 300, 720);
-  ctx.font = "bold 16px sans-serif";
-  ctx.fillStyle = "rgba(255,255,255,.6)";
+  ctx.font = "bold 16px sans-serif"; ctx.fillStyle = "rgba(255,255,255,.6)";
   ctx.fillText("CASINO HUNT", 300, 780);
   const url = canvas.toDataURL("image/png");
-  const a = document.createElement("a");
-  a.href = url; a.download = `card-${card.id}-${card.name}.png`;
+  const a = document.createElement("a"); a.href = url; a.download = `card-${card.id}-${card.name}.png`;
   document.body.appendChild(a); a.click(); a.remove();
-  haptic("medium");
-  showToast("📥 Karte gespeichert");
+  haptic("medium"); showToast("📥 Karte gespeichert");
 }
 
 function shareCard() {
@@ -838,9 +809,6 @@ function shareCard() {
   } catch (e) { showToast(text); }
 }
 
-// ============================================================
-// SPIELE
-// ============================================================
 const GAMES = { coin:"🪙 Münzwurf", dice:"🎲 Würfel", bowl:"🎳 Bowling", slots:"🎰 Slots", blackjack:"🃏 Blackjack", roulette:"🎡 Roulette" };
 
 document.querySelectorAll(".card[data-game]").forEach(el => {
@@ -1086,9 +1054,6 @@ async function runRoulette(bet, type) {
   finally { state.busy = false; }
 }
 
-// ============================================================
-// EFFEKTE
-// ============================================================
 function flashScreen(color) {
   const el = $("full-flash"); el.className = "full-flash"; void el.offsetWidth; el.classList.add(color);
 }
@@ -1126,9 +1091,6 @@ function showWinEffect(amount) {
   SFX.bigwin(); notify("success"); fireMega(amount);
 }
 
-// ============================================================
-// RESULT RENDERING
-// ============================================================
 function showResult(data, label) {
   state.coins = data.coins; updateCoins();
   const stage = $("stage");
@@ -1205,9 +1167,6 @@ function loop() {
 }
 loop();
 
-// ============================================================
-// TABBAR
-// ============================================================
 document.querySelectorAll(".tab").forEach(t => {
   t.addEventListener("click", () => {
     if (state.busy) return;
@@ -1240,9 +1199,6 @@ async function doDaily() {
   finally { state.busy = false; }
 }
 
-// ============================================================
-// SHOP-MODAL
-// ============================================================
 const kontoModal = $("konto-modal");
 $("coins-top").addEventListener("click", () => {
   if (state.busy) return;
@@ -1267,9 +1223,6 @@ document.querySelectorAll(".shop-card").forEach(btn => {
   });
 });
 
-// ============================================================
-// KARTEN-DROP HANDLER
-// ============================================================
 $("drop-close").addEventListener("click", () => {
   haptic();
   $("card-drop").classList.remove("show");
@@ -1284,17 +1237,11 @@ $("drop-collection").addEventListener("click", () => {
   show("s-collection"); renderCollection();
 });
 
-// ============================================================
-// KARTEN-VOLLBILD HANDLER
-// ============================================================
 $("card-view-close").addEventListener("click", () => { haptic(); $("card-view").classList.remove("show"); });
 $("card-view").addEventListener("click", (e) => { if (e.target === $("card-view")) $("card-view").classList.remove("show"); });
 $("card-download").addEventListener("click", downloadCard);
 $("card-share").addEventListener("click", shareCard);
 
-// ============================================================
-// BACK + HIDDEN ADMIN
-// ============================================================
 try { tg.BackButton.onClick(goHome); } catch (e) {}
 $("btn-back").addEventListener("click", goHome);
 
@@ -1314,9 +1261,6 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden && INIT) loadMe().catch(() => {});
 });
 
-// ============================================================
-// BOOT
-// ============================================================
 async function boot() {
   try {
     await waitForInit();
