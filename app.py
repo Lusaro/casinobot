@@ -460,11 +460,10 @@ def admin_stats(uid: int = Depends(auth)):
 # ============================================================
 WELCOME = (
     "🎰 <b>Virtual Casino</b>\n"
-    "<i>Nur Spielgeld · keine Einzahlungen · keine Käufe</i>\n"
     "━━━━━━━━━━━━━━━━━━━━\n"
-    "Das gesamte Casino läuft in der Mini App.\n"
+    "Das beste Casino auf Telegram.\n"
     "Tippe den Button unten, um zu starten.\n\n"
-    "⚠️ Kein Echtgeld · 18+"
+    "⚠️ VORSICHT · 18+"
 )
 
 def bot_kb():
