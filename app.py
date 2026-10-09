@@ -26,8 +26,8 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 # ============================================================
 # KONFIGURATION – AUS RENDER ENVIRONMENT VARIABLES
 # ============================================================
-BOT_TOKEN = os.environ["7869544365:AAEJUpdlKBIE4iamHKMafRB1eqyndWVat9Y"]
-WEBAPP_URL = os.environ["https://example.com"]
+BOT_TOKEN = os.environ["BOT_TOKEN"]
+WEBAPP_URL = os.environ["WEBAPP_URL"]
 PORT = int(os.environ.get("PORT", 10000))
 DB = "/tmp/casino.db"
 AUTH_MAX_AGE = 86400
