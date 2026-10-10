@@ -75,9 +75,7 @@ html,body{
 }
 @keyframes flameFlicker{0%{transform:translate(-50%,-55%) scale(1,1) rotate(-3deg)}50%{transform:translate(-50%,-58%) scale(1.1,.9) rotate(3deg)}100%{transform:translate(-50%,-52%) scale(.92,1.12) rotate(-2deg)}}
 @keyframes flameInner{0%{transform:translate(-50%,-50%) scale(.85,1.1)}100%{transform:translate(-50%,-60%) scale(1.1,.85)}}
-.streak-chip{display:none!important}
 
-/* ── Bet Slider ── */
 .bet-panel{width:100%;margin:10px 0 4px}
 .bet-slider-wrap{
   position:relative;
@@ -288,94 +286,136 @@ html,body{
 .full-flash.blue{background:#3b82f6;animation:flash .5s ease-out}
 @keyframes flash{0%{opacity:0}20%{opacity:.55}100%{opacity:0}}
 
+/* ═══════════════════════════════════════════════════════════
+   SAMMLUNG – Tinder-Style mit Bildern, Blur & Reveal
+   ═══════════════════════════════════════════════════════════ */
 .collection-header{margin-bottom:14px;text-align:center}
 .collection-title{font-size:22px;font-weight:900;letter-spacing:-.5px;background:linear-gradient(135deg,#fff,#ffd25e 60%,#ec4899);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .collection-count{color:var(--hint);font-size:13px;font-weight:700;margin-top:4px}
 .collection-progress{position:relative;height:8px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.06);border:1px solid var(--stroke);margin-top:10px}
 .collection-progress .fill{position:absolute;inset:0;width:0%;border-radius:999px;background:linear-gradient(90deg,#22d3ee,#7c3aed 50%,#ec4899);box-shadow:0 0 12px rgba(124,58,237,.6);transition:width .6s ease-out}
-.card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.card-slot{aspect-ratio:.72;border-radius:12px;position:relative;overflow:hidden;cursor:pointer;background:linear-gradient(160deg,#1a0b3d,#0d0620);border:2px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;transition:transform .12s, border-color .2s}
-.card-slot:active{transform:scale(.94)}
-.card-slot .em{font-size:38px;line-height:1}
-.card-slot .name-lbl{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:8px;font-weight:800;color:#fff;text-shadow:0 1px 2px #000;letter-spacing:.5px}
-.card-slot.locked{background:linear-gradient(160deg,#12102a,#08061a)}
-.card-slot.locked .em{filter:grayscale(1) brightness(.4);font-size:30px}
-.card-slot.locked::after{content:'🔒';position:absolute;font-size:22px;top:50%;left:50%;transform:translate(-50%,-50%);opacity:.9}
-.card-slot.locked .name-lbl{display:none}
-.card-slot .buy-lbl{
-  position:absolute;bottom:6px;left:4px;right:4px;
-  font-size:9px;font-weight:900;letter-spacing:.3px;
-  padding:4px 2px;border-radius:8px;text-align:center;
-  background:linear-gradient(135deg,#ffd25e,#ff9f1c);color:#2a0f00;
-  box-shadow:0 2px 8px rgba(255,159,28,.5);
-  z-index:3;
+
+.card-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:9px;
 }
-.card-slot.locked .buy-lbl{display:block}
-.card-slot:not(.locked) .buy-lbl{display:none}
-.card-slot .vip-badge{
-  position:absolute;top:4px;left:4px;font-size:8px;font-weight:900;
-  padding:2px 5px;border-radius:6px;
-  background:linear-gradient(135deg,#ffd25e,#ff9f1c);color:#2a0f00;
-  box-shadow:0 0 8px rgba(255,210,94,.6);z-index:4;
-}
-.card-slot .vip-lock{
-  display:none;
-  position:absolute;bottom:6px;left:4px;right:4px;
-  font-size:8px;font-weight:900;letter-spacing:.3px;
-  padding:4px 2px;border-radius:8px;text-align:center;
-  background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;
-  box-shadow:0 2px 10px rgba(124,58,237,.5);
-  z-index:4;
-}
-.card-slot.vip-locked .vip-lock{display:block}
-.card-slot.vip-locked .buy-lbl{display:none!important}
-.card-slot img.card-img{
-  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-  border-radius:10px;z-index:1;display:block;background:#1a0b3d;
-}
-.card-slot.has-img .em,
-.card-slot.has-vip .em,
-.card-slot.vip-media .em{display:none!important}
-.card-slot.has-img .name-lbl,
-.card-slot.has-vip .name-lbl,
-.card-slot.vip-media .name-lbl{
-  background:linear-gradient(transparent,rgba(0,0,0,.75));
-  bottom:0;padding:8px 2px 4px;z-index:5;
-}
-.card-slot.has-vip,.card-slot.has-img{
-  background:#12081f!important;
+.card-slot{
+  aspect-ratio:.70;
+  border-radius:16px;
+  position:relative;
   overflow:hidden;
+  cursor:pointer;
+  background:#12081f;
+  border:2px solid rgba(255,255,255,.08);
+  transition:transform .15s cubic-bezier(.34,1.56,.64,1), border-color .25s, box-shadow .25s;
+  -webkit-tap-highlight-color:transparent;
 }
-.card-slot.has-vip .card-img,
-.card-slot.has-img .card-img{
-  opacity:1!important;
-  visibility:visible!important;
-}
-.card-slot img.card-img.blurred{
-  filter:blur(10px) brightness(.55) saturate(1.15);
-  transform:scale(1.12);
+.card-slot:active{transform:scale(.94)}
+
+.card-slot .card-img{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  object-fit:cover;
+  display:block;
+  transition:filter .45s ease, transform .45s ease;
   z-index:1;
+  background:#12081f;
 }
+
+/* Blur für locked (Tinder-Feeling) */
+.card-slot.locked .card-img{
+  filter:blur(12px) brightness(.55) saturate(1.15);
+  transform:scale(1.18);
+}
+
+/* Card-Name unten */
+.card-slot .card-name-lbl{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:16px 4px 6px;
+  text-align:center;
+  font-size:9px;font-weight:900;letter-spacing:.6px;
+  color:#fff;
+  text-shadow:0 1px 3px rgba(0,0,0,.95);
+  background:linear-gradient(transparent,rgba(0,0,0,.85));
+  z-index:4;
+  pointer-events:none;
+}
+
+/* Locked (normale, nicht besessene Karte) */
+.card-slot .lock-center{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  z-index:3;pointer-events:none;
+  font-size:30px;
+  filter:drop-shadow(0 2px 10px rgba(0,0,0,.95)) drop-shadow(0 0 20px rgba(0,0,0,.7));
+  text-shadow:0 0 20px rgba(0,0,0,.9);
+}
+.card-slot .price-pill{
+  position:absolute;bottom:6px;left:6px;right:6px;
+  padding:6px 4px;
+  border-radius:10px;
+  text-align:center;
+  font-size:10px;font-weight:900;letter-spacing:.3px;
+  background:linear-gradient(135deg,#ffd25e,#ff9f1c);
+  color:#2a0f00;
+  box-shadow:0 3px 12px rgba(255,159,28,.7);
+  z-index:5;
+  pointer-events:none;
+}
+
+/* VIP-Karten (locked) */
 .card-slot .vip-center{
-  position:absolute;inset:0;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;z-index:3;pointer-events:none;
-  text-align:center;padding:8px;
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  z-index:3;pointer-events:none;
+  text-align:center;padding:6px;
 }
 .card-slot .vip-center .vip-big{
-  font-size:22px;font-weight:900;letter-spacing:3px;
+  font-size:26px;font-weight:900;letter-spacing:4px;
   background:linear-gradient(135deg,#fff,#ffd25e 50%,#ec4899);
   -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-  text-shadow:0 0 20px rgba(255,210,94,.5);filter:drop-shadow(0 2px 8px rgba(0,0,0,.8));
+  filter:drop-shadow(0 4px 12px rgba(0,0,0,.95)) drop-shadow(0 0 24px rgba(255,210,94,.8));
 }
-.card-slot .vip-center .vip-sub{
-  margin-top:4px;font-size:9px;font-weight:800;color:rgba(255,255,255,.85);
-  letter-spacing:1px;text-transform:uppercase;
+.card-slot .paypal-pill{
+  position:absolute;bottom:6px;left:6px;right:6px;
+  padding:6px 4px;
+  border-radius:10px;
+  text-align:center;
+  font-size:10px;font-weight:900;letter-spacing:.3px;
+  background:linear-gradient(135deg,#3b82f6,#22d3ee);
+  color:#fff;
+  box-shadow:0 3px 12px rgba(59,130,246,.7);
+  z-index:5;
+  pointer-events:none;
 }
 
-.card-slot.legendary{border-color:#ffd25e;box-shadow:0 0 16px rgba(255,210,94,.6)}
-.card-slot.epic{border-color:#ec4899;box-shadow:0 0 14px rgba(236,72,153,.5)}
-.card-slot.rare{border-color:#22d3ee}
+/* VIP freigeschaltet → Badge */
+.card-slot .vip-badge{
+  position:absolute;top:6px;left:6px;
+  font-size:8px;font-weight:900;letter-spacing:1.2px;
+  padding:3px 7px;border-radius:7px;
+  background:linear-gradient(135deg,#ffd25e,#ff9f1c);
+  color:#2a0f00;
+  box-shadow:0 0 12px rgba(255,210,94,.85);
+  z-index:5;
+  pointer-events:none;
+}
 
+/* Seltenheits-Border (nur für besessene normale Karten) */
+.card-slot.rarity-common{border-color:rgba(139,134,184,.55)}
+.card-slot.rarity-rare{border-color:#22d3ee;box-shadow:0 0 12px rgba(34,211,238,.35)}
+.card-slot.rarity-epic{border-color:#ec4899;box-shadow:0 0 14px rgba(236,72,153,.45)}
+.card-slot.rarity-legendary{border-color:#ffd25e;box-shadow:0 0 16px rgba(255,210,94,.6)}
+
+/* VIP freigeschaltet → goldener Glow */
+.card-slot.vip-unlocked{
+  border-color:#ffd25e;
+  box-shadow:0 0 18px rgba(255,210,94,.7);
+}
+
+/* Card Drop Modal – Bild als Vollflächen-Hintergrund */
 .card-drop{position:fixed;inset:0;z-index:960;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px;text-align:center}
 .card-drop.show{display:flex;animation:fadeIn .2s ease-out}
 .drop-label{font-size:12px;font-weight:900;letter-spacing:3px;color:#ffd25e;margin-bottom:14px;text-shadow:0 0 20px rgba(255,210,94,.8)}
@@ -384,9 +424,9 @@ html,body{
 .drop-card{width:220px;height:308px;border-radius:20px;position:relative;animation:cardFlipIn 1s cubic-bezier(.22,1,.36,1);transform-style:preserve-3d}
 @keyframes cardFlipIn{0%{transform:rotateY(180deg) scale(.5);opacity:0}50%{transform:rotateY(90deg) scale(1.1)}100%{transform:rotateY(0) scale(1);opacity:1}}
 .drop-card-inner{width:100%;height:100%;border-radius:20px;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 20px 60px rgba(0,0,0,.6);background:#12081f center/cover no-repeat}
-.drop-card-inner .em{font-size:90px;line-height:1;filter:drop-shadow(0 6px 20px rgba(0,0,0,.5))}
-.drop-card-inner .card-name{position:absolute;bottom:50px;left:0;right:0;text-align:center;font-size:15px;font-weight:900;color:#fff;letter-spacing:2px;text-shadow:0 2px 6px rgba(0,0,0,.7);z-index:3}
-.drop-card-inner .card-rarity{position:absolute;bottom:24px;left:0;right:0;text-align:center;font-size:11px;font-weight:900;color:rgba(255,255,255,.9);letter-spacing:4px;text-shadow:0 1px 4px rgba(0,0,0,.7);z-index:3}
+.drop-card-inner .em{display:none!important}
+.drop-card-inner .card-name{position:absolute;bottom:50px;left:0;right:0;text-align:center;font-size:15px;font-weight:900;color:#fff;letter-spacing:2px;text-shadow:0 2px 8px rgba(0,0,0,.9);z-index:3}
+.drop-card-inner .card-rarity{position:absolute;bottom:24px;left:0;right:0;text-align:center;font-size:11px;font-weight:900;color:rgba(255,255,255,.95);letter-spacing:4px;text-shadow:0 2px 6px rgba(0,0,0,.9);z-index:3}
 .drop-card-inner::after{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);transform:translateX(-100%) rotate(0deg);animation:shineCard 2s ease-in-out infinite;z-index:5;pointer-events:none}
 @keyframes shineCard{60%{transform:translateX(100%) rotate(0deg)}}
 .drop-actions{display:flex;gap:10px;width:100%;max-width:340px;margin-top:6px}
@@ -655,7 +695,6 @@ html,body{
   <div class="drop-card-wrap">
     <div class="drop-card" id="drop-card">
       <div class="drop-card-inner" id="drop-card-inner">
-        <div class="em" id="drop-em"></div>
         <div class="card-name" id="drop-name">CARD</div>
         <div class="card-rarity" id="drop-rarity">COMMON</div>
       </div>
@@ -696,14 +735,9 @@ const RARITY = {
   legendary: { name: "LEGENDARY", color: "#ffd25e", glow: "rgba(255,210,94,.8)" },
 };
 
-const CARD_PRICES = {
-  common: 400,
-  rare: 1200,
-  epic: 3500,
-  legendary: 9000,
-};
+const CARD_PRICES = { common: 400, rare: 1200, epic: 3500, legendary: 9000 };
 
-// ── 30 Karten, alle aus GitHub-Repo (siehe Backend CARDS_IMAGE_BASE) ──
+// 30 Karten – reine Bild-Karten, keine Emojis
 const CARDS = Array.from({ length: 30 }, (_, i) => {
   const id = i + 1;
   let rarity;
@@ -711,11 +745,7 @@ const CARDS = Array.from({ length: 30 }, (_, i) => {
   else if (id <= 26) rarity = "rare";
   else if (id <= 29) rarity = "epic";
   else rarity = "legendary";
-  return {
-    id,
-    name: "Karte " + String(id).padStart(2, "0"),
-    rarity,
-  };
+  return { id, name: "Karte " + String(id).padStart(2, "0"), rarity };
 });
 
 const REF_MILESTONES = [
@@ -1219,10 +1249,16 @@ async function checkLevelUp(newLevel) {
 async function grantRandomCard(label) {
   while (dropBusy) await new Promise(r => setTimeout(r, 100));
   dropBusy = true;
-  const locked = CARDS.filter(c => !hasCard(c.id));
+  // Nur normale Karten (keine VIP) droppen
+  const droppable = CARDS.filter(c => {
+    const cat = catalogMap[c.id] || {};
+    return !cat.is_vip_card;
+  });
+  const locked = droppable.filter(c => !hasCard(c.id));
   const card = locked.length > 0
     ? locked[Math.floor(Math.random() * locked.length)]
-    : CARDS[Math.floor(Math.random() * CARDS.length)];
+    : droppable[Math.floor(Math.random() * droppable.length)];
+  if (!card) { dropBusy = false; return; }
   const isNew = !hasCard(card.id);
   await addCard(card.id);
   await saveCollection();
@@ -1242,11 +1278,14 @@ async function loadFeed() {
     </div>`).join("");
 }
 
-// Bild-URL aus Backend-Proxy (Endung egal)
+// Bild über Backend-Proxy (funktioniert mit jeder Endung)
 function vipImgSrc(cardId) {
   return API + "/api/media/" + cardId + "?t=" + Date.now();
 }
 
+// ═══════════════════════════════════════════════════════════
+// SAMMLUNG – Tinder-Grid
+// ═══════════════════════════════════════════════════════════
 function renderCollection() {
   const grid = $("card-grid");
   if (!grid) return;
@@ -1257,79 +1296,88 @@ function renderCollection() {
 
   grid.innerHTML = CARDS.map(card => {
     const cat = catalogMap[card.id] || {};
-    const meta = collectionMeta[card.id] || {};
     const owned = hasCard(card.id);
-    const vipUnlocked = !!(meta.vip || cat.vip);
+    const isVipCard = !!cat.is_vip_card;
+    const vipUnlocked = !!cat.vip;
     const price = (cat.buy_price != null ? cat.buy_price : CARD_PRICES[card.rarity]) || 400;
     const src = vipImgSrc(card.id);
 
-    let cls = "card-slot has-img has-vip";
+    let cls = "card-slot";
     let overlay = "";
 
-    if (vipUnlocked) {
-      cls += " " + card.rarity;
-      overlay = `<span class="vip-badge">VIP</span>
-        <img class="card-img" src="${src}" alt="" loading="lazy" referrerpolicy="no-referrer">`;
+    if (isVipCard) {
+      if (vipUnlocked) {
+        cls += " vip-unlocked";
+        overlay = `
+          <div class="vip-badge">VIP</div>
+          <div class="card-name-lbl">${card.name}</div>`;
+      } else {
+        cls += " locked";
+        overlay = `
+          <div class="vip-center"><div class="vip-big">VIP</div></div>
+          <div class="paypal-pill">💳 PayPal</div>`;
+      }
     } else if (owned) {
-      cls += " vip-locked";
-      overlay = `
-        <img class="card-img blurred" src="${src}" alt="" loading="eager" referrerpolicy="no-referrer">
-        <div class="vip-center">
-          <div class="vip-big">VIP</div>
-          <div class="vip-sub">${isAdmin ? "Admin · Öffnen" : "Mit PayPal freischalten"}</div>
-        </div>
-        <div class="vip-lock">${isAdmin ? "👑 Admin" : "💳 PayPal"}</div>`;
+      cls += " rarity-" + card.rarity;
+      overlay = `<div class="card-name-lbl">${card.name}</div>`;
     } else {
       cls += " locked";
       overlay = `
-        <img class="card-img blurred" src="${src}" alt="" loading="eager" referrerpolicy="no-referrer">
-        <div class="vip-center">
-          <div class="vip-big">🔒</div>
-          <div class="vip-sub">Sammle oder kaufe</div>
-        </div>
-        <div class="buy-lbl">💰 ${Number(price).toLocaleString("de-DE")}</div>`;
+        <div class="lock-center">🔒</div>
+        <div class="price-pill">💰 ${Number(price).toLocaleString("de-DE")}</div>`;
     }
 
     return `<div class="${cls}" data-card="${card.id}">
-      <div class="name-lbl">${card.name}</div>
+      <img class="card-img" src="${src}" alt="" loading="lazy" referrerpolicy="no-referrer">
       ${overlay}
     </div>`;
   }).join("");
 
   grid.querySelectorAll(".card-slot").forEach(el => {
     const id = parseInt(el.dataset.card, 10);
-    el.addEventListener("click", async () => {
-      const cat = catalogMap[id] || {};
-      const meta = collectionMeta[id] || {};
-      const owned = hasCard(id);
-      const vipUnlocked = !!(meta.vip || cat.vip);
-
-      if (isAdmin && !vipUnlocked) {
-        try {
-          await api("/api/unlock_vip", { method: "POST", body: JSON.stringify({ card_id: id }) });
-          const data = await api("/api/collection");
-          applyCollectionData(data);
-          renderCollection();
-        } catch (e) {}
-        openCardView(id);
-        return;
-      }
-      if (vipUnlocked) openCardView(id);
-      else if (owned) openUnlockVip(id);
-      else openBuyCard(id);
-    });
+    el.addEventListener("click", () => handleCardClick(id));
   });
 }
 
+async function handleCardClick(id) {
+  if (state.busy) return;
+  const cat = catalogMap[id] || {};
+  const isVipCard = !!cat.is_vip_card;
+  const vipUnlocked = !!cat.vip;
+  const owned = hasCard(id);
+  haptic();
+
+  // Admin: VIP-Karte automatisch für sich freischalten
+  if (isAdmin && isVipCard && !vipUnlocked) {
+    try {
+      await api("/api/unlock_vip", { method: "POST", body: JSON.stringify({ card_id: id }) });
+      const data = await api("/api/collection");
+      applyCollectionData(data);
+      renderCollection();
+    } catch (e) {}
+    openCardView(id);
+    return;
+  }
+
+  if (isVipCard) {
+    if (vipUnlocked) openCardView(id);
+    else openUnlockVip(id);
+    return;
+  }
+
+  if (owned) openCardView(id);
+  else openBuyCard(id);
+}
+
+// VIP per PayPal freischalten
 async function openUnlockVip(cardId) {
   const card = CARDS.find(c => c.id === cardId);
   if (!card) return;
   const cat = catalogMap[cardId] || {};
-  const meta = collectionMeta[cardId] || {};
-  const paypal = (cat.paypal_link || meta.paypal_link || "").trim();
+  const paypal = (cat.paypal_link || "").trim();
 
   if (!paypal) {
-    showToast("Kein PayPal-Link hinterlegt – Admin muss einen setzen");
+    showToast("Kein PayPal-Link hinterlegt – Admin kontaktieren");
     return;
   }
 
@@ -1348,6 +1396,7 @@ async function openUnlockVip(cardId) {
       SFX.cardDrop();
       notify("success");
       showToast(`✨ VIP freigeschaltet: ${card.name}`);
+      // #4: Groß und scharf öffnen
       openCardView(cardId);
     } catch (e) {
       showToast("Fehler: " + e.message);
@@ -1390,10 +1439,12 @@ async function openUnlockVip(cardId) {
   openPayPal();
 }
 
+// Normale Karte mit Coins kaufen
 async function openBuyCard(cardId) {
   const card = CARDS.find(c => c.id === cardId);
   if (!card || hasCard(cardId)) return;
   const cat = catalogMap[cardId] || {};
+  if (cat.is_vip_card) { openUnlockVip(cardId); return; }
   const price = (cat.buy_price != null ? cat.buy_price : CARD_PRICES[card.rarity]) || 400;
   const r = RARITY[card.rarity];
 
@@ -1413,7 +1464,6 @@ async function openBuyCard(cardId) {
       });
       state.coins = res.coins;
       updateCoins();
-      if (!hasCard(cardId)) collection.push(cardId);
       const data = await api("/api/collection");
       applyCollectionData(data);
       renderCollection();
@@ -1421,6 +1471,8 @@ async function openBuyCard(cardId) {
       notify("success");
       showCardDrop(card, true, "🛒 GEKAUFT");
       showToast(`✅ ${card.name} freigeschaltet!`);
+      // #4: Nach Kauf groß und scharf öffnen
+      setTimeout(() => openCardView(cardId), 1400);
     } catch (e) {
       showToast("Fehler: " + e.message);
       SFX.lose();
@@ -1445,13 +1497,20 @@ async function openBuyCard(cardId) {
   await doBuy();
 }
 
+// Karten-Drop – nur für normale Karten
 function rollCard() {
+  const droppable = CARDS.filter(c => {
+    const cat = catalogMap[c.id] || {};
+    return !cat.is_vip_card;
+  });
+  if (!droppable.length) return CARDS[0];
   const r = Math.random();
   let pool;
-  if (r < 0.03) pool = CARDS.filter(c => c.rarity === "legendary");
-  else if (r < 0.15) pool = CARDS.filter(c => c.rarity === "epic");
-  else if (r < 0.40) pool = CARDS.filter(c => c.rarity === "rare");
-  else pool = CARDS.filter(c => c.rarity === "common");
+  if (r < 0.03) pool = droppable.filter(c => c.rarity === "legendary");
+  else if (r < 0.15) pool = droppable.filter(c => c.rarity === "epic");
+  else if (r < 0.40) pool = droppable.filter(c => c.rarity === "rare");
+  else pool = droppable.filter(c => c.rarity === "common");
+  if (!pool.length) pool = droppable;
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -1480,9 +1539,8 @@ function showCardDrop(card, isNew, customLabel) {
 
   const inner = $("drop-card-inner");
   const src = vipImgSrc(card.id);
-  inner.style.background = `linear-gradient(rgba(0,0,0,.15),rgba(0,0,0,.55)), url("${src}") center/cover no-repeat, #12081f`;
+  inner.style.background = `linear-gradient(rgba(0,0,0,.15),rgba(0,0,0,.65)), url("${src}") center/cover no-repeat, #12081f`;
   inner.style.boxShadow = `0 20px 60px rgba(0,0,0,.6), 0 0 40px ${r.glow}`;
-  const em = $("drop-em"); if (em) em.style.display = "none";
 
   drop.classList.add("show");
   haptic("heavy");
@@ -1500,31 +1558,30 @@ function showCardDrop(card, isNew, customLabel) {
   }
 }
 
+// #4: Card-View – groß und scharf
 let currentViewCard = null;
 function openCardView(cardId) {
   const card = CARDS.find(c => c.id === cardId);
   if (!card) return;
   currentViewCard = card;
   const r = RARITY[card.rarity];
-  const meta = collectionMeta[cardId] || {};
   const cat = catalogMap[cardId] || {};
-  const vipUnlocked = !!(meta.vip || cat.vip) || isAdmin;
-  const creatorLink = (meta.creator_link || cat.creator_link || "").trim();
-  const showBlur = !vipUnlocked;
+  const isVipCard = !!cat.is_vip_card;
+  const vipUnlocked = !!cat.vip || isAdmin;
+  const creatorLink = (cat.creator_link || "").trim();
   const src = vipImgSrc(cardId);
-  const blurStyle = showBlur ? "filter:blur(14px) brightness(.55);transform:scale(1.1)" : "";
+
+  const borderColor = (isVipCard && vipUnlocked) ? "#ffd25e" : r.color;
+  const glowColor = (isVipCard && vipUnlocked) ? "rgba(255,210,94,.7)" : r.glow;
 
   const inner = `
-    <div style="width:280px;height:390px;border-radius:20px;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 40px ${r.glow};background:#12081f">
+    <div style="width:280px;height:390px;border-radius:22px;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 40px ${glowColor};background:#12081f;border:2px solid ${borderColor}">
       <img src="${src}" alt="" referrerpolicy="no-referrer"
-           style="width:100%;height:100%;object-fit:cover;${blurStyle}">
-      ${showBlur ? `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.25)">
-        <div style="font-size:40px;font-weight:900;letter-spacing:5px;background:linear-gradient(135deg,#fff,#ffd25e 50%,#ec4899);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 2px 10px rgba(0,0,0,.8))">VIP</div>
-        <div style="margin-top:10px;font-size:11px;font-weight:800;color:#fff;opacity:.9;letter-spacing:2px;text-transform:uppercase">Mit PayPal freischalten</div>
-      </div>` : ""}
+           style="width:100%;height:100%;object-fit:cover;display:block">
+      ${(isVipCard && vipUnlocked) ? '<div style="position:absolute;top:10px;left:10px;font-size:10px;font-weight:900;letter-spacing:1.5px;padding:4px 9px;border-radius:8px;background:linear-gradient(135deg,#ffd25e,#ff9f1c);color:#2a0f00;box-shadow:0 0 12px rgba(255,210,94,.8);z-index:3">VIP</div>' : ''}
       <div style="position:absolute;bottom:0;left:0;right:0;padding:40px 12px 16px;background:linear-gradient(transparent,rgba(0,0,0,.9))">
-        <div style="text-align:center;font-size:18px;font-weight:900;color:#fff;letter-spacing:2px">${card.name.toUpperCase()}</div>
-        <div style="text-align:center;font-size:11px;font-weight:900;color:${r.color};letter-spacing:4px;margin-top:4px">${vipUnlocked ? "VIP · " : ""}${r.name}</div>
+        <div style="text-align:center;font-size:18px;font-weight:900;color:#fff;letter-spacing:2px;text-shadow:0 2px 8px rgba(0,0,0,.8)">${card.name.toUpperCase()}</div>
+        <div style="text-align:center;font-size:11px;font-weight:900;color:${r.color};letter-spacing:4px;margin-top:4px">${r.name}</div>
       </div>
     </div>`;
   $("card-view-img").innerHTML = inner;
@@ -1532,8 +1589,9 @@ function openCardView(cardId) {
   const btnCreator = $("card-creator-btn");
   const btnDl = $("card-download");
   const btnSh = $("card-share");
+
   if (btnCreator) {
-    if (vipUnlocked && creatorLink) {
+    if (vipUnlocked && isVipCard && creatorLink) {
       btnCreator.style.display = "block";
       btnCreator.onclick = () => {
         haptic();
@@ -1545,8 +1603,8 @@ function openCardView(cardId) {
       };
     } else btnCreator.style.display = "none";
   }
-  if (btnDl) btnDl.style.display = showBlur ? "none" : "block";
-  if (btnSh) btnSh.style.display = showBlur ? "none" : "block";
+  if (btnDl) btnDl.style.display = "block";
+  if (btnSh) btnSh.style.display = "block";
 
   $("card-view").classList.add("show");
   haptic();
@@ -1559,6 +1617,7 @@ function downloadCard() {
   link.href = vipImgSrc(card.id);
   link.download = `card-${card.id}.png`;
   link.target = "_blank";
+  link.rel = "noopener";
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -1575,6 +1634,9 @@ function shareCard() {
   } catch (e) { showToast(text); }
 }
 
+// ═══════════════════════════════════════════════════════════
+// GAMES
+// ═══════════════════════════════════════════════════════════
 const GAMES = { crash:"🚀 Crash", coin:"🪙 Münzwurf", bowl:"🎳 Bowling", slots:"🎰 Slots", blackjack:"🃏 Blackjack", roulette:"🎡 Roulette" };
 
 document.querySelectorAll(".card[data-game]").forEach(el => {
@@ -1686,9 +1748,7 @@ function runGame(game, bet) {
   if (game === "bowl") return playBowl(bet);
 }
 
-// ============================================================
-// CRASH
-// ============================================================
+// ── CRASH ──
 let crashRaf = 0;
 
 function playCrash(bet) {
@@ -1990,13 +2050,11 @@ function onCrashLoss(bet, crashPoint) {
   state.busy = false;
 }
 
-// ============================================================
-// COINFLIP
-// ============================================================
+// ── COINFLIP ──
 async function playCoinflip(bet) {
   state.busy = true; $("bet-row").innerHTML = "";
   $("stage").innerHTML = `
-    <div class="dice-big" id="dice" style="font-size:120px;line-height:1;text-align:center">🪙</div>
+    <div id="dice" style="font-size:120px;line-height:1;text-align:center">🪙</div>
     <div class="bet-row" style="grid-template-columns:1fr 1fr;width:100%;max-width:320px">
       <button class="btn" id="pk">Kopf</button><button class="btn" id="pz">Zahl</button>
     </div>`;
@@ -2022,9 +2080,7 @@ async function runCoinflip(bet, choice) {
   finally { state.busy = false; }
 }
 
-// ============================================================
-// BOWLING
-// ============================================================
+// ── BOWLING ──
 async function playBowl(bet) {
   state.busy = true;
   $("bet-row").innerHTML = "";
@@ -2087,9 +2143,7 @@ async function playBowl(bet) {
   finally { state.busy = false; }
 }
 
-// ============================================================
-// SLOTS
-// ============================================================
+// ── SLOTS ──
 function spinReel(el, finalSymbol, duration) {
   return new Promise(resolve => {
     const symbols = ["🍒","🍋","🔔","💎","7️⃣"];
@@ -2099,7 +2153,6 @@ function spinReel(el, finalSymbol, duration) {
       const elapsed = performance.now() - start;
       if (elapsed >= duration) {
         el.textContent = finalSymbol; el.classList.remove("spinning");
-        el.classList.add("pop"); setTimeout(() => el.classList.remove("pop"), 400);
         resolve(); return;
       }
       el.textContent = symbols[Math.floor(Math.random() * symbols.length)];
@@ -2120,21 +2173,25 @@ async function playSlots(bet) {
     const data = await apiCall;
     const outcome = data.result.outcome;
     const m = speedMult();
-    await Promise.all([ spinReel($("r0"), outcome[0], 900/m), spinReel($("r1"), outcome[1], 1200/m), spinReel($("r2"), outcome[2], 1500/m) ]);
+    await Promise.all([
+      spinReel($("r0"), outcome[0], 900/m),
+      spinReel($("r1"), outcome[1], 1200/m),
+      spinReel($("r2"), outcome[2], 1500/m)
+    ]);
     clearInterval(tick);
     markMission("play"); markMission("bet", bet);
     if (data.payout > bet) markMission("win");
     showResult(data, outcome.join(" "));
   } catch (e) {
     clearInterval(tick);
-    $("r0").classList.remove("spinning"); $("r1").classList.remove("spinning"); $("r2").classList.remove("spinning");
+    $("r0").classList.remove("spinning");
+    $("r1").classList.remove("spinning");
+    $("r2").classList.remove("spinning");
     showToast("Fehler: " + e.message); renderBets(state.game);
   } finally { state.busy = false; }
 }
 
-// ============================================================
-// BLACKJACK
-// ============================================================
+// ── BLACKJACK ──
 function cardHtml(c, hidden = false) {
   if (hidden || c.r === "?") return '<div class="playing-card hidden">?</div>';
   const red = c.s === "♥" || c.s === "♦";
@@ -2187,13 +2244,18 @@ function renderBlackjack(data, bet) {
           showLossEffect(bet);
           showResultFinal({ payout: 0, delta: -bet, coins: d.coins }, "BUST!");
           loadMe().catch(() => {});
-        } else { hit.disabled = false; st.disabled = false; }
-      } catch (e) { showToast("Fehler: " + e.message); hit.disabled = false; st.disabled = false; }
-      finally { state.busy = false; }
+        } else {
+          hit.disabled = false; st.disabled = false;
+        }
+      } catch (e) {
+        showToast("Fehler: " + e.message);
+        hit.disabled = false; st.disabled = false;
+      } finally { state.busy = false; }
     });
     st.addEventListener("click", async () => {
       if (state.busy) return;
-      state.busy = true; haptic(); hit.disabled = true; st.disabled = true;
+      state.busy = true; haptic();
+      hit.disabled = true; st.disabled = true;
       try {
         const d = await api("/api/bj/stand", { method: "POST" });
         $("dh").innerHTML = d.dealer.map(c => cardHtml(c)).join("");
@@ -2237,9 +2299,7 @@ function renderBlackjack(data, bet) {
   }
 }
 
-// ============================================================
-// ROULETTE
-// ============================================================
+// ── ROULETTE ──
 async function playRoulette(bet) {
   if (state.busy) return;
   state.busy = true; $("bet-row").innerHTML = "";
@@ -2284,9 +2344,9 @@ async function runRoulette(bet, type) {
   finally { state.busy = false; }
 }
 
-// ============================================================
+// ═══════════════════════════════════════════════════════════
 // EFFEKTE
-// ============================================================
+// ═══════════════════════════════════════════════════════════
 function flashScreen(color) {
   const el = $("full-flash"); el.className = "full-flash"; void el.offsetWidth; el.classList.add(color);
 }
@@ -2315,7 +2375,10 @@ function showLossEffect(amount) {
   const v = $("loss-vignette"); v.classList.remove("show"); void v.offsetWidth; v.classList.add("show");
   shakeScreen(true); lossRings(); floatingLoss(amount);
   const big = $("balance-value");
-  if (big) { big.classList.remove("lose-shake"); void big.offsetWidth; big.classList.add("lose-shake"); setTimeout(() => big.classList.remove("lose-shake"), 600); }
+  if (big) {
+    big.classList.remove("lose-shake"); void big.offsetWidth; big.classList.add("lose-shake");
+    setTimeout(() => big.classList.remove("lose-shake"), 600);
+  }
   SFX.lose(); notify("error");
 }
 function showWinEffect(amount) {
@@ -2337,7 +2400,9 @@ function showResult(data, label) {
   const div = document.createElement("div");
   const win = data.payout > 0;
   div.className = "result-text " + (win ? "win" : "lose");
-  div.innerHTML = win ? `+${data.payout} <span style="font-size:13px;color:var(--hint)">(Netto ${data.delta >= 0 ? "+" : ""}${data.delta})</span>` : `−${Math.abs(data.delta)}`;
+  div.innerHTML = win
+    ? `+${data.payout} <span style="font-size:13px;color:var(--hint)">(Netto ${data.delta >= 0 ? "+" : ""}${data.delta})</span>`
+    : `−${Math.abs(data.delta)}`;
   stage.appendChild(div);
   if (win) { showWinEffect(data.payout); tryCardDrop(0.15); }
   else { showLossEffect(Math.abs(data.delta)); }
@@ -2354,7 +2419,9 @@ function showResultFinal(data, label) {
   const div = document.createElement("div");
   const win = data.payout > 0, push = data.delta === 0;
   div.className = "result-text " + (win ? "win" : push ? "push" : "lose");
-  div.innerHTML = win ? `+${data.payout} <span style="font-size:13px;color:var(--hint)">(Netto ${data.delta >= 0 ? "+" : ""}${data.delta})</span>` : push ? "Push" : `−${Math.abs(data.delta)}`;
+  div.innerHTML = win
+    ? `+${data.payout} <span style="font-size:13px;color:var(--hint)">(Netto ${data.delta >= 0 ? "+" : ""}${data.delta})</span>`
+    : push ? "Push" : `−${Math.abs(data.delta)}`;
   stage.appendChild(div);
   renderBets(state.game);
 }
@@ -2378,8 +2445,10 @@ function burstConfetti(n = 80) {
   for (let i = 0; i < n; i++) {
     const isEmoji = Math.random() < 0.25;
     particles.push({
-      x: cvs.width/2 + (Math.random()-.5)*80, y: cvs.height/2 + (Math.random()-.5)*80,
-      vx: (Math.random()-.5)*18, vy: (Math.random()-.5)*18 - 6,
+      x: cvs.width/2 + (Math.random()-.5)*80,
+      y: cvs.height/2 + (Math.random()-.5)*80,
+      vx: (Math.random()-.5)*18,
+      vy: (Math.random()-.5)*18 - 6,
       life: 1, rot: Math.random()*Math.PI*2, vr: (Math.random()-.5)*.4,
       color: ["#ffd25e","#22ff88","#22d3ee","#ec4899","#fff","#ff9f1c","#7c3aed"][Math.floor(Math.random()*7)],
       size: 4 + Math.random()*6,
@@ -2394,17 +2463,25 @@ function loop() {
     p.x += p.vx; p.y += p.vy; p.vy += .35; p.vx *= .99; p.life -= .012; p.rot += p.vr;
     ctx.save(); ctx.globalAlpha = Math.max(0, p.life);
     ctx.translate(p.x, p.y); ctx.rotate(p.rot);
-    if (p.emoji) { ctx.font = (p.size*4) + "px serif"; ctx.textAlign="center"; ctx.fillText(p.emoji, 0, 0); }
-    else { ctx.fillStyle = p.color; ctx.shadowColor = p.color; ctx.shadowBlur = 10; ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size); }
+    if (p.emoji) {
+      ctx.font = (p.size*4) + "px serif";
+      ctx.textAlign="center";
+      ctx.fillText(p.emoji, 0, 0);
+    } else {
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 10;
+      ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+    }
     ctx.restore();
   }
   requestAnimationFrame(loop);
 }
 loop();
 
-// ============================================================
+// ═══════════════════════════════════════════════════════════
 // MISSIONS
-// ============================================================
+// ═══════════════════════════════════════════════════════════
 function renderMissions() {
   const box = $("missions-box");
   if (!box) return;
@@ -2463,12 +2540,14 @@ function updateDailyBadge() {
   if (badge) badge.classList.toggle("hidden", !canClaim);
 }
 
-// ============================================================
+// ═══════════════════════════════════════════════════════════
 // DAILY
-// ============================================================
+// ═══════════════════════════════════════════════════════════
 function renderDailyScreen() {
   const today = todayKey();
-  const curDay = meta.dailyStreak.lastDate === today ? meta.dailyStreak.days : (meta.dailyStreak.lastDate === yesterdayKey() ? meta.dailyStreak.days + 1 : 1);
+  const curDay = meta.dailyStreak.lastDate === today
+    ? meta.dailyStreak.days
+    : (meta.dailyStreak.lastDate === yesterdayKey() ? meta.dailyStreak.days + 1 : 1);
   const daysBox = $("streak-days");
   if (daysBox) {
     daysBox.innerHTML = DAILY_STREAK.map(d => {
@@ -2500,7 +2579,11 @@ async function claimDaily() {
   if (state.busy) return;
   state.busy = true; haptic(); SFX.click();
   const today = todayKey();
-  if (meta.dailyStreak.lastDate === today) { showToast("⏳ Heute schon abgeholt"); state.busy = false; return; }
+  if (meta.dailyStreak.lastDate === today) {
+    showToast("⏳ Heute schon abgeholt");
+    state.busy = false;
+    return;
+  }
   let newDays = 1;
   if (meta.dailyStreak.lastDate === yesterdayKey()) newDays = Math.min(meta.dailyStreak.days + 1, 7);
   const reward = DAILY_STREAK[newDays - 1];
@@ -2528,9 +2611,9 @@ async function claimDaily() {
   finally { state.busy = false; }
 }
 
-// ============================================================
-// WHEEL (Canvas)
-// ============================================================
+// ═══════════════════════════════════════════════════════════
+// WHEEL
+// ═══════════════════════════════════════════════════════════
 let wheelRotation = 0;
 
 function renderWheelCanvas() {
@@ -2637,7 +2720,10 @@ function updateWheelTimer() {
 async function spinWheel() {
   if (state.busy) return;
   const now = Date.now();
-  if (now - (meta.wheel.lastSpin || 0) < 3600 * 1000) { showToast("⏳ Noch nicht bereit"); return; }
+  if (now - (meta.wheel.lastSpin || 0) < 3600 * 1000) {
+    showToast("⏳ Noch nicht bereit");
+    return;
+  }
   state.busy = true; haptic(); SFX.click();
   meta.wheel.lastSpin = now;
   await saveMeta();
@@ -2686,9 +2772,9 @@ async function spinWheel() {
 
 setInterval(updateWheelTimer, 30000);
 
-// ============================================================
+// ═══════════════════════════════════════════════════════════
 // TABBAR
-// ============================================================
+// ═══════════════════════════════════════════════════════════
 document.querySelectorAll(".tab").forEach(t => {
   t.addEventListener("click", () => {
     if (state.busy) return;
@@ -2702,9 +2788,9 @@ document.querySelectorAll(".tab").forEach(t => {
   });
 });
 
-// ============================================================
+// ═══════════════════════════════════════════════════════════
 // SHOP
-// ============================================================
+// ═══════════════════════════════════════════════════════════
 const kontoModal = $("konto-modal");
 function openShop() {
   if (state.busy) return;
@@ -2763,9 +2849,9 @@ document.querySelectorAll(".shop-card").forEach(btn => {
   });
 });
 
-// ============================================================
+// ═══════════════════════════════════════════════════════════
 // INVITE
-// ============================================================
+// ═══════════════════════════════════════════════════════════
 const inviteModal = $("invite-modal");
 function inviteLink() {
   const myId = tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
@@ -2805,19 +2891,22 @@ $("invite-share").addEventListener("click", () => {
   haptic();
   const link = inviteLink();
   const text = `🎰 Spiel Casino Hunt mit mir und hol dir Coins!\n${link}`;
-  try { tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`); }
-  catch (e) { showToast(link); }
+  try {
+    tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
+  } catch (e) { showToast(link); }
 });
 $("invite-copy").addEventListener("click", async () => {
   haptic();
   const link = inviteLink();
-  try { await navigator.clipboard.writeText(link); showToast("📋 Link kopiert!"); }
-  catch (e) { showToast("Link: " + link); }
+  try {
+    await navigator.clipboard.writeText(link);
+    showToast("📋 Link kopiert!");
+  } catch (e) { showToast("Link: " + link); }
 });
 
-// ============================================================
+// ═══════════════════════════════════════════════════════════
 // CARD DROP & VIEW
-// ============================================================
+// ═══════════════════════════════════════════════════════════
 $("drop-close").addEventListener("click", () => {
   haptic();
   $("card-drop").classList.remove("show");
@@ -2864,6 +2953,9 @@ window.addEventListener("resize", () => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════
+// ADMIN PANEL – Long-Press Logo
+// ═══════════════════════════════════════════════════════════
 let pressTimer;
 $("logo").addEventListener("touchstart", () => {
   pressTimer = setTimeout(async () => {
@@ -2875,28 +2967,45 @@ $("logo").addEventListener("touchstart", () => {
         if (tg.showPopup) {
           tg.showPopup({
             title: "Admin · Karten-Einstellungen",
-            message: "Bild, Creator-Link und PayPal-Link pro Karte setzen?",
-            buttons: [{id: "set", type: "default", text: "Karte bearbeiten"}, {type: "cancel"}]
+            message: "Karte als VIP markieren (Bild + Creator + PayPal) oder VIP entfernen?",
+            buttons: [
+              { id: "set", type: "default", text: "Als VIP setzen / bearbeiten" },
+              { id: "remove", type: "destructive", text: "VIP entfernen" },
+              { type: "cancel" }
+            ]
           }, async (btn) => {
-            if (btn !== "set") return;
-            const idStr = prompt("1/4 · Welche Karte? (ID 1–30)");
-            if (!idStr) return;
-            const url = prompt("2/4 · Bild-URL (leer = GitHub-Default nutzen):") || "";
-            const creator = prompt("3/4 · Creator Telegram-Link (https://t.me/… , leer = keine):") || "";
-            const paypal = prompt("4/4 · PayPal-Link (https://paypal.me/… , leer = globaler Fallback):") || "";
-            try {
-              await api("/api/admin/card_image", {
-                method: "POST",
-                body: JSON.stringify({
-                  card_id: parseInt(idStr, 10),
-                  image_url: url.trim(),
-                  creator_link: creator.trim() || null,
-                  paypal_link: paypal.trim() || null
-                })
-              });
-              showToast("✅ Karte aktualisiert");
-              await loadCollection();
-            } catch (e) { showToast("Fehler: " + e.message); }
+            if (btn === "set") {
+              const idStr = prompt("1/4 · Welche Karte? (ID 1–30)");
+              if (!idStr) return;
+              const id = parseInt(idStr, 10);
+              if (!(id >= 1 && id <= 30)) { showToast("Ungültige ID"); return; }
+              const url = prompt("2/4 · Bild-URL (leer = GitHub-Default nutzen):") || "";
+              const creator = prompt("3/4 · Creator Telegram-Link (https://t.me/… , leer = keine):") || "";
+              const paypal = prompt("4/4 · PayPal-Link (https://paypal.me/… , leer = globaler Fallback):") || "";
+              try {
+                await api("/api/admin/card_image", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    card_id: id,
+                    image_url: url.trim(),
+                    creator_link: creator.trim() || null,
+                    paypal_link: paypal.trim() || null
+                  })
+                });
+                showToast(`✅ Karte ${id} ist jetzt VIP`);
+                await loadCollection();
+              } catch (e) { showToast("Fehler: " + e.message); }
+            } else if (btn === "remove") {
+              const idStr = prompt("Karten-ID (1–30) die keine VIP-Karte mehr sein soll:");
+              if (!idStr) return;
+              const id = parseInt(idStr, 10);
+              if (!(id >= 1 && id <= 30)) { showToast("Ungültige ID"); return; }
+              try {
+                await api("/api/admin/card_image/" + id, { method: "DELETE" });
+                showToast(`✅ Karte ${id} ist normale Coin-Karte`);
+                await loadCollection();
+              } catch (e) { showToast("Fehler: " + e.message); }
+            }
           });
         }
       } catch (e) {}
