@@ -28,9 +28,6 @@ DB = "/tmp/casino.db"
 AUTH_MAX_AGE = 86400
 NO_PREVIEW = LinkPreviewOptions(is_disabled=True)
 
-# ═══════════════════════════════════════════════════════════
-# ADMIN-IDs (werden bei jedem Start automatisch eingetragen)
-# ═══════════════════════════════════════════════════════════
 ADMIN_IDS = [6098272278]
 
 
@@ -91,8 +88,6 @@ def init_db():
                 con.execute(f"ALTER TABLE users ADD COLUMN {col} {ddl}")
             except Exception:
                 pass
-
-    # ── Admins dauerhaft eintragen ──
     for aid in ADMIN_IDS:
         try:
             con.execute(
@@ -101,7 +96,6 @@ def init_db():
             )
         except Exception:
             pass
-
     con.commit()
     con.close()
 
@@ -475,7 +469,7 @@ def me(uid: int = Depends(auth)):
     level, xp_pct = calc_level(u["total_wagered"])
     return {
         "coins": u["coins"],
-        "max_bet": u["max_bet"],
+        "max_bet": max(u["max_bet"], u["coins"]),  # All-in = voller Kontostand
         "wagered": u["total_wagered"],
         "won": u["total_won"],
         "excluded_until": u["self_excluded_until"],
@@ -514,10 +508,11 @@ def play(req: PlayReq, uid: int = Depends(auth)):
     now = int(time.time())
     if u["self_excluded_until"] > now:
         raise HTTPException(403, "Selbstausgeschlossen")
-    if not (1 <= req.bet <= u["max_bet"]):
+    if req.bet < 1:
         raise HTTPException(400, "Einsatz ungültig")
     if req.bet > u["coins"]:
-        raise HTTPException(400, "Nicht genug Münzen")
+        raise HTTPException(400, "Nicht genug Coins")
+    # All-in erlaubt: max_bet ist nur Soft-Hinweis, Limit = Kontostand
 
     payout = 0
     result = {}
@@ -581,7 +576,7 @@ class WagerReq(BaseModel):
 
 @app.post("/api/wager")
 def wager(req: WagerReq, uid: int = Depends(auth)):
-    if not (1 <= req.amount <= 100000):
+    if req.amount < 1:
         raise HTTPException(400, "Ungültiger Betrag")
     u = get_user(uid)
     if req.amount > u["coins"]:
@@ -727,10 +722,11 @@ def bj_start(req: PlayReq, uid: int = Depends(auth)):
     u = get_user(uid)
     if u["self_excluded_until"] > int(time.time()):
         raise HTTPException(403, "Selbstausgeschlossen")
-    if not (1 <= req.bet <= u["max_bet"]):
+    if req.bet < 1:
         raise HTTPException(400, "Einsatz ungültig")
     if req.bet > u["coins"]:
-        raise HTTPException(400, "Nicht genug Münzen")
+        raise HTTPException(400, "Nicht genug Coins")
+    # All-in erlaubt: max_bet ist nur Soft-Hinweis, Limit = Kontostand
 
     deck = new_deck()
     player = [deck.pop(), deck.pop()]
@@ -877,10 +873,11 @@ def roulette(req: RouletteReq, uid: int = Depends(auth)):
     u = get_user(uid)
     if u["self_excluded_until"] > int(time.time()):
         raise HTTPException(403, "Selbstausgeschlossen")
-    if not (1 <= req.bet <= u["max_bet"]):
+    if req.bet < 1:
         raise HTTPException(400, "Einsatz ungültig")
     if req.bet > u["coins"]:
-        raise HTTPException(400, "Nicht genug Münzen")
+        raise HTTPException(400, "Nicht genug Coins")
+    # All-in erlaubt: max_bet ist nur Soft-Hinweis, Limit = Kontostand
 
     n, color = roulette_spin(u, req.bet_type, req.number)
     payout = 0
@@ -929,10 +926,11 @@ def crash_start(req: CrashStartReq, uid: int = Depends(auth)):
     u = get_user(uid)
     if u["self_excluded_until"] > int(time.time()):
         raise HTTPException(403, "Selbstausgeschlossen")
-    if not (1 <= req.bet <= u["max_bet"]):
+    if req.bet < 1:
         raise HTTPException(400, "Einsatz ungültig")
     if req.bet > u["coins"]:
-        raise HTTPException(400, "Nicht genug Münzen")
+        raise HTTPException(400, "Nicht genug Coins")
+    # All-in erlaubt: max_bet ist nur Soft-Hinweis, Limit = Kontostand
 
     new_coins = u["coins"] - req.bet
     update_user(
