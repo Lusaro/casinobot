@@ -1396,8 +1396,7 @@ async function handleCardClick(id) {
   const owned = hasCard(id);
   haptic();
 
-  // Admin: VIP-Karte automatisch für sich freischalten
-    // Admin: Auswahl – wie normaler User testen oder als Admin öffnen
+  // Admin: Auswahl – wie normaler User testen oder als Admin öffnen
   if (isAdmin && isVipCard) {
     const asUser = () => {
       if (vipUnlocked) openCardView(id);
@@ -1625,17 +1624,16 @@ function showCardDrop(card, isNew, customLabel) {
   }
 }
 
-// Card-View – groß und scharf. VIP: nur "Creator schreiben". Normal: Herunterladen + Teilen.
+// Card-View – groß und scharf. VIP: "Creator schreiben". Normal: Herunterladen + Teilen.
 let currentViewCard = null;
 function openCardView(cardId, adminView = false) {
-  const vipUnlocked = !!cat.vip || adminView;
   const card = CARDS.find(c => c.id === cardId);
   if (!card) return;
   currentViewCard = card;
   const r = RARITY[card.rarity];
   const cat = catalogMap[cardId] || {};
   const isVipCard = !!cat.is_vip_card;
-  const vipUnlocked = !!cat.vip || isAdmin;
+  const vipUnlocked = !!cat.vip || adminView;
   const creatorLink = (cat.creator_link || "").trim();
 
   const borderColor = (isVipCard && vipUnlocked) ? "#ffd25e" : r.color;
