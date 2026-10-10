@@ -193,6 +193,14 @@ def me(uid: int = Depends(auth)):
     }
 
 
+@app.post("/api/reset")
+def reset_session(uid: int = Depends(auth)):
+    u = get_user(uid)
+    update_user(uid, coins=1000, total_wagered=0, total_won=0,
+                win_streak=0, best_streak=0, last_daily=0)
+    return {"ok": True, "coins": 1000}
+
+
 class PlayReq(BaseModel):
     game: str
     bet: int
@@ -243,19 +251,6 @@ def play(req: PlayReq, uid: int = Depends(auth)):
 
 
 @app.post("/api/daily")
-@app.post("/api/reset")
-def reset_session(uid: int = Depends(auth)):
-    """Setzt Coins, Wagered und Streak bei jedem App-Start zurück.
-    Karten/Quests/Daily/Wheel liegen in CloudStorage und bleiben erhalten."""
-    u = get_user(uid)
-    update_user(uid,
-                coins=1000,
-                total_wagered=0,
-                total_won=0,
-                win_streak=0,
-                best_streak=0,
-                last_daily=0)
-    return {"ok": True, "coins": 1000}
 def daily(uid: int = Depends(auth)):
     u = get_user(uid)
     now = int(time.time())
@@ -272,12 +267,29 @@ class BonusReq(BaseModel):
 
 @app.post("/api/bonus")
 def bonus(req: BonusReq, uid: int = Depends(auth)):
-    if req.amount not in (100, 1000, 5000, 10000):
+    if not (1 <= req.amount <= 1000000):
         raise HTTPException(400, "Ungültiger Betrag")
     u = get_user(uid)
     new_coins = u["coins"] + req.amount
     update_user(uid, coins=new_coins)
     return {"ok": True, "amount": req.amount, "coins": new_coins}
+
+
+class WagerReq(BaseModel):
+    amount: int
+
+
+@app.post("/api/wager")
+def wager(req: WagerReq, uid: int = Depends(auth)):
+    if not (1 <= req.amount <= 100000):
+        raise HTTPException(400, "Ungültiger Betrag")
+    u = get_user(uid)
+    if req.amount > u["coins"]:
+        raise HTTPException(400, "Nicht genug Coins")
+    new_coins = u["coins"] - req.amount
+    update_user(uid, coins=new_coins,
+                total_wagered=u["total_wagered"] + req.amount)
+    return {"ok": True, "coins": new_coins}
 
 
 class ReferralReq(BaseModel):
