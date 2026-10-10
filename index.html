@@ -96,7 +96,6 @@ html,body{
 .bowl-ball{position:absolute;width:38px;height:38px;border-radius:50%;transform:translate(-50%, -50%);background:radial-gradient(circle at 32% 28%, #4a4a5a 0%, #1a1a22 45%, #000 100%);box-shadow:0 6px 12px rgba(0,0,0,.7), inset -3px -3px 8px rgba(0,0,0,.6), inset 4px 4px 8px rgba(255,255,255,.15);z-index:3;transition:top .85s cubic-bezier(.4,.05,.7,.4)}
 .bowl-ball::before{content:'';position:absolute;top:32%;left:30%;width:5px;height:5px;border-radius:50%;background:#000;box-shadow:7px 0 0 #000, 3.5px -5px 0 #000}
 
-/* CRASH */
 .crash-wrap{width:100%;max-width:360px;margin:0 auto;display:flex;flex-direction:column;align-items:center}
 .crash-graph{position:relative;width:100%;height:280px;background:radial-gradient(circle at 50% 120%, rgba(34,211,238,.15), transparent 60%),linear-gradient(180deg,rgba(30,15,70,.65),rgba(10,5,30,.95));border:2px solid rgba(34,211,238,.45);border-radius:18px;overflow:hidden;box-shadow:inset 0 0 50px rgba(0,0,0,.6), 0 0 30px rgba(34,211,238,.25), 0 0 60px rgba(124,58,237,.15);transition:border-color .3s, box-shadow .3s}
 .crash-graph.crashed{border-color:rgba(255,51,102,.6);box-shadow:inset 0 0 50px rgba(0,0,0,.6), 0 0 40px rgba(255,51,102,.5)}
@@ -268,14 +267,12 @@ html,body{
 .mission-bar{position:relative;height:4px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:6px}
 .mission-bar .fill{position:absolute;inset:0;width:0;background:linear-gradient(90deg,var(--neon-3),var(--neon-1));border-radius:999px;transition:width .4s}
 
-/* WHEEL SCREEN */
+/* SPIN-SEITE */
 .wheel-canvas-wrap{position:relative;width:100%;max-width:300px;margin:20px auto;aspect-ratio:1}
 .wheel-canvas{display:block;width:100%;height:100%;transition:transform 5s cubic-bezier(.15,.8,.2,1);will-change:transform}
 .wheel-pointer-top{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:38px;color:var(--gold);z-index:10;filter:drop-shadow(0 0 14px var(--gold));animation:pointerBounce 1.2s ease-in-out infinite;pointer-events:none}
 @keyframes pointerBounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-5px)}}
 .wheel-hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70px;height:70px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff5cc,#ff9f1c 50%,#7c2d12);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:#2a0f00;box-shadow:0 0 30px rgba(255,159,28,.7), inset 0 -4px 10px rgba(0,0,0,.4);z-index:5;border:3px solid #4c1d95;pointer-events:none}
-.wheel-segments-list{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:16px}
-.wheel-seg-chip{font-size:11px;font-weight:800;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--stroke);color:var(--txt)}
 
 .disclaimer{color:var(--hint);font-size:11px;text-align:center;margin-top:auto;padding-top:14px}
 .hidden{display:none!important}
@@ -371,15 +368,18 @@ html,body{
     <div style="margin-top:18px;font-size:13px;color:var(--hint);font-weight:800;letter-spacing:1px;text-transform:uppercase;text-align:center;margin-bottom:8px">🎯 Missionen</div>
     <div id="missions-box"></div>
 
+    <div style="margin-top:18px;font-size:13px;color:var(--hint);font-weight:800;letter-spacing:1px;text-transform:uppercase;text-align:center;margin-bottom:8px">🎡 Glücksrad</div>
+    <button class="btn blue" id="open-wheel">🎡 Glücksrad öffnen</button>
+
     <div class="disclaimer">Kein Echtgeld · 18+</div>
   </div>
 
-  <!-- WHEEL -->
-  <div class="screen" id="s-wheel">
+  <!-- SPIN -->
+  <div class="screen" id="s-spin">
     <div class="topbar">
       <div class="row1">
-        <div class="brand">🎡 Glücksrad</div>
-        <div class="coin-pill" id="coins-wheel">💰 <span id="coins-wheel-num">0</span></div>
+        <div class="brand" id="spin-back">⬅️ Glücksrad</div>
+        <div class="coin-pill" id="coins-spin">💰 <span id="coins-spin-num">0</span></div>
       </div>
     </div>
 
@@ -392,7 +392,7 @@ html,body{
     <button class="btn blue" id="spin-btn">🎡 Jetzt drehen</button>
     <div style="text-align:center;font-size:12px;color:var(--hint);font-weight:700;margin-top:8px" id="wheel-timer">Bereit!</div>
 
-    <div class="wheel-segments-list" id="wheel-segments-list"></div>
+    <button class="btn secondary" id="spin-back-btn">⬅️ Zurück zu Daily</button>
 
     <div class="disclaimer">1× pro Stunde gratis · 18+</div>
   </div>
@@ -426,7 +426,6 @@ html,body{
   <div class="tab active" data-tab="home"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
   <div class="tab" data-tab="collection"><div class="tab-icon">📚</div><div class="tab-label">Sammlung</div></div>
   <div class="tab" data-tab="daily"><div class="tab-icon">🎁</div><div class="tab-label">Daily</div><div class="tab-badge hidden" id="daily-badge">!</div></div>
-  <div class="tab" data-tab="wheel"><div class="tab-icon">🎡</div><div class="tab-label">Rad</div></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -866,9 +865,9 @@ function show(id) {
   $("#tabbar").style.display = isGame ? "none" : "flex";
   $("#app").classList.toggle("has-tabs", !isGame);
   try { tg.BackButton.isVisible = (id !== "s-home"); } catch (e) {}
-  if (id === "s-wheel") {
+  if (id === "s-spin") {
     requestAnimationFrame(() => {
-      setTimeout(() => renderWheelCanvas(), 30);
+      setTimeout(() => renderWheelCanvas(), 40);
     });
   }
 }
@@ -895,9 +894,9 @@ function rollNumber(el, to, dur = 550) {
 }
 
 function updateCoins() {
-  const ids = ["coins-top-num", "coins-game-num", "coins-daily-num", "coins-wheel-num"];
+  const ids = ["coins-top-num", "coins-game-num", "coins-daily-num", "coins-spin-num"];
   const big = $("balance-value");
-  ids.forEach((id, i) => {
+  ids.forEach((id) => {
     const el = $(id);
     if (!el) return;
     if (id === "coins-top-num") rollNumber(el, state.coins, 500);
@@ -1203,7 +1202,7 @@ function runGame(game, bet) {
 }
 
 // ============================================================
-// CRASH (mit START-Button)
+// CRASH (Start-Button, kein Countdown)
 // ============================================================
 let crashRaf = 0;
 
@@ -1231,7 +1230,7 @@ function playCrash(bet) {
   const startBtn = $("crash-start");
   const graphEl = $("crash-graph");
 
-  // Statischen Grid zeichnen
+  // Statisches Grid zeichnen
   const c = $("crash-canvas");
   if (c) {
     const ctx = c.getContext("2d");
@@ -1271,7 +1270,6 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
   canvas.style.height = H + "px";
   ctx.scale(dpr, dpr);
 
-  // Button wird zum Cashout
   cashoutBtn.disabled = false;
   cashoutBtn.textContent = "💰 CASH OUT (1.00×)";
   cashoutBtn.classList.remove("gold");
@@ -1984,7 +1982,7 @@ function updateDailyBadge() {
 }
 
 // ============================================================
-// DAILY SCREEN
+// DAILY
 // ============================================================
 function renderDailyScreen() {
   const today = todayKey();
@@ -2049,7 +2047,7 @@ async function claimDaily() {
 }
 
 // ============================================================
-// WHEEL (Canvas)
+// WHEEL (Canvas) - Unterseite
 // ============================================================
 let wheelRotation = 0;
 
@@ -2087,14 +2085,12 @@ function renderWheelCanvas() {
   ctx.stroke();
   ctx.restore();
 
-  // Goldener Ring
   ctx.beginPath();
   ctx.arc(cx, cy, r + 1, 0, Math.PI * 2);
   ctx.strokeStyle = "#7c3aed";
   ctx.lineWidth = 4;
   ctx.stroke();
 
-  // Segmente
   for (let i = 0; i < n; i++) {
     const startA = i * segAngle - Math.PI / 2 - segAngle / 2;
     const endA = startA + segAngle;
@@ -2110,14 +2106,12 @@ function renderWheelCanvas() {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Radialer Farbverlauf für mehr Tiefe
     const grad = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, r);
     grad.addColorStop(0, "rgba(255,255,255,.12)");
     grad.addColorStop(1, "rgba(0,0,0,.25)");
     ctx.fillStyle = grad;
     ctx.fill();
 
-    // Label
     const midA = startA + segAngle / 2;
     const lr = r * 0.68;
     const lx = cx + Math.cos(midA) * lr;
@@ -2135,19 +2129,11 @@ function renderWheelCanvas() {
     ctx.restore();
   }
 
-  // Innerer Rand
   ctx.beginPath();
   ctx.arc(cx, cy, r * 0.32, 0, Math.PI * 2);
   ctx.strokeStyle = "rgba(255,210,94,.5)";
   ctx.lineWidth = 2;
   ctx.stroke();
-
-  // Segment-Liste unter dem Rad
-  const listEl = $("wheel-segments-list");
-  if (listEl && !listEl.dataset.done) {
-    listEl.dataset.done = "1";
-    listEl.innerHTML = WHEEL_SEGMENTS.map(s => `<span class="wheel-seg-chip">${s.label}</span>`).join("");
-  }
 }
 
 function updateWheelTimer() {
@@ -2180,8 +2166,6 @@ async function spinWheel() {
   const n = WHEEL_SEGMENTS.length;
   const segDeg = 360 / n;
 
-  // Segment idx zentriert bei idx * segDeg. Um es nach oben (-90°) zu drehen:
-  // Rotation = 360 * turns - idx * segDeg (+ kleiner Zufallsoffset)
   const turns = 6;
   wheelRotation += 360 * turns + (360 - (idx * segDeg) - (wheelRotation % 360)) + segDeg / 2;
 
@@ -2191,7 +2175,6 @@ async function spinWheel() {
   SFX.spin();
   haptic("medium");
 
-  // Tick-Sounds
   let ticks = 0;
   const tickInt = setInterval(() => { SFX.wheelTick(); ticks++; if (ticks > 40) clearInterval(tickInt); }, 120);
 
@@ -2235,7 +2218,6 @@ document.querySelectorAll(".tab").forEach(t => {
     if (tab === "home") goHome();
     else if (tab === "collection") { show("s-collection"); renderCollection(); }
     else if (tab === "daily") { show("s-daily"); renderDailyScreen(); }
-    else if (tab === "wheel") { show("s-wheel"); updateWheelTimer(); }
   });
 });
 
@@ -2250,7 +2232,7 @@ function openShop() {
 $("coins-top").addEventListener("click", openShop);
 $("coins-game").addEventListener("click", openShop);
 $("coins-daily").addEventListener("click", openShop);
-$("coins-wheel").addEventListener("click", openShop);
+$("coins-spin").addEventListener("click", openShop);
 $("konto-close").addEventListener("click", () => { haptic(); kontoModal.classList.remove("show"); });
 kontoModal.addEventListener("click", (e) => { if (e.target === kontoModal) kontoModal.classList.remove("show"); });
 
@@ -2349,9 +2331,24 @@ $("btn-back").addEventListener("click", goHome);
 
 $("daily-claim").addEventListener("click", claimDaily);
 $("spin-btn").addEventListener("click", spinWheel);
+$("open-wheel").addEventListener("click", () => {
+  haptic(); SFX.click();
+  show("s-spin");
+  updateWheelTimer();
+});
+$("spin-back").addEventListener("click", () => {
+  haptic();
+  show("s-daily");
+  renderDailyScreen();
+});
+$("spin-back-btn").addEventListener("click", () => {
+  haptic();
+  show("s-daily");
+  renderDailyScreen();
+});
 
 window.addEventListener("resize", () => {
-  if ($("s-wheel").classList.contains("active")) {
+  if ($("s-spin").classList.contains("active")) {
     renderWheelCanvas();
   }
 });
