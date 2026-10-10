@@ -1196,16 +1196,14 @@ class UnlockVipReq(BaseModel):
 
 @app.post("/api/unlock_vip")
 def unlock_vip(req: UnlockVipReq, uid: int = Depends(auth)):
-    """VIP freischalten nach PayPal-Zahlung (Client öffnet PayPal-Link davor)."""
+    """
+    VIP freischalten nach PayPal.
+    Kein vorheriger Emoji-/Coin-Kauf nötig – Karte wird bei Unlock angelegt.
+    """
     cid = req.card_id
     if cid not in CARD_RARITY:
         raise HTTPException(400, "Unbekannte Karte")
-    if not user_has_card(uid, cid):
-        raise HTTPException(400, "Karte nicht im Besitz")
     con = db()
-    row = con.execute(
-        "SELECT vip FROM user_cards WHERE user_id=? AND card_id=?", (uid, cid)
-    ).fetchone()
     try:
         media = con.execute(
             "SELECT image_url, COALESCE(creator_link,'') AS creator_link, "
@@ -1219,14 +1217,26 @@ def unlock_vip(req: UnlockVipReq, uid: int = Depends(auth)):
     if not media:
         con.close()
         raise HTTPException(400, "Kein VIP-Bild für diese Karte")
+
+    # Karte anlegen falls noch nicht vorhanden (kein Emoji-Kauf nötig)
+    grant_card(uid, cid)
+
+    row = con.execute(
+        "SELECT vip FROM user_cards WHERE user_id=? AND card_id=?", (uid, cid)
+    ).fetchone()
     if row and row["vip"]:
         con.close()
+        cl = ""
+        try:
+            cl = (media["creator_link"] or "").strip()
+        except Exception:
+            pass
         return {
             "ok": True,
             "already": True,
             "card_id": cid,
             "image_url": media["image_url"],
-            "creator_link": media["creator_link"] if "creator_link" in media.keys() else None,
+            "creator_link": cl or None,
             "coins": get_user(uid)["coins"],
         }
     con.execute(
@@ -1247,6 +1257,47 @@ def unlock_vip(req: UnlockVipReq, uid: int = Depends(auth)):
         "coins": get_user(uid)["coins"],
         "via": "paypal",
     }
+
+
+@app.get("/api/media/{card_id}")
+def media_proxy(card_id: int):
+    """
+    Liefert VIP-Bilder über den eigenen Server (Content-Type korrekt).
+    So funktionieren URLs ohne .png/.jpg und mit Query-Parametern.
+    """
+    from fastapi.responses import Response
+    import urllib.request
+    if card_id < 1 or card_id > 30:
+        raise HTTPException(404, "Nicht gefunden")
+    media = get_media_rows().get(card_id)
+    if not media or not media.get("image_url"):
+        raise HTTPException(404, "Kein Bild")
+    url = media["image_url"]
+    try:
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": "Mozilla/5.0 CasinoHuntBot/1.0",
+                "Accept": "image/*,*/*",
+            },
+            method="GET",
+        )
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            data = resp.read()
+            ctype = resp.headers.get("Content-Type") or "image/jpeg"
+            if not ctype.startswith("image/") and "octet-stream" not in ctype:
+                # trotzdem ausliefern – Browser entscheidet
+                ctype = "image/jpeg"
+            return Response(
+                content=data,
+                media_type=ctype,
+                headers={
+                    "Cache-Control": "public, max-age=3600",
+                    "Access-Control-Allow-Origin": "*",
+                },
+            )
+    except Exception as e:
+        raise HTTPException(502, f"Bild konnte nicht geladen werden: {e}")
 
 
 class GrantCardReq(BaseModel):
@@ -1332,7 +1383,7 @@ def admin_card_image(req: AdminImageReq, uid: int = Depends(auth)):
     if url.startswith("//"):
         url = "https:" + url
     if not (url.startswith("https://") or url.startswith("http://")):
-        raise HTTPException(400, "Bild-URL muss mit https:// beginnen (Endung .png/.jpg egal)")
+        raise HTTPException(400, "Bild-URL muss mit http(s):// beginnen – Dateiendung egal")
     if len(url) > 4000:
         raise HTTPException(400, "URL zu lang")
     # Keine Pflicht auf .png/.jpg – Query-URLs (CDN) sind erlaubt
