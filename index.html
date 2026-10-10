@@ -310,6 +310,7 @@ html,body{
   border:2px solid rgba(255,255,255,.08);
   transition:transform .15s cubic-bezier(.34,1.56,.64,1), border-color .25s, box-shadow .25s;
   -webkit-tap-highlight-color:transparent;
+  isolation:isolate;
 }
 .card-slot:active{transform:scale(.94)}
 
@@ -327,6 +328,14 @@ html,body{
 .card-slot.locked .card-img{
   filter:blur(12px) brightness(.55) saturate(1.15);
   transform:scale(1.18);
+}
+
+/* Fallback wenn kein Bild lädt */
+.card-slot.noimg{background:linear-gradient(160deg,#2a1260,#12081f)}
+.card-slot.noimg::before{
+  content:attr(data-card);
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:34px;font-weight:900;color:rgba(255,255,255,.18);z-index:1;
 }
 
 /* Card-Name unten */
@@ -711,7 +720,7 @@ html,body{
   <div class="card-view-close" id="card-view-close">✕</div>
   <div class="card-view-img" id="card-view-img"></div>
   <div class="card-view-actions" id="card-view-actions">
-    <button class="btn gold" id="card-creator-btn" style="display:none">💬 Schreibe Creator</button>
+    <button class="btn gold" id="card-creator-btn" style="display:none">💬 Creator schreiben</button>
     <button class="btn gold" id="card-download">📥 Herunterladen</button>
     <button class="btn secondary" id="card-share">📤 Teilen</button>
   </div>
@@ -1278,9 +1287,49 @@ async function loadFeed() {
     </div>`).join("");
 }
 
-// Bild über Backend-Proxy (funktioniert mit jeder Endung)
-function vipImgSrc(cardId) {
-  return API + "/api/media/" + cardId + "?t=" + Date.now();
+// ═══════════════════════════════════════════════════════════
+// BILDER – direkte URL zuerst, dann Backend-Proxy, dann Platzhalter
+// ═══════════════════════════════════════════════════════════
+function cardImgCandidates(id) {
+  const cat = catalogMap[id] || {};
+  const list = [];
+  if (cat.image_url) list.push(cat.image_url);
+  list.push(API + "/api/media/" + id);
+  return list;
+}
+
+function vipImgSrc(id) {
+  return cardImgCandidates(id)[0];
+}
+
+function attachImgFallback(img, id) {
+  if (!img) return;
+  const c = cardImgCandidates(id);
+  let i = 0;
+  img.addEventListener("error", () => {
+    i++;
+    if (i < c.length) {
+      img.src = c[i];
+    } else {
+      img.style.display = "none";
+      if (img.parentElement) img.parentElement.classList.add("noimg");
+    }
+  });
+  img.src = c[0];
+}
+
+function loadFirstImage(urls) {
+  return new Promise(resolve => {
+    let i = 0;
+    const next = () => {
+      if (i >= urls.length) return resolve("");
+      const im = new Image();
+      im.onload = () => resolve(urls[i]);
+      im.onerror = () => { i++; next(); };
+      im.src = urls[i];
+    };
+    next();
+  });
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1300,7 +1349,6 @@ function renderCollection() {
     const isVipCard = !!cat.is_vip_card;
     const vipUnlocked = !!cat.vip;
     const price = (cat.buy_price != null ? cat.buy_price : CARD_PRICES[card.rarity]) || 400;
-    const src = vipImgSrc(card.id);
 
     let cls = "card-slot";
     let overlay = "";
@@ -1328,7 +1376,7 @@ function renderCollection() {
     }
 
     return `<div class="${cls}" data-card="${card.id}">
-      <img class="card-img" src="${src}" alt="" loading="lazy" referrerpolicy="no-referrer">
+      <img class="card-img" alt="" decoding="async" referrerpolicy="no-referrer">
       ${overlay}
     </div>`;
   }).join("");
@@ -1336,6 +1384,7 @@ function renderCollection() {
   grid.querySelectorAll(".card-slot").forEach(el => {
     const id = parseInt(el.dataset.card, 10);
     el.addEventListener("click", () => handleCardClick(id));
+    attachImgFallback(el.querySelector(".card-img"), id);
   });
 }
 
@@ -1396,7 +1445,6 @@ async function openUnlockVip(cardId) {
       SFX.cardDrop();
       notify("success");
       showToast(`✨ VIP freigeschaltet: ${card.name}`);
-      // #4: Groß und scharf öffnen
       openCardView(cardId);
     } catch (e) {
       showToast("Fehler: " + e.message);
@@ -1471,7 +1519,6 @@ async function openBuyCard(cardId) {
       notify("success");
       showCardDrop(card, true, "🛒 GEKAUFT");
       showToast(`✅ ${card.name} freigeschaltet!`);
-      // #4: Nach Kauf groß und scharf öffnen
       setTimeout(() => openCardView(cardId), 1400);
     } catch (e) {
       showToast("Fehler: " + e.message);
@@ -1538,9 +1585,11 @@ function showCardDrop(card, isNew, customLabel) {
   $("drop-rarity").style.color = r.color;
 
   const inner = $("drop-card-inner");
-  const src = vipImgSrc(card.id);
-  inner.style.background = `linear-gradient(rgba(0,0,0,.15),rgba(0,0,0,.65)), url("${src}") center/cover no-repeat, #12081f`;
+  inner.style.background = "#12081f";
   inner.style.boxShadow = `0 20px 60px rgba(0,0,0,.6), 0 0 40px ${r.glow}`;
+  loadFirstImage(cardImgCandidates(card.id)).then(url => {
+    if (url) inner.style.background = `linear-gradient(rgba(0,0,0,.15),rgba(0,0,0,.65)), url("${url}") center/cover no-repeat, #12081f`;
+  });
 
   drop.classList.add("show");
   haptic("heavy");
@@ -1558,7 +1607,7 @@ function showCardDrop(card, isNew, customLabel) {
   }
 }
 
-// #4: Card-View – groß und scharf
+// Card-View – groß und scharf. VIP: nur "Creator schreiben". Normal: Herunterladen + Teilen.
 let currentViewCard = null;
 function openCardView(cardId) {
   const card = CARDS.find(c => c.id === cardId);
@@ -1569,29 +1618,29 @@ function openCardView(cardId) {
   const isVipCard = !!cat.is_vip_card;
   const vipUnlocked = !!cat.vip || isAdmin;
   const creatorLink = (cat.creator_link || "").trim();
-  const src = vipImgSrc(cardId);
 
   const borderColor = (isVipCard && vipUnlocked) ? "#ffd25e" : r.color;
   const glowColor = (isVipCard && vipUnlocked) ? "rgba(255,210,94,.7)" : r.glow;
 
-  const inner = `
+  $("card-view-img").innerHTML = `
     <div style="width:280px;height:390px;border-radius:22px;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 40px ${glowColor};background:#12081f;border:2px solid ${borderColor}">
-      <img src="${src}" alt="" referrerpolicy="no-referrer"
-           style="width:100%;height:100%;object-fit:cover;display:block">
+      <img id="cv-img" alt="" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;display:block">
       ${(isVipCard && vipUnlocked) ? '<div style="position:absolute;top:10px;left:10px;font-size:10px;font-weight:900;letter-spacing:1.5px;padding:4px 9px;border-radius:8px;background:linear-gradient(135deg,#ffd25e,#ff9f1c);color:#2a0f00;box-shadow:0 0 12px rgba(255,210,94,.8);z-index:3">VIP</div>' : ''}
       <div style="position:absolute;bottom:0;left:0;right:0;padding:40px 12px 16px;background:linear-gradient(transparent,rgba(0,0,0,.9))">
         <div style="text-align:center;font-size:18px;font-weight:900;color:#fff;letter-spacing:2px;text-shadow:0 2px 8px rgba(0,0,0,.8)">${card.name.toUpperCase()}</div>
         <div style="text-align:center;font-size:11px;font-weight:900;color:${r.color};letter-spacing:4px;margin-top:4px">${r.name}</div>
       </div>
     </div>`;
-  $("card-view-img").innerHTML = inner;
+  attachImgFallback($("cv-img"), cardId);
 
   const btnCreator = $("card-creator-btn");
   const btnDl = $("card-download");
   const btnSh = $("card-share");
 
-  if (btnCreator) {
-    if (vipUnlocked && isVipCard && creatorLink) {
+  if (isVipCard) {
+    btnDl.style.display = "none";
+    btnSh.style.display = "none";
+    if (vipUnlocked && creatorLink) {
       btnCreator.style.display = "block";
       btnCreator.onclick = () => {
         haptic();
@@ -1601,10 +1650,14 @@ function openCardView(cardId) {
           catch (e2) { showToast(creatorLink); }
         }
       };
-    } else btnCreator.style.display = "none";
+    } else {
+      btnCreator.style.display = "none";
+    }
+  } else {
+    btnCreator.style.display = "none";
+    btnDl.style.display = "block";
+    btnSh.style.display = "block";
   }
-  if (btnDl) btnDl.style.display = "block";
-  if (btnSh) btnSh.style.display = "block";
 
   $("card-view").classList.add("show");
   haptic();
@@ -2184,9 +2237,10 @@ async function playSlots(bet) {
     showResult(data, outcome.join(" "));
   } catch (e) {
     clearInterval(tick);
-    $("r0").classList.remove("spinning");
-    $("r1").classList.remove("spinning");
-    $("r2").classList.remove("spinning");
+    const r0 = $("r0"), r1 = $("r1"), r2 = $("r2");
+    if (r0) r0.classList.remove("spinning");
+    if (r1) r1.classList.remove("spinning");
+    if (r2) r2.classList.remove("spinning");
     showToast("Fehler: " + e.message); renderBets(state.game);
   } finally { state.busy = false; }
 }
@@ -2221,6 +2275,7 @@ function renderBlackjack(data, bet) {
   SFX.card();
   const row = $("bet-row"); row.innerHTML = "";
   if (data.state === "continue") {
+    row.style.display = "grid";
     row.style.gridTemplateColumns = "1fr 1fr";
     const hit = document.createElement("button"); hit.className = "btn"; hit.textContent = "HIT";
     const st = document.createElement("button"); st.className = "btn gold"; st.textContent = "STAND";
@@ -2241,6 +2296,7 @@ function renderBlackjack(data, bet) {
         if (d.state === "bust") {
           state.coins = d.coins; updateCoins();
           state.streak = 0; updateStreakVisuals();
+          markMission("play"); markMission("bet", bet);
           showLossEffect(bet);
           showResultFinal({ payout: 0, delta: -bet, coins: d.coins }, "BUST!");
           loadMe().catch(() => {});
@@ -2290,6 +2346,7 @@ function renderBlackjack(data, bet) {
   } else if (data.state === "push") {
     state.coins = data.coins != null ? data.coins : state.coins;
     updateCoins();
+    markMission("play"); markMission("bet", bet);
     showResultFinal({
       payout: data.payout != null ? data.payout : bet,
       delta: data.delta != null ? data.delta : 0,
@@ -2418,10 +2475,11 @@ function showResultFinal(data, label) {
   }
   const div = document.createElement("div");
   const win = data.payout > 0, push = data.delta === 0;
-  div.className = "result-text " + (win ? "win" : push ? "push" : "lose");
-  div.innerHTML = win
-    ? `+${data.payout} <span style="font-size:13px;color:var(--hint)">(Netto ${data.delta >= 0 ? "+" : ""}${data.delta})</span>`
-    : push ? "Push" : `−${Math.abs(data.delta)}`;
+  div.className = "result-text " + (win && !push ? "win" : push ? "push" : "lose");
+  div.innerHTML = push ? "Push"
+    : win
+      ? `+${data.payout} <span style="font-size:13px;color:var(--hint)">(Netto ${data.delta >= 0 ? "+" : ""}${data.delta})</span>`
+      : `−${Math.abs(data.delta)}`;
   stage.appendChild(div);
   renderBets(state.game);
 }
@@ -2521,7 +2579,8 @@ async function markMission(type, amount = 1) {
     if (meta.missions.progress[id] >= m.target) {
       setTimeout(async () => {
         try {
-          const r = await api("/api/bonus", { method: "POST", body: JSON.stringify({ amount: 100 }) });
+          // Fix: volle Missions-Belohnung auszahlen (vorher nur 100)
+          const r = await api("/api/bonus", { method: "POST", body: JSON.stringify({ amount: m.reward }) });
           state.coins = r.coins; updateCoins();
           showToast(`🎯 Mission geschafft! +${m.reward} Coins`);
           SFX.daily();
@@ -2547,7 +2606,7 @@ function renderDailyScreen() {
   const today = todayKey();
   const curDay = meta.dailyStreak.lastDate === today
     ? meta.dailyStreak.days
-    : (meta.dailyStreak.lastDate === yesterdayKey() ? meta.dailyStreak.days + 1 : 1);
+    : (meta.dailyStreak.lastDate === yesterdayKey() ? Math.min(meta.dailyStreak.days + 1, 7) : 1);
   const daysBox = $("streak-days");
   if (daysBox) {
     daysBox.innerHTML = DAILY_STREAK.map(d => {
@@ -2591,15 +2650,8 @@ async function claimDaily() {
   meta.dailyStreak.lastDate = today;
   await saveMeta();
   try {
-    let remaining = reward.reward;
-    const chunks = [10000, 5000, 1000, 100];
-    for (const c of chunks) {
-      while (remaining >= c) {
-        const r = await api("/api/bonus", { method: "POST", body: JSON.stringify({ amount: c }) });
-        state.coins = r.coins;
-        remaining -= c;
-      }
-    }
+    const r = await api("/api/bonus", { method: "POST", body: JSON.stringify({ amount: reward.reward }) });
+    state.coins = r.coins;
     updateCoins();
     showWinEffect(reward.reward);
     SFX.daily();
@@ -2727,6 +2779,7 @@ async function spinWheel() {
   state.busy = true; haptic(); SFX.click();
   meta.wheel.lastSpin = now;
   await saveMeta();
+  updateWheelTimer();
 
   const idx = Math.floor(Math.random() * WHEEL_SEGMENTS.length);
   const seg = WHEEL_SEGMENTS[idx];
@@ -2734,7 +2787,7 @@ async function spinWheel() {
   const segDeg = 360 / n;
 
   const turns = 6;
-  wheelRotation += 360 * turns + (360 - (idx * segDeg) - (wheelRotation % 360)) + segDeg / 2;
+  wheelRotation += 360 * turns + (360 - (idx * segDeg) - (wheelRotation % 360));
 
   const cvsW = $("wheel-canvas");
   if (cvsW) cvsW.style.transform = `rotate(${wheelRotation}deg)`;
@@ -2750,15 +2803,8 @@ async function spinWheel() {
 
   try {
     if (seg.type === "coins") {
-      let remaining = seg.value;
-      const chunks = [10000, 5000, 1000, 100];
-      for (const c of chunks) {
-        while (remaining >= c) {
-          const r = await api("/api/bonus", { method: "POST", body: JSON.stringify({ amount: c }) });
-          state.coins = r.coins;
-          remaining -= c;
-        }
-      }
+      const r = await api("/api/bonus", { method: "POST", body: JSON.stringify({ amount: seg.value }) });
+      state.coins = r.coins;
       updateCoins();
       showWinEffect(seg.value);
       showAlert(`🎡 +${seg.value} Coins`);
@@ -2770,7 +2816,7 @@ async function spinWheel() {
   finally { state.busy = false; updateWheelTimer(); }
 }
 
-setInterval(updateWheelTimer, 30000);
+setInterval(updateWheelTimer, 1000);
 
 // ═══════════════════════════════════════════════════════════
 // TABBAR
@@ -2817,31 +2863,28 @@ document.querySelectorAll(".shop-card").forEach(btn => {
         body: JSON.stringify({ pack_id: String(packId) })
       });
       if (!inv.invoice_url) throw new Error("Keine Invoice-URL");
-      const open = () => {
-        try {
-          tg.openInvoice(inv.invoice_url, (status) => {
-            state.busy = false;
-            if (status === "paid") {
-              showToast("✅ Zahlung ok – Coins werden gutgeschrieben…");
-              SFX.daily();
-              setTimeout(() => loadMe().catch(() => {}), 1200);
-              setTimeout(() => loadMe().catch(() => {}), 3000);
-            } else if (status === "cancelled") {
-              showToast("Zahlung abgebrochen");
-            } else if (status === "failed") {
-              showToast("Zahlung fehlgeschlagen");
-            } else {
-              showToast("Status: " + status);
-            }
-          });
-        } catch (e) {
-          try { tg.openTelegramLink(inv.invoice_url); } catch (e2) {
-            showToast("Stars-Zahlung nicht verfügbar");
-          }
+      try {
+        tg.openInvoice(inv.invoice_url, (status) => {
           state.busy = false;
+          if (status === "paid") {
+            showToast("✅ Zahlung ok – Coins werden gutgeschrieben…");
+            SFX.daily();
+            setTimeout(() => loadMe().catch(() => {}), 1200);
+            setTimeout(() => loadMe().catch(() => {}), 3000);
+          } else if (status === "cancelled") {
+            showToast("Zahlung abgebrochen");
+          } else if (status === "failed") {
+            showToast("Zahlung fehlgeschlagen");
+          } else {
+            showToast("Status: " + status);
+          }
+        });
+      } catch (e) {
+        try { tg.openTelegramLink(inv.invoice_url); } catch (e2) {
+          showToast("Stars-Zahlung nicht verfügbar");
         }
-      };
-      open();
+        state.busy = false;
+      }
     } catch (e) {
       showToast("Fehler: " + e.message);
       state.busy = false;
