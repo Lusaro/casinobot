@@ -1588,34 +1588,43 @@ function openCardView(cardId) {
   const raw = cat.preview_url || meta.preview_url || cat.image_url || meta.image_url || null;
   const vipSrc = normalizeImgUrl(raw);
   const hasVip = !!(cat.has_vip_media || meta.has_vip_media) && !!vipSrc;
-  const imgUrl = (hasVip && vipUnlocked) ? vipSrc : (hasVip ? vipSrc : cardPlaceholder(card));
-  const showBlur = hasVip && !vipUnlocked && !isAdmin;
   const creatorLink = (meta.creator_link || cat.creator_link || "").trim();
+  const showBlur = hasVip && !vipUnlocked && !isAdmin;
 
-  const blurStyle = showBlur
-    ? "filter:blur(14px) brightness(.5);transform:scale(1.08)"
-    : "";
-
-  const inner = `
-    <div style="width:280px;height:390px;border-radius:20px;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 40px rgba(255,210,94,.25);background:#12081f">
-      <img src="${imgUrl.replace(/"/g, "&quot;")}" alt=""
+  let inner;
+  if (hasVip && vipSrc) {
+    const blurStyle = showBlur
+      ? "filter:blur(12px) brightness(.5);transform:scale(1.08)"
+      : "";
+    inner = `
+    <div style="width:280px;height:390px;border-radius:20px;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 40px rgba(255,210,94,.35);background:#12081f">
+      <img src="${vipSrc.replace(/"/g, "&quot;")}" alt=""
            referrerpolicy="no-referrer"
-           style="width:100%;height:100%;object-fit:cover;${blurStyle}"
-           onerror="this.src='${cardPlaceholder(card).replace(/'/g, "")}'">
-      ${showBlur ? `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.25)">
+           style="width:100%;height:100%;object-fit:cover;${blurStyle}">
+      ${showBlur ? `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.2)">
         <div style="font-size:36px;font-weight:900;letter-spacing:4px;color:#ffd25e;text-shadow:0 2px 12px #000">VIP</div>
+        <div style="margin-top:8px;font-size:12px;font-weight:800;color:#fff;opacity:.9">PayPal freischalten</div>
       </div>` : ""}
       <div style="position:absolute;bottom:0;left:0;right:0;padding:40px 12px 20px;background:linear-gradient(transparent,rgba(0,0,0,.85))">
         <div style="text-align:center;font-size:18px;font-weight:900;color:#fff;letter-spacing:2px">${card.name.toUpperCase()}</div>
-        <div style="text-align:center;font-size:11px;font-weight:900;color:#ffd25e;letter-spacing:4px;margin-top:4px">${hasVip ? "VIP · " : ""}${r.name}</div>
+        <div style="text-align:center;font-size:11px;font-weight:900;color:#ffd25e;letter-spacing:4px;margin-top:4px">VIP · ${r.name}</div>
       </div>
     </div>`;
+  } else {
+    inner = `
+    <div style="width:280px;height:390px;background:linear-gradient(160deg,${card.g[0]},${card.g[1]});display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;box-shadow:inset 0 0 60px rgba(0,0,0,.3);border-radius:20px">
+      <div style="font-size:130px;line-height:1;filter:drop-shadow(0 8px 24px rgba(0,0,0,.5))">${card.icon}</div>
+      <div style="position:absolute;bottom:70px;left:0;right:0;text-align:center;font-size:20px;font-weight:900;color:#fff;letter-spacing:3px;text-shadow:0 2px 8px rgba(0,0,0,.7)">${card.name.toUpperCase()}</div>
+      <div style="position:absolute;bottom:36px;left:0;right:0;text-align:center;font-size:12px;font-weight:900;color:rgba(255,255,255,.9);letter-spacing:5px;text-shadow:0 1px 4px rgba(0,0,0,.7)">${r.name}</div>
+    </div>`;
+  }
   $("card-view-img").innerHTML = inner;
 
   const btnCreator = $("card-creator-btn");
   const btnDl = $("card-download");
   const btnSh = $("card-share");
-  if (hasVip && vipUnlocked) {
+  // VIP freigeschaltet (oder Admin): Schreibe Creator statt Download/Teilen
+  if (hasVip && (vipUnlocked || isAdmin)) {
     if (btnDl) btnDl.style.display = "none";
     if (btnSh) btnSh.style.display = "none";
     if (btnCreator) {
@@ -1627,7 +1636,9 @@ function openCardView(cardId) {
           catch (e) {
             try { window.open(creatorLink, "_blank"); } catch (e2) { showToast(creatorLink); }
           }
-        } else showToast("Kein Creator-Link hinterlegt");
+        } else {
+          showToast("Kein Creator-Link hinterlegt");
+        }
       };
     }
   } else {
@@ -2989,17 +3000,18 @@ $("logo").addEventListener("touchstart", () => {
             buttons: [{id: "set", type: "default", text: "Bild setzen"}, {type: "cancel"}]
           }, async (btn) => {
             if (btn !== "set") return;
-            const idStr = prompt("Card ID (1-30):");
-            const url = prompt("https:// Bild-URL:");
-            if (!idStr || !url) return;
+            const idStr = prompt("1/4 · Welche Karte? (ID 1–30)");
+            if (!idStr) return;
+            const url = prompt("2/4 · Bild-URL (https://… Endung egal)");
+            if (!url) return;
+            const creator = prompt("3/4 · Creator Telegram-Link (https://t.me/…)") || "";
+            const paypal = prompt("4/4 · PayPal-Link (https://paypal.me/…)") || "";
             try {
-              const creator = prompt("Creator Telegram-Link (https://t.me/...) optional:") || "";
-              const paypal = prompt("PayPal-Link für VIP-Unlock (https://paypal.me/...) :") || "";
               await api("/api/admin/card_image", {
                 method: "POST",
                 body: JSON.stringify({
                   card_id: parseInt(idStr, 10),
-                  image_url: url,
+                  image_url: url.trim(),
                   creator_link: creator.trim() || null,
                   paypal_link: paypal.trim() || null
                 })
