@@ -20,12 +20,18 @@ html,body{
   font-family:-apple-system, BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,sans-serif;
   user-select:none;
 }
-#app{position:relative;display:flex;flex-direction:column;height:100dvh;padding:12px 14px;transition:padding-bottom .2s}
+#app{position:relative;display:flex;flex-direction:column;height:100dvh;padding:12px 14px;transform:translateZ(0)}
 #app.has-tabs{padding-bottom:100px}
-.screen{display:none;flex:1;flex-direction:column;overflow-y:auto;padding-bottom:12px;scrollbar-width:none}
+.screen{
+  display:none;flex:1;flex-direction:column;overflow-y:auto;padding-bottom:12px;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+  backface-visibility:hidden;
+  transform:translateZ(0);
+}
 .screen::-webkit-scrollbar{display:none}
-.screen.active{display:flex;animation:screenIn .3s cubic-bezier(.22,1,.36,1)}
-@keyframes screenIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.screen.active{display:flex;animation:screenIn .2s ease-out}
+@keyframes screenIn{from{opacity:0}to{opacity:1}}
 .topbar{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
 .row1{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .brand{font-weight:900;font-size:17px;letter-spacing:-.3px;background:linear-gradient(90deg,#fff,#c4b5fd 50%,#f0abfc 80%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
@@ -39,7 +45,6 @@ html,body{
 .xp-wrap{position:relative;height:22px;border-radius:999px;overflow:visible;background:rgba(255,255,255,.06);border:1px solid var(--stroke)}
 .xp-fill{position:absolute;left:1px;top:1px;bottom:1px;border-radius:999px;width:0%;min-width:0;background:linear-gradient(90deg,var(--neon-3),var(--neon-1) 50%,var(--neon-2));box-shadow:0 0 14px rgba(124,58,237,.6);transition:width .55s cubic-bezier(.22,1,.36,1);overflow:visible}
 .xp-label{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center;padding:0 12px;font-size:10px;font-weight:800;letter-spacing:.4px;text-shadow:0 1px 2px rgba(0,0,0,.7);z-index:3;pointer-events:none}
-/* Flamme sitzt am rechten Rand der gefüllten Leiste */
 .xp-flame{
   position:absolute;right:-2px;top:50%;
   transform:translate(50%,-50%);
@@ -76,7 +81,6 @@ html,body{
 }
 @keyframes flameFlicker{0%{transform:translate(-50%,-55%) scale(1,1) rotate(-3deg)}50%{transform:translate(-50%,-58%) scale(1.1,.9) rotate(3deg)}100%{transform:translate(-50%,-52%) scale(.92,1.12) rotate(-2deg)}}
 @keyframes flameInner{0%{transform:translate(-50%,-50%) scale(.85,1.1)}100%{transform:translate(-50%,-60%) scale(1.1,.85)}}
-/* Legacy streak-chip (falls noch referenziert) */
 .streak-chip{display:none!important}
 
 /* ── Bet Slider ── */
@@ -130,6 +134,17 @@ html,body{
 .bet-presets .btn.active-bet{
   background:linear-gradient(135deg,#ffd25e,#ff9f1c);color:#2a0f00;
   box-shadow:0 0 16px rgba(255,159,28,.55);
+}
+.bet-presets .btn.all-in-btn{
+  grid-column:1 / -1;
+  background:linear-gradient(135deg,#ff3366,#a10033);
+  color:#fff;font-size:13px;font-weight:900;letter-spacing:.5px;
+  box-shadow:0 0 16px rgba(255,51,102,.55);
+}
+.bet-presets .btn.all-in-btn.active-bet{
+  background:linear-gradient(135deg,#ffd25e,#ff3366);
+  color:#2a0f00;
+  box-shadow:0 0 24px rgba(255,210,94,.75);
 }
 .bet-go{margin-top:10px!important;font-size:16px!important;padding:16px!important;
   background:linear-gradient(135deg,#7c3aed,#ec4899)!important;
@@ -362,7 +377,17 @@ html,body{
 .card-view-actions{display:flex;gap:10px;width:100%;max-width:340px}
 .card-view-actions .btn{margin-top:0}
 
-.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:100;padding:8px 8px 20px;display:flex;justify-content:space-around;align-items:center;background:linear-gradient(180deg,transparent,rgba(5,3,15,.9) 30%,rgba(5,3,15,.99));backdrop-filter:blur(18px);border-top:1px solid var(--stroke)}
+.tabbar{
+  position:fixed;left:0;right:0;bottom:0;z-index:100;
+  padding:8px 8px 20px;display:flex;justify-content:space-around;align-items:center;
+  background:linear-gradient(180deg,transparent,rgba(5,3,15,.9) 30%,rgba(5,3,15,.99));
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border-top:1px solid var(--stroke);
+  transition:transform .25s ease,opacity .25s ease;
+  transform:translateZ(0);
+  will-change:transform,opacity;
+}
+.tabbar.hidden-bar{transform:translateY(120%);opacity:0;pointer-events:none}
 .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;cursor:pointer;color:var(--hint);transition:color .2s,transform .2s;position:relative}
 .tab.active{color:#fff;transform:translateY(-2px)}
 .tab .tab-icon{font-size:20px}
@@ -883,9 +908,9 @@ async function api(path, opts = {}, _retry = 2) {
   return r.json();
 }
 
-let collection = [];          // owned card ids
-let collectionMeta = {};      // card_id -> {vip, image_url, has_vip_media, ...}
-let catalogMap = {};          // full catalog from server
+let collection = [];
+let collectionMeta = {};
+let catalogMap = {};
 let dropBusy = false;
 let isAdmin = false;
 
@@ -909,7 +934,6 @@ function cloudSet(key, val) {
 }
 
 async function loadCollection() {
-  // 1) Legacy local cards einmalig syncen
   try {
     const raw = await cloudGet("card_collection");
     if (raw) {
@@ -925,7 +949,6 @@ async function loadCollection() {
     }
   } catch (e) {}
 
-  // 2) Server-Sammlung laden
   try {
     const data = await api("/api/collection");
     applyCollectionData(data);
@@ -952,7 +975,6 @@ function applyCollectionData(data) {
 }
 
 async function saveCollection() {
-  // Server ist Source of Truth – local nur Backup der IDs
   await cloudSet("card_collection", JSON.stringify(collection));
 }
 function hasCard(id) { return collection.includes(id); }
@@ -1054,10 +1076,17 @@ function streakPitch() {
 }
 
 function show(id) {
-  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
-  $(id).classList.add("active");
+  const target = $(id);
+  document.querySelectorAll(".screen").forEach(s => {
+    if (s !== target) s.classList.remove("active");
+  });
+  if (!target.classList.contains("active")) {
+    target.scrollTop = 0;
+    target.classList.add("active");
+  }
   const isGame = id === "s-game";
-  $("#tabbar").style.display = isGame ? "none" : "flex";
+  const tabbar = $("#tabbar");
+  tabbar.classList.toggle("hidden-bar", isGame);
   $("#app").classList.toggle("has-tabs", !isGame);
   try { tg.BackButton.isVisible = (id !== "s-home"); } catch (e) {}
   if (id === "s-spin") {
@@ -1513,13 +1542,16 @@ function renderBets(game) {
   const row = $("bet-row");
   row.style.display = "block";
   row.style.gridTemplateColumns = "";
-  const maxB = Math.max(1, state.max_bet || 100);
+  // 🔥 NEU: max = aktuelles Coins-Guthaben ("All In")
+  const maxB = Math.max(1, state.coins || 1);
   let cur = Math.min(Math.max(state.bet || 25, 1), maxB);
   state.bet = cur;
 
-  const presets = [10, 25, 50, 100].filter(b => b <= maxB);
-  if (!presets.includes(maxB) && maxB > 100) presets.push(maxB);
-  if (!presets.length) presets.push(maxB);
+  // Fixe Presets 10/25/50/100 (nur die, die <= maxB sind)
+  const basePresets = [10, 25, 50, 100].filter(b => b <= maxB);
+  // Falls coins sehr niedrig: nimm einfach maxB als einzigen Preset
+  const presets = basePresets.length ? basePresets : [maxB];
+  const allInActive = cur === maxB;
 
   row.innerHTML = `
     <div class="bet-panel">
@@ -1531,7 +1563,11 @@ function renderBets(game) {
         <input class="bet-range" id="bet-range" type="range" min="1" max="${maxB}" value="${cur}" step="1">
       </div>
       <div class="bet-presets" id="bet-presets">
-        ${presets.map(b => `<button class="btn ${b === cur ? "active-bet" : ""}" data-bet="${b}">${b}</button>`).join("")}
+        ${presets.map(b => {
+          const cls = `btn ${b === cur && !allInActive ? "active-bet" : ""}`;
+          return `<button class="${cls}" data-bet="${b}">${b.toLocaleString("de-DE")}</button>`;
+        }).join("")}
+        <button class="btn all-in-btn ${allInActive ? "active-bet" : ""}" data-bet="${maxB}" data-allin="1">🔥 ALL IN · ${maxB.toLocaleString("de-DE")}</button>
       </div>
       <button class="btn bet-go" id="bet-go">🎰 SETZEN · ${cur.toLocaleString("de-DE")}</button>
     </div>
@@ -1553,7 +1589,13 @@ function renderBets(game) {
     }
     if (goBtn) goBtn.textContent = `🎰 SETZEN · ${v.toLocaleString("de-DE")}`;
     document.querySelectorAll("#bet-presets .btn").forEach(btn => {
-      btn.classList.toggle("active-bet", parseInt(btn.dataset.bet, 10) === v);
+      const bv = parseInt(btn.dataset.bet, 10);
+      const isAllIn = btn.dataset.allin === "1";
+      if (isAllIn) {
+        btn.classList.toggle("active-bet", v === maxB);
+      } else {
+        btn.classList.toggle("active-bet", v === bv && v !== maxB);
+      }
     });
     if (fromSlider) haptic("light");
   }
@@ -1593,7 +1635,7 @@ function runGame(game, bet) {
 }
 
 // ============================================================
-// CRASH – serverseitiger Crash-Punkt + House Edge
+// CRASH
 // ============================================================
 let crashRaf = 0;
 
@@ -2463,7 +2505,6 @@ function renderWheelCanvas() {
   const n = WHEEL_SEGMENTS.length;
   const segAngle = (Math.PI * 2) / n;
 
-  // Äußerer Glow-Ring
   ctx.save();
   ctx.shadowBlur = 40;
   ctx.shadowColor = "rgba(124,58,237,.9)";
@@ -2749,7 +2790,6 @@ $("logo").addEventListener("touchstart", () => {
     try {
       const r = await api("/api/admin/stats");
       showToast(`👥 ${r.users} · 💰 ${r.coins_in_circulation} · 🏦 ${r.house_edge}`);
-      // Admin: VIP-Bild setzen
       try {
         if (tg.showPopup) {
           tg.showPopup({
@@ -2789,7 +2829,6 @@ async function boot() {
       $("stats-box").innerHTML = '<div class="row"><span>⚠️ Verbindung</span><span>initData fehlt</span></div><button class="btn" onclick="location.reload()">🔄 Neu laden</button>';
       return;
     }
-    // kein Auto-Reset – Coins bleiben erhalten
     await loadCollection();
     await loadMeta();
     await loadMe();
