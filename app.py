@@ -226,6 +226,7 @@ def get_user_collection(uid: int) -> list:
     ).fetchall()
     con.close()
 
+    adm = is_admin(uid)
     out = []
     for r in rows:
         cid = r["card_id"]
@@ -1057,6 +1058,7 @@ def sync_collection(req: SyncCollectionReq, uid: int = Depends(auth)):
 def api_collection(uid: int = Depends(auth)):
     col = get_user_collection(uid)
     owned_ids = {c["card_id"] for c in col}
+    adm = is_admin(uid)
     catalog = []
     for cid in range(1, 31):
         rarity = CARD_RARITY.get(cid, "common")
@@ -1071,7 +1073,7 @@ def api_collection(uid: int = Depends(auth)):
             "vip": vip_unlocked,
             "is_vip_card": info["is_vip_card"],
             "image_url": info["image_url"],
-            "creator_link": info["creator_link"] if (vip_unlocked and info["is_vip_card"]) else "",
+            "creator_link": info["creator_link"] if ((vip_unlocked or adm) and info["is_vip_card"]) else "",
             "paypal_link": info["paypal_link"] if info["is_vip_card"] else "",
             "buy_price": CARD_PRICES.get(rarity, 400),
             "vip_price": VIP_PRICES.get(rarity, 800),
