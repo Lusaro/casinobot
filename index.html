@@ -22,10 +22,10 @@ html,body{
 }
 #app{position:relative;display:flex;flex-direction:column;height:100dvh;padding:12px 14px;transition:padding-bottom .2s}
 #app.has-tabs{padding-bottom:100px}
-.screen{display:none;flex:1;flex-direction:column;overflow-y:auto;padding-bottom:12px;scrollbar-width:none}
+.screen{display:none;flex:1;flex-direction:column;overflow-x:hidden;overflow-y:auto;padding-bottom:12px;scrollbar-width:none;-webkit-overflow-scrolling:touch;transform:translateZ(0)}
 .screen::-webkit-scrollbar{display:none}
-.screen.active{display:flex;animation:screenIn .3s cubic-bezier(.22,1,.36,1)}
-@keyframes screenIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.screen.active{display:flex;animation:screenIn .28s cubic-bezier(.22,1,.36,1) both}
+@keyframes screenIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .topbar{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
 .row1{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .brand{font-weight:900;font-size:17px;letter-spacing:-.3px;background:linear-gradient(90deg,#fff,#c4b5fd 50%,#f0abfc 80%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
@@ -1049,17 +1049,30 @@ function streakPitch() {
 }
 
 function show(id) {
-  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
-  $(id).classList.add("active");
+  const app = $("app");
+  // Grafik-Bugs beim Seitenwechsel: Animationen / Transforms resetten
+  if (app) app.classList.remove("shake-screen", "shake-hard");
+  document.querySelectorAll(".screen").forEach(s => {
+    s.classList.remove("active");
+    s.style.transform = "";
+    s.style.opacity = "";
+  });
+  const target = $(id);
+  if (target) {
+    target.classList.add("active");
+    try { target.scrollTop = 0; } catch (e) {}
+  }
   const isGame = id === "s-game";
-  $("#tabbar").style.display = isGame ? "none" : "flex";
-  $("#app").classList.toggle("has-tabs", !isGame);
+  const tabbar = $("tabbar");
+  if (tabbar) tabbar.style.display = isGame ? "none" : "flex";
+  if (app) app.classList.toggle("has-tabs", !isGame);
   try { tg.BackButton.isVisible = (id !== "s-home"); } catch (e) {}
   if (id === "s-spin") {
     requestAnimationFrame(() => {
       setTimeout(() => renderWheelCanvas(), 40);
     });
   }
+  updateStreakVisuals();
 }
 
 let toastTimer;
@@ -1508,25 +1521,33 @@ function renderBets(game) {
   const row = $("bet-row");
   row.style.display = "block";
   row.style.gridTemplateColumns = "";
-  const maxB = Math.max(1, state.coins || 1);   // ← ALL IN: Slider bis volles Guthaben
+  // All-in = aktueller Kontostand (min. 1)
+  const maxB = Math.max(1, state.coins | 0);
   let cur = Math.min(Math.max(state.bet || 25, 1), maxB);
   state.bet = cur;
 
-  const presets = [10, 25, 50, 100].filter(b => b <= maxB);
-  if (!presets.includes(maxB) && maxB > 100) presets.push(maxB);
-  if (!presets.length) presets.push(maxB);
+  const presets = [];
+  for (const p of [10, 25, 50, 100, 250, 500, 1000]) {
+    if (p <= maxB) presets.push(p);
+  }
+  // All-in immer als letzter Preset
+  if (!presets.includes(maxB)) presets.push(maxB);
 
   row.innerHTML = `
     <div class="bet-panel">
       <div class="bet-slider-wrap">
         <div class="bet-slider-top">
-          <span class="bet-slider-lbl">Einsatz</span>
+          <span class="bet-slider-lbl">Einsatz · All-In möglich</span>
           <span class="bet-slider-val" id="bet-slider-val">${cur.toLocaleString("de-DE")}</span>
         </div>
         <input class="bet-range" id="bet-range" type="range" min="1" max="${maxB}" value="${cur}" step="1">
       </div>
-      <div class="bet-presets" id="bet-presets">
-        ${presets.map(b => `<button class="btn ${b === cur ? "active-bet" : ""}" data-bet="${b}">${b}</button>`).join("")}
+      <div class="bet-presets" id="bet-presets" style="grid-template-columns:repeat(${Math.min(presets.length, 4)},1fr)">
+        ${presets.map(b => {
+          const label = b === maxB ? "ALL IN" : b.toLocaleString("de-DE");
+          const active = b === cur ? "active-bet" : "";
+          return `<button class="btn ${active}" data-bet="${b}">${label}</button>`;
+        }).join("")}
       </div>
       <button class="btn bet-go" id="bet-go">🎰 SETZEN · ${cur.toLocaleString("de-DE")}</button>
     </div>
@@ -1546,7 +1567,12 @@ function renderBets(game) {
       void valEl.offsetWidth;
       valEl.classList.add("bump");
     }
-    if (goBtn) goBtn.textContent = `🎰 SETZEN · ${v.toLocaleString("de-DE")}`;
+    if (goBtn) {
+      const allIn = v >= maxB;
+      goBtn.textContent = allIn
+        ? `🔥 ALL IN · ${v.toLocaleString("de-DE")}`
+        : `🎰 SETZEN · ${v.toLocaleString("de-DE")}`;
+    }
     document.querySelectorAll("#bet-presets .btn").forEach(btn => {
       btn.classList.toggle("active-bet", parseInt(btn.dataset.bet, 10) === v);
     });
@@ -1556,7 +1582,6 @@ function renderBets(game) {
   if (range) {
     range.addEventListener("input", () => {
       setBet(parseInt(range.value, 10), true);
-      SFX.click();
     });
   }
 
@@ -1571,11 +1596,16 @@ function renderBets(game) {
   if (goBtn) {
     goBtn.addEventListener("click", () => {
       if (state.busy) return;
+      if (state.bet > state.coins) {
+        showToast("Nicht genug Coins");
+        return;
+      }
       haptic("medium"); SFX.click();
       runGame(game, state.bet);
     });
   }
 }
+
 
 function runGame(game, bet) {
   if (state.busy) return;
