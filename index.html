@@ -313,6 +313,28 @@ html,body{
 }
 .card-slot.locked .buy-lbl{display:block}
 .card-slot:not(.locked) .buy-lbl{display:none}
+.card-slot .vip-badge{
+  position:absolute;top:4px;left:4px;font-size:8px;font-weight:900;
+  padding:2px 5px;border-radius:6px;
+  background:linear-gradient(135deg,#ffd25e,#ff9f1c);color:#2a0f00;
+  box-shadow:0 0 8px rgba(255,210,94,.6);z-index:2;
+}
+.card-slot .vip-lock{
+  position:absolute;bottom:6px;left:4px;right:4px;
+  font-size:8px;font-weight:900;letter-spacing:.3px;
+  padding:4px 2px;border-radius:8px;text-align:center;
+  background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;
+  box-shadow:0 2px 10px rgba(124,58,237,.5);
+}
+.card-slot img.card-img{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  border-radius:10px;
+}
+.card-slot.has-img .em{display:none}
+.card-slot.has-img .name-lbl{
+  background:linear-gradient(transparent,rgba(0,0,0,.75));
+  bottom:0;padding:8px 2px 4px;
+}
 .card-slot.legendary{border-color:#ffd25e;box-shadow:0 0 16px rgba(255,210,94,.6)}
 .card-slot.epic{border-color:#ec4899;box-shadow:0 0 14px rgba(236,72,153,.5)}
 .card-slot.rare{border-color:#22d3ee}
@@ -447,7 +469,7 @@ html,body{
       <div class="collection-progress"><div class="fill" id="collection-progress"></div></div>
     </div>
     <div class="card-grid" id="card-grid"></div>
-    <div class="disclaimer">Gewinne Spiele oder kaufe Karten mit Coins</div>
+    <div class="disclaimer">Spielen · Kaufen · VIP-Bilder freischalten</div>
   </div>
 
   <!-- DAILY -->
@@ -861,8 +883,11 @@ async function api(path, opts = {}, _retry = 2) {
   return r.json();
 }
 
-let collection = [];
+let collection = [];          // owned card ids
+let collectionMeta = {};      // card_id -> {vip, image_url, has_vip_media, ...}
+let catalogMap = {};          // full catalog from server
 let dropBusy = false;
+let isAdmin = false;
 
 function cloudGet(key) {
   return new Promise(resolve => {
@@ -884,15 +909,64 @@ function cloudSet(key, val) {
 }
 
 async function loadCollection() {
-  const raw = await cloudGet("card_collection");
-  if (raw) { try { collection = JSON.parse(raw); } catch (e) { collection = []; } }
-  else { collection = []; }
-  if (!Array.isArray(collection)) collection = [];
+  // 1) Legacy local cards einmalig syncen
+  try {
+    const raw = await cloudGet("card_collection");
+    if (raw) {
+      let local = [];
+      try { local = JSON.parse(raw); } catch (e) { local = []; }
+      if (Array.isArray(local) && local.length) {
+        await api("/api/collection/sync", {
+          method: "POST",
+          body: JSON.stringify({ card_ids: local })
+        }).catch(() => null);
+        await cloudSet("card_collection", "[]");
+      }
+    }
+  } catch (e) {}
+
+  // 2) Server-Sammlung laden
+  try {
+    const data = await api("/api/collection");
+    applyCollectionData(data);
+  } catch (e) {
+    collection = [];
+    collectionMeta = {};
+    catalogMap = {};
+  }
   renderCollection();
 }
-async function saveCollection() { await cloudSet("card_collection", JSON.stringify(collection)); }
+
+function applyCollectionData(data) {
+  if (!data) return;
+  isAdmin = !!data.is_admin;
+  collection = (data.collection || []).map(c => c.card_id);
+  collectionMeta = {};
+  (data.collection || []).forEach(c => {
+    collectionMeta[c.card_id] = c;
+  });
+  catalogMap = {};
+  (data.catalog || []).forEach(c => {
+    catalogMap[c.card_id] = c;
+  });
+}
+
+async function saveCollection() {
+  // Server ist Source of Truth – local nur Backup der IDs
+  await cloudSet("card_collection", JSON.stringify(collection));
+}
 function hasCard(id) { return collection.includes(id); }
-function addCard(id) { if (!hasCard(id)) collection.push(id); }
+async function addCard(id) {
+  if (!hasCard(id)) collection.push(id);
+  try {
+    await api("/api/grant_card", {
+      method: "POST",
+      body: JSON.stringify({ card_id: id })
+    });
+    const data = await api("/api/collection");
+    applyCollectionData(data);
+  } catch (e) {}
+}
 
 const state = { coins: 0, max_bet: 100, bet: 25, game: null, level: 1, streak: 0, best_streak: 0, wagered: 0, won: 0, busy: false, refCount: 0 };
 
@@ -1125,7 +1199,7 @@ async function grantRandomCard(label) {
     ? locked[Math.floor(Math.random() * locked.length)]
     : CARDS[Math.floor(Math.random() * CARDS.length)];
   const isNew = !hasCard(card.id);
-  addCard(card.id);
+  await addCard(card.id);
   await saveCollection();
   renderCollection();
   showCardDrop(card, isNew, label);
@@ -1150,33 +1224,111 @@ function renderCollection() {
   $("collection-count").textContent = `${owned} / ${total} Karten`;
   $("collection-progress").style.width = ((owned / total) * 100) + "%";
   grid.innerHTML = CARDS.map(card => {
+    const cat = catalogMap[card.id] || {};
     const got = hasCard(card.id);
-    const price = CARD_PRICES[card.rarity] || 400;
-    const cls = `card-slot ${got ? "" : "locked"} ${got ? card.rarity : ""}`;
-    const style = got ? `background:linear-gradient(160deg,${card.g[0]},${card.g[1]})` : "";
+    const meta = collectionMeta[card.id] || {};
+    const price = (cat.buy_price != null ? cat.buy_price : CARD_PRICES[card.rarity]) || 400;
+    const vipUnlocked = !!(meta.vip || cat.vip);
+    const hasMedia = !!(cat.has_vip_media || meta.has_vip_media);
+    const imgUrl = vipUnlocked ? (meta.image_url || cat.image_url) : null;
+    const cls = [
+      "card-slot",
+      got ? "" : "locked",
+      got ? card.rarity : "",
+      imgUrl ? "has-img" : "",
+    ].filter(Boolean).join(" ");
+    const style = got && !imgUrl ? `background:linear-gradient(160deg,${card.g[0]},${card.g[1]})` : "";
+    let extra = "";
+    if (!got) {
+      extra = `<div class="buy-lbl">💰 ${Number(price).toLocaleString("de-DE")}</div>`;
+    } else if (vipUnlocked && imgUrl) {
+      extra = `<span class="vip-badge">VIP</span><img class="card-img" src="${imgUrl}" alt="" loading="lazy">`;
+    } else if (got && hasMedia && !vipUnlocked) {
+      const vp = (cat.vip_price != null ? cat.vip_price : 800);
+      extra = `<div class="vip-lock">✨ VIP · ${Number(vp).toLocaleString("de-DE")}</div>`;
+    }
     return `<div class="${cls}" data-card="${card.id}" style="${style}">
       <div class="em">${got ? card.icon : "❓"}</div>
       <div class="name-lbl">${card.name}</div>
-      <div class="buy-lbl">💰 ${price.toLocaleString("de-DE")}</div>
+      ${extra}
     </div>`;
   }).join("");
   grid.querySelectorAll(".card-slot").forEach(el => {
     const id = parseInt(el.dataset.card, 10);
     el.addEventListener("click", () => {
-      if (hasCard(id)) openCardView(id);
+      if (hasCard(id)) openOwnedCard(id);
       else openBuyCard(id);
     });
   });
 }
 
+async function openOwnedCard(cardId) {
+  const card = CARDS.find(c => c.id === cardId);
+  if (!card) return;
+  const cat = catalogMap[cardId] || {};
+  const meta = collectionMeta[cardId] || {};
+  const vipUnlocked = !!(meta.vip || cat.vip);
+  const hasMedia = !!(cat.has_vip_media || meta.has_vip_media);
+
+  if (vipUnlocked) {
+    openCardView(cardId);
+    return;
+  }
+  if (hasMedia) {
+    await openUnlockVip(cardId);
+    return;
+  }
+  openCardView(cardId);
+}
+
+async function openUnlockVip(cardId) {
+  const card = CARDS.find(c => c.id === cardId);
+  if (!card) return;
+  const cat = catalogMap[cardId] || {};
+  const price = cat.vip_price != null ? cat.vip_price : 800;
+  if (state.coins < price) {
+    showToast(`✨ VIP braucht ${price.toLocaleString("de-DE")} Coins`);
+    return;
+  }
+  const go = async () => {
+    if (state.busy) return;
+    state.busy = true;
+    haptic("medium");
+    try {
+      const res = await api("/api/unlock_vip", {
+        method: "POST",
+        body: JSON.stringify({ card_id: cardId })
+      });
+      state.coins = res.coins;
+      updateCoins();
+      const data = await api("/api/collection");
+      applyCollectionData(data);
+      renderCollection();
+      SFX.cardDrop();
+      notify("success");
+      showToast(`✨ VIP freigeschaltet: ${card.name}`);
+      openCardView(cardId);
+    } catch (e) {
+      showToast("Fehler: " + e.message);
+    } finally {
+      state.busy = false;
+    }
+  };
+  try {
+    if (tg.showConfirm) {
+      tg.showConfirm(`✨ VIP-Bild für ${card.name}\\n${price.toLocaleString("de-DE")} Coins?`, (ok) => { if (ok) go(); });
+      return;
+    }
+  } catch (e) {}
+  await go();
+}
+
 async function openBuyCard(cardId) {
   const card = CARDS.find(c => c.id === cardId);
   if (!card || hasCard(cardId)) return;
-  const price = CARD_PRICES[card.rarity] || 400;
+  const cat = catalogMap[cardId] || {};
+  const price = (cat.buy_price != null ? cat.buy_price : CARD_PRICES[card.rarity]) || 400;
   const r = RARITY[card.rarity];
-
-  // Einfacher Confirm über Telegram oder Toast-Flow
-  const msg = `${card.icon} ${card.name}\n${r.name}\n\nPreis: ${price.toLocaleString("de-DE")} Coins\nDein Kontostand: ${state.coins.toLocaleString("de-DE")}`;
 
   const doBuy = async () => {
     if (state.busy) return;
@@ -1194,8 +1346,9 @@ async function openBuyCard(cardId) {
       });
       state.coins = res.coins;
       updateCoins();
-      addCard(cardId);
-      await saveCollection();
+      if (!hasCard(cardId)) collection.push(cardId);
+      const data = await api("/api/collection");
+      applyCollectionData(data);
       renderCollection();
       SFX.cardDrop();
       notify("success");
@@ -1209,23 +1362,19 @@ async function openBuyCard(cardId) {
     }
   };
 
-  // Telegram Popup wenn verfügbar, sonst direkt kaufen nach kurzem Confirm via showAlert-Style
   try {
     if (tg.showConfirm) {
-      tg.showConfirm(msg + "\n\nJetzt kaufen?", (ok) => {
-        if (ok) doBuy();
-      });
+      tg.showConfirm(`${card.icon} ${card.name}\\n${r.name}\\n\\n${price.toLocaleString("de-DE")} Coins kaufen?`, (ok) => { if (ok) doBuy(); });
       return;
     }
   } catch (e) {}
-
-  // Fallback: direkt kaufen mit Toast-Hinweis
   if (state.coins < price) {
     showToast(`🔒 ${card.name} · ${price} Coins nötig`);
     return;
   }
   await doBuy();
 }
+
 
 function rollCard() {
   const r = Math.random();
@@ -1244,7 +1393,7 @@ async function tryCardDrop(chance = 0.15) {
   await new Promise(r => setTimeout(r, spd(600)));
   const card = rollCard();
   const isNew = !hasCard(card.id);
-  addCard(card.id);
+  await addCard(card.id);
   await saveCollection();
   renderCollection();
   showCardDrop(card, isNew);
@@ -1283,12 +1432,28 @@ function openCardView(cardId) {
   if (!card) return;
   currentViewCard = card;
   const r = RARITY[card.rarity];
-  $("card-view-img").innerHTML = `
-    <div style="width:280px;height:390px;background:linear-gradient(160deg,${card.g[0]},${card.g[1]});display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;box-shadow:inset 0 0 60px rgba(0,0,0,.3)">
+  const meta = collectionMeta[cardId] || {};
+  const cat = catalogMap[cardId] || {};
+  const imgUrl = meta.image_url || (meta.vip || cat.vip ? cat.image_url : null);
+  let inner;
+  if (imgUrl) {
+    inner = `
+    <div style="width:280px;height:390px;border-radius:20px;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 40px rgba(255,210,94,.35)">
+      <img src="${imgUrl}" alt="" style="width:100%;height:100%;object-fit:cover">
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:40px 12px 20px;background:linear-gradient(transparent,rgba(0,0,0,.85))">
+        <div style="text-align:center;font-size:18px;font-weight:900;color:#fff;letter-spacing:2px">${card.name.toUpperCase()}</div>
+        <div style="text-align:center;font-size:11px;font-weight:900;color:#ffd25e;letter-spacing:4px;margin-top:4px">VIP · ${r.name}</div>
+      </div>
+    </div>`;
+  } else {
+    inner = `
+    <div style="width:280px;height:390px;background:linear-gradient(160deg,${card.g[0]},${card.g[1]});display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;box-shadow:inset 0 0 60px rgba(0,0,0,.3);border-radius:20px">
       <div style="font-size:130px;line-height:1;filter:drop-shadow(0 8px 24px rgba(0,0,0,.5))">${card.icon}</div>
       <div style="position:absolute;bottom:70px;left:0;right:0;text-align:center;font-size:20px;font-weight:900;color:#fff;letter-spacing:3px;text-shadow:0 2px 8px rgba(0,0,0,.7)">${card.name.toUpperCase()}</div>
       <div style="position:absolute;bottom:36px;left:0;right:0;text-align:center;font-size:12px;font-weight:900;color:rgba(255,255,255,.9);letter-spacing:5px;text-shadow:0 1px 4px rgba(0,0,0,.7)">${r.name}</div>
     </div>`;
+  }
+  $("card-view-img").innerHTML = inner;
   $("card-view").classList.add("show");
   haptic();
 }
@@ -2584,6 +2749,29 @@ $("logo").addEventListener("touchstart", () => {
     try {
       const r = await api("/api/admin/stats");
       showToast(`👥 ${r.users} · 💰 ${r.coins_in_circulation} · 🏦 ${r.house_edge}`);
+      // Admin: VIP-Bild setzen
+      try {
+        if (tg.showPopup) {
+          tg.showPopup({
+            title: "Admin · VIP-Bild",
+            message: "Karten-ID (1-30) und https-URL setzen?",
+            buttons: [{id: "set", type: "default", text: "Bild setzen"}, {type: "cancel"}]
+          }, async (btn) => {
+            if (btn !== "set") return;
+            const idStr = prompt("Card ID (1-30):");
+            const url = prompt("https:// Bild-URL:");
+            if (!idStr || !url) return;
+            try {
+              await api("/api/admin/card_image", {
+                method: "POST",
+                body: JSON.stringify({ card_id: parseInt(idStr, 10), image_url: url })
+              });
+              showToast("✅ VIP-Bild gesetzt");
+              await loadCollection();
+            } catch (e) { showToast("Fehler: " + e.message); }
+          });
+        }
+      } catch (e) {}
     } catch (e) { showToast("Kein Zugriff."); }
   }, 1200);
 });
