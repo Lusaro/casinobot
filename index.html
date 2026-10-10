@@ -20,18 +20,12 @@ html,body{
   font-family:-apple-system, BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,sans-serif;
   user-select:none;
 }
-#app{position:relative;display:flex;flex-direction:column;height:100dvh;padding:12px 14px;transform:translateZ(0)}
+#app{position:relative;display:flex;flex-direction:column;height:100dvh;padding:12px 14px;transition:padding-bottom .2s}
 #app.has-tabs{padding-bottom:100px}
-.screen{
-  display:none;flex:1;flex-direction:column;overflow-y:auto;padding-bottom:12px;
-  scrollbar-width:none;
-  -webkit-overflow-scrolling:touch;
-  backface-visibility:hidden;
-  transform:translateZ(0);
-}
+.screen{display:none;flex:1;flex-direction:column;overflow-y:auto;padding-bottom:12px;scrollbar-width:none}
 .screen::-webkit-scrollbar{display:none}
-.screen.active{display:flex;animation:screenIn .2s ease-out}
-@keyframes screenIn{from{opacity:0}to{opacity:1}}
+.screen.active{display:flex;animation:screenIn .3s cubic-bezier(.22,1,.36,1)}
+@keyframes screenIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .topbar{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
 .row1{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .brand{font-weight:900;font-size:17px;letter-spacing:-.3px;background:linear-gradient(90deg,#fff,#c4b5fd 50%,#f0abfc 80%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
@@ -134,17 +128,6 @@ html,body{
 .bet-presets .btn.active-bet{
   background:linear-gradient(135deg,#ffd25e,#ff9f1c);color:#2a0f00;
   box-shadow:0 0 16px rgba(255,159,28,.55);
-}
-.bet-presets .btn.all-in-btn{
-  grid-column:1 / -1;
-  background:linear-gradient(135deg,#ff3366,#a10033);
-  color:#fff;font-size:13px;font-weight:900;letter-spacing:.5px;
-  box-shadow:0 0 16px rgba(255,51,102,.55);
-}
-.bet-presets .btn.all-in-btn.active-bet{
-  background:linear-gradient(135deg,#ffd25e,#ff3366);
-  color:#2a0f00;
-  box-shadow:0 0 24px rgba(255,210,94,.75);
 }
 .bet-go{margin-top:10px!important;font-size:16px!important;padding:16px!important;
   background:linear-gradient(135deg,#7c3aed,#ec4899)!important;
@@ -377,17 +360,7 @@ html,body{
 .card-view-actions{display:flex;gap:10px;width:100%;max-width:340px}
 .card-view-actions .btn{margin-top:0}
 
-.tabbar{
-  position:fixed;left:0;right:0;bottom:0;z-index:100;
-  padding:8px 8px 20px;display:flex;justify-content:space-around;align-items:center;
-  background:linear-gradient(180deg,transparent,rgba(5,3,15,.9) 30%,rgba(5,3,15,.99));
-  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-  border-top:1px solid var(--stroke);
-  transition:transform .25s ease,opacity .25s ease;
-  transform:translateZ(0);
-  will-change:transform,opacity;
-}
-.tabbar.hidden-bar{transform:translateY(120%);opacity:0;pointer-events:none}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:100;padding:8px 8px 20px;display:flex;justify-content:space-around;align-items:center;background:linear-gradient(180deg,transparent,rgba(5,3,15,.9) 30%,rgba(5,3,15,.99));backdrop-filter:blur(18px);border-top:1px solid var(--stroke)}
 .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;cursor:pointer;color:var(--hint);transition:color .2s,transform .2s;position:relative}
 .tab.active{color:#fff;transform:translateY(-2px)}
 .tab .tab-icon{font-size:20px}
@@ -1076,17 +1049,10 @@ function streakPitch() {
 }
 
 function show(id) {
-  const target = $(id);
-  document.querySelectorAll(".screen").forEach(s => {
-    if (s !== target) s.classList.remove("active");
-  });
-  if (!target.classList.contains("active")) {
-    target.scrollTop = 0;
-    target.classList.add("active");
-  }
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  $(id).classList.add("active");
   const isGame = id === "s-game";
-  const tabbar = $("#tabbar");
-  tabbar.classList.toggle("hidden-bar", isGame);
+  $("#tabbar").style.display = isGame ? "none" : "flex";
   $("#app").classList.toggle("has-tabs", !isGame);
   try { tg.BackButton.isVisible = (id !== "s-home"); } catch (e) {}
   if (id === "s-spin") {
@@ -1542,16 +1508,13 @@ function renderBets(game) {
   const row = $("bet-row");
   row.style.display = "block";
   row.style.gridTemplateColumns = "";
-  // 🔥 NEU: max = aktuelles Coins-Guthaben ("All In")
-  const maxB = Math.max(1, state.coins || 1);
+  const maxB = Math.max(1, state.coins || 1);   // ← ALL IN: Slider bis volles Guthaben
   let cur = Math.min(Math.max(state.bet || 25, 1), maxB);
   state.bet = cur;
 
-  // Fixe Presets 10/25/50/100 (nur die, die <= maxB sind)
-  const basePresets = [10, 25, 50, 100].filter(b => b <= maxB);
-  // Falls coins sehr niedrig: nimm einfach maxB als einzigen Preset
-  const presets = basePresets.length ? basePresets : [maxB];
-  const allInActive = cur === maxB;
+  const presets = [10, 25, 50, 100].filter(b => b <= maxB);
+  if (!presets.includes(maxB) && maxB > 100) presets.push(maxB);
+  if (!presets.length) presets.push(maxB);
 
   row.innerHTML = `
     <div class="bet-panel">
@@ -1563,11 +1526,7 @@ function renderBets(game) {
         <input class="bet-range" id="bet-range" type="range" min="1" max="${maxB}" value="${cur}" step="1">
       </div>
       <div class="bet-presets" id="bet-presets">
-        ${presets.map(b => {
-          const cls = `btn ${b === cur && !allInActive ? "active-bet" : ""}`;
-          return `<button class="${cls}" data-bet="${b}">${b.toLocaleString("de-DE")}</button>`;
-        }).join("")}
-        <button class="btn all-in-btn ${allInActive ? "active-bet" : ""}" data-bet="${maxB}" data-allin="1">🔥 ALL IN · ${maxB.toLocaleString("de-DE")}</button>
+        ${presets.map(b => `<button class="btn ${b === cur ? "active-bet" : ""}" data-bet="${b}">${b}</button>`).join("")}
       </div>
       <button class="btn bet-go" id="bet-go">🎰 SETZEN · ${cur.toLocaleString("de-DE")}</button>
     </div>
@@ -1589,13 +1548,7 @@ function renderBets(game) {
     }
     if (goBtn) goBtn.textContent = `🎰 SETZEN · ${v.toLocaleString("de-DE")}`;
     document.querySelectorAll("#bet-presets .btn").forEach(btn => {
-      const bv = parseInt(btn.dataset.bet, 10);
-      const isAllIn = btn.dataset.allin === "1";
-      if (isAllIn) {
-        btn.classList.toggle("active-bet", v === maxB);
-      } else {
-        btn.classList.toggle("active-bet", v === bv && v !== maxB);
-      }
+      btn.classList.toggle("active-bet", parseInt(btn.dataset.bet, 10) === v);
     });
     if (fromSlider) haptic("light");
   }
