@@ -16,19 +16,35 @@ import sqlite3
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup,
     WebAppInfo, MenuButtonWebApp, BotCommand, BotCommandScopeDefault,
-    LinkPreviewOptions,
+    LinkPreviewOptions, LabeledPrice, PreCheckoutQuery,
 )
+from telegram.ext import PreCheckoutQueryHandler, MessageHandler, filters
 from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 WEBAPP_URL = os.environ["WEBAPP_URL"]
 PORT = int(os.environ.get("PORT", 10000))
-DB = "/tmp/casino.db"
+# Persistente DB (nicht /tmp – wird auf Render bei Restart gelöscht)
+_DATA_DIR = os.environ.get("DATA_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "data"))
+os.makedirs(_DATA_DIR, exist_ok=True)
+DB = os.environ.get("DB_PATH", os.path.join(_DATA_DIR, "casino.db"))
 AUTH_MAX_AGE = 86400
 NO_PREVIEW = LinkPreviewOptions(is_disabled=True)
 
 ADMIN_IDS = [6098272278]
+
+# Telegram Stars Shop (XTR)
+SHOP_PACKS = {
+    "100":   {"coins": 100,   "stars": 1,  "title": "100 Coins"},
+    "1000":  {"coins": 1000,  "stars": 5,  "title": "1.000 Coins"},
+    "5000":  {"coins": 5000,  "stars": 15, "title": "5.000 Coins"},
+    "10000": {"coins": 10000, "stars": 25, "title": "10.000 Coins"},
+}
+
+# Wird in main() gesetzt, damit API createInvoiceLink nutzen kann
+BOT_INSTANCE = None
+
 
 
 def db():
@@ -78,6 +94,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS card_media (
         card_id INTEGER PRIMARY KEY,
         image_url TEXT NOT NULL,
+        creator_link TEXT DEFAULT '',
         updated_at INTEGER DEFAULT 0
     );
     """)
@@ -88,6 +105,17 @@ def init_db():
                 con.execute(f"ALTER TABLE users ADD COLUMN {col} {ddl}")
             except Exception:
                 pass
+    media_cols = [r[1] for r in con.execute("PRAGMA table_info(card_media)").fetchall()]
+    if "creator_link" not in media_cols:
+        try:
+            con.execute("ALTER TABLE card_media ADD COLUMN creator_link TEXT DEFAULT ''")
+        except Exception:
+            pass
+    if "paypal_link" not in media_cols:
+        try:
+            con.execute("ALTER TABLE card_media ADD COLUMN paypal_link TEXT DEFAULT ''")
+        except Exception:
+            pass
     for aid in ADMIN_IDS:
         try:
             con.execute(
@@ -96,8 +124,36 @@ def init_db():
             )
         except Exception:
             pass
+
+    # VIP-Bilder aus Env wiederherstellen (überleben Deploys)
+    # Format: VIP_IMAGES={"1":"https://...","30":"https://..."}
+    raw_vip = os.environ.get("VIP_IMAGES", "").strip()
+    if raw_vip:
+        try:
+            vip_map = json.loads(raw_vip)
+            for cid_s, url in vip_map.items():
+                try:
+                    cid = int(cid_s)
+                    url = str(url).strip()
+                    if cid in range(1, 31) and url.startswith("https://"):
+                        con.execute(
+                            "INSERT INTO card_media (card_id, image_url, updated_at) VALUES (?,?,?) "
+                            "ON CONFLICT(card_id) DO UPDATE SET image_url=excluded.image_url, updated_at=excluded.updated_at",
+                            (cid, url, int(time.time())),
+                        )
+                except Exception:
+                    pass
+            print(f"VIP_IMAGES seeded: {len(vip_map)} entries")
+        except Exception as e:
+            print(f"VIP_IMAGES parse error: {e}")
+
     con.commit()
     con.close()
+    # JSON-Backup nachladen (falls DB neu war, aber data/card_media.json existiert)
+    try:
+        load_media_backup()
+    except Exception as e:
+        print(f"load_media_backup: {e}")
 
 
 def user_has_card(uid: int, card_id: int) -> bool:
@@ -129,34 +185,122 @@ def grant_card(uid: int, card_id: int) -> bool:
     return True
 
 
+def get_media_rows() -> dict:
+    """card_id -> {image_url, creator_link, paypal_link}"""
+    con = db()
+    try:
+        rows = con.execute(
+            "SELECT card_id, image_url, COALESCE(creator_link,'') AS creator_link, "
+            "COALESCE(paypal_link,'') AS paypal_link FROM card_media"
+        ).fetchall()
+    except Exception:
+        rows = con.execute("SELECT card_id, image_url FROM card_media").fetchall()
+        rows = [{**dict(r), "creator_link": "", "paypal_link": ""} for r in rows]
+    con.close()
+    out = {}
+    for r in rows:
+        out[r["card_id"]] = {
+            "image_url": r["image_url"],
+            "creator_link": (r["creator_link"] or "").strip(),
+            "paypal_link": (r["paypal_link"] or "").strip(),
+        }
+    return out
+
+
 def get_user_collection(uid: int) -> list:
     con = db()
     rows = con.execute(
         "SELECT card_id, vip FROM user_cards WHERE user_id=? ORDER BY card_id",
         (uid,),
     ).fetchall()
-    media = {
-        r["card_id"]: r["image_url"]
-        for r in con.execute("SELECT card_id, image_url FROM card_media").fetchall()
-    }
     con.close()
+    media = get_media_rows()
     out = []
     for r in rows:
         cid = r["card_id"]
+        m = media.get(cid) or {}
+        is_vip = bool(r["vip"])
         out.append({
             "card_id": cid,
-            "vip": bool(r["vip"]),
-            "image_url": media.get(cid) if r["vip"] else None,
+            "vip": is_vip,
+            "image_url": m.get("image_url") if is_vip else None,
+            "preview_url": m.get("image_url"),  # immer für Blur-Preview
             "has_vip_media": cid in media,
+            "creator_link": m.get("creator_link") if is_vip else None,
+            "paypal_link": m.get("paypal_link") or None,
         })
     return out
 
 
 def get_all_media() -> dict:
-    con = db()
-    rows = con.execute("SELECT card_id, image_url FROM card_media").fetchall()
-    con.close()
-    return {r["card_id"]: r["image_url"] for r in rows}
+    """Rückwärtskompatibel: card_id -> image_url"""
+    return {k: v["image_url"] for k, v in get_media_rows().items()}
+
+
+
+def media_backup_path():
+    return os.path.join(_DATA_DIR, "card_media.json")
+
+
+def save_media_backup():
+    """Schreibt VIP-URLs + Creator-Links als JSON (Backup)."""
+    try:
+        media = get_media_rows()
+        payload = {
+            str(k): {
+                "image_url": v["image_url"],
+                "creator_link": v.get("creator_link") or "",
+                "paypal_link": v.get("paypal_link") or "",
+            }
+            for k, v in media.items()
+        }
+        with open(media_backup_path(), "w", encoding="utf-8") as f:
+            json.dump(payload, f)
+    except Exception as e:
+        print(f"media backup write: {e}")
+
+
+def load_media_backup():
+    """Lädt VIP-URLs aus JSON-Backup in die DB."""
+    p = media_backup_path()
+    if not os.path.isfile(p):
+        return 0
+    try:
+        with open(p, encoding="utf-8") as f:
+            data = json.load(f)
+        con = db()
+        n = 0
+        for cid_s, val in (data or {}).items():
+            try:
+                cid = int(cid_s)
+                if isinstance(val, dict):
+                    url = str(val.get("image_url") or "").strip()
+                    clink = str(val.get("creator_link") or "").strip()
+                    plink = str(val.get("paypal_link") or "").strip()
+                else:
+                    url = str(val).strip()
+                    clink = ""
+                    plink = ""
+                if cid < 1 or cid > 30 or not url.startswith("https://"):
+                    continue
+                con.execute(
+                    "INSERT INTO card_media (card_id, image_url, creator_link, paypal_link, updated_at) VALUES (?,?,?,?,?) "
+                    "ON CONFLICT(card_id) DO UPDATE SET image_url=excluded.image_url, "
+                    "creator_link=excluded.creator_link, paypal_link=excluded.paypal_link, "
+                    "updated_at=excluded.updated_at",
+                    (cid, url, clink, plink, int(time.time())),
+                )
+                n += 1
+            except Exception:
+                pass
+        con.commit()
+        con.close()
+        if n:
+            print(f"card_media.json restored: {n} images")
+        return n
+    except Exception as e:
+        print(f"media backup load: {e}")
+        return 0
 
 
 def get_user(uid):
@@ -520,16 +664,19 @@ def play(req: PlayReq, uid: int = Depends(auth)):
     if req.game == "coin":
         side, won = coin_outcome(u, req.choice or "")
         payout = int(req.bet * 1.9) if won else 0
-        result = {"outcome": side, "won": won}
+        result = {"outcome": side, "won": won, "near_miss": False}
     elif req.game in ("dice", "bowl"):
         val = bowl_outcome(u)
         won = val == 6
         payout = req.bet * 5 if won else 0
-        result = {"outcome": val, "won": won}
+        result = {"outcome": val, "won": won, "near_miss": (val == 5 and not won)}
     elif req.game == "slots":
         reels, mult = slots_outcome(u)
         payout = int(req.bet * mult) if mult else 0
-        result = {"outcome": reels, "won": payout > 0}
+        # Near-miss: 2 gleiche, kein voller Treffer (mult < 2)
+        a, b, c = reels[0], reels[1], reels[2]
+        nm = (a == b or b == c or a == c) and mult < 2
+        result = {"outcome": reels, "won": payout > 0, "near_miss": nm, "mult": mult}
     else:
         raise HTTPException(400, "Unbekanntes Spiel")
 
@@ -1049,6 +1196,7 @@ class UnlockVipReq(BaseModel):
 
 @app.post("/api/unlock_vip")
 def unlock_vip(req: UnlockVipReq, uid: int = Depends(auth)):
+    """VIP freischalten nach PayPal-Zahlung (Client öffnet PayPal-Link davor)."""
     cid = req.card_id
     if cid not in CARD_RARITY:
         raise HTTPException(400, "Unbekannte Karte")
@@ -1058,9 +1206,16 @@ def unlock_vip(req: UnlockVipReq, uid: int = Depends(auth)):
     row = con.execute(
         "SELECT vip FROM user_cards WHERE user_id=? AND card_id=?", (uid, cid)
     ).fetchone()
-    media = con.execute(
-        "SELECT image_url FROM card_media WHERE card_id=?", (cid,)
-    ).fetchone()
+    try:
+        media = con.execute(
+            "SELECT image_url, COALESCE(creator_link,'') AS creator_link, "
+            "COALESCE(paypal_link,'') AS paypal_link FROM card_media WHERE card_id=?",
+            (cid,),
+        ).fetchone()
+    except Exception:
+        media = con.execute(
+            "SELECT image_url FROM card_media WHERE card_id=?", (cid,)
+        ).fetchone()
     if not media:
         con.close()
         raise HTTPException(400, "Kein VIP-Bild für diese Karte")
@@ -1071,27 +1226,26 @@ def unlock_vip(req: UnlockVipReq, uid: int = Depends(auth)):
             "already": True,
             "card_id": cid,
             "image_url": media["image_url"],
+            "creator_link": media["creator_link"] if "creator_link" in media.keys() else None,
             "coins": get_user(uid)["coins"],
         }
-    rarity = CARD_RARITY[cid]
-    price = VIP_PRICES.get(rarity, 800)
-    u = get_user(uid)
-    if u["coins"] < price:
-        con.close()
-        raise HTTPException(400, "Nicht genug Coins")
-    new_coins = u["coins"] - price
-    update_user(uid, coins=new_coins)
     con.execute(
         "UPDATE user_cards SET vip=1 WHERE user_id=? AND card_id=?", (uid, cid)
     )
     con.commit()
     con.close()
+    cl = ""
+    try:
+        cl = (media["creator_link"] or "").strip()
+    except Exception:
+        pass
     return {
         "ok": True,
         "card_id": cid,
-        "price": price,
         "image_url": media["image_url"],
-        "coins": new_coins,
+        "creator_link": cl or None,
+        "coins": get_user(uid)["coins"],
+        "via": "paypal",
     }
 
 
@@ -1129,7 +1283,7 @@ def sync_collection(req: SyncCollectionReq, uid: int = Depends(auth)):
 
 @app.get("/api/collection")
 def api_collection(uid: int = Depends(auth)):
-    media = get_all_media()
+    media_full = get_media_rows()
     col = get_user_collection(uid)
     owned_ids = {c["card_id"] for c in col}
     catalog = []
@@ -1137,13 +1291,18 @@ def api_collection(uid: int = Depends(auth)):
         rarity = CARD_RARITY.get(cid, "common")
         owned = cid in owned_ids
         entry = next((c for c in col if c["card_id"] == cid), None)
+        m = media_full.get(cid) or {}
+        is_vip = bool(entry and entry["vip"])
         catalog.append({
             "card_id": cid,
             "rarity": rarity,
             "owned": owned,
-            "vip": bool(entry and entry["vip"]),
-            "has_vip_media": cid in media,
-            "image_url": (entry["image_url"] if entry and entry["vip"] else None),
+            "vip": is_vip,
+            "has_vip_media": cid in media_full,
+            "image_url": (m.get("image_url") if is_vip else None),
+            "preview_url": m.get("image_url"),
+            "creator_link": (m.get("creator_link") if is_vip else None),
+            "paypal_link": m.get("paypal_link") or os.environ.get("PAYPAL_VIP_LINK", "").strip() or None,
             "buy_price": CARD_PRICES.get(rarity, 400),
             "vip_price": VIP_PRICES.get(rarity, 800),
         })
@@ -1159,6 +1318,8 @@ def api_collection(uid: int = Depends(auth)):
 class AdminImageReq(BaseModel):
     card_id: int
     image_url: str
+    creator_link: Optional[str] = None
+    paypal_link: Optional[str] = None
 
 
 @app.post("/api/admin/card_image")
@@ -1172,15 +1333,30 @@ def admin_card_image(req: AdminImageReq, uid: int = Depends(auth)):
         raise HTTPException(400, "Nur https:// URLs erlaubt")
     if len(url) > 2000:
         raise HTTPException(400, "URL zu lang")
+    clink = (req.creator_link or "").strip()
+    if clink:
+        ok = clink.startswith("https://t.me/") or clink.startswith("https://telegram.me/")
+        if not ok:
+            raise HTTPException(400, "creator_link muss https://t.me/... sein")
+        if len(clink) > 500:
+            raise HTTPException(400, "creator_link zu lang")
+    plink = (req.paypal_link or "").strip() or os.environ.get("PAYPAL_VIP_LINK", "").strip()
+    if plink and not plink.startswith("https://"):
+        raise HTTPException(400, "paypal_link muss https:// sein")
+    if plink and len(plink) > 2000:
+        raise HTTPException(400, "paypal_link zu lang")
     con = db()
     con.execute(
-        "INSERT INTO card_media (card_id, image_url, updated_at) VALUES (?,?,?) "
-        "ON CONFLICT(card_id) DO UPDATE SET image_url=excluded.image_url, updated_at=excluded.updated_at",
-        (cid, url, int(time.time())),
+        "INSERT INTO card_media (card_id, image_url, creator_link, paypal_link, updated_at) VALUES (?,?,?,?,?) "
+        "ON CONFLICT(card_id) DO UPDATE SET image_url=excluded.image_url, "
+        "creator_link=excluded.creator_link, paypal_link=excluded.paypal_link, "
+        "updated_at=excluded.updated_at",
+        (cid, url, clink, plink or "", int(time.time())),
     )
     con.commit()
     con.close()
-    return {"ok": True, "card_id": cid, "image_url": url}
+    save_media_backup()
+    return {"ok": True, "card_id": cid, "image_url": url, "creator_link": clink, "paypal_link": plink}
 
 
 @app.delete("/api/admin/card_image/{card_id}")
@@ -1190,7 +1366,52 @@ def admin_delete_image(card_id: int, uid: int = Depends(auth)):
     con.execute("DELETE FROM card_media WHERE card_id=?", (card_id,))
     con.commit()
     con.close()
+    save_media_backup()
     return {"ok": True}
+
+
+
+@app.get("/api/shop/packs")
+def shop_packs(uid: int = Depends(auth)):
+    return {
+        "packs": [
+            {"id": k, "coins": v["coins"], "stars": v["stars"], "title": v["title"]}
+            for k, v in SHOP_PACKS.items()
+        ]
+    }
+
+
+class ShopInvoiceReq(BaseModel):
+    pack_id: str
+
+
+@app.post("/api/shop/invoice")
+async def shop_invoice(req: ShopInvoiceReq, uid: int = Depends(auth)):
+    pack = SHOP_PACKS.get(req.pack_id)
+    if not pack:
+        raise HTTPException(400, "Unbekanntes Pack")
+    if BOT_INSTANCE is None:
+        raise HTTPException(503, "Bot nicht bereit – bitte ENABLE_BOT_POLLING=1")
+    payload = f"stars:{uid}:{req.pack_id}:{int(time.time())}"
+    if len(payload) > 128:
+        payload = payload[:128]
+    try:
+        link = await BOT_INSTANCE.create_invoice_link(
+            title=pack["title"],
+            description=f"{pack['coins']} Spiel-Coins für Casino Hunt (kein Echtgeld-Gewinn).",
+            payload=payload,
+            currency="XTR",
+            prices=[LabeledPrice(label=pack["title"], amount=pack["stars"])],
+        )
+    except Exception as e:
+        raise HTTPException(500, f"Invoice-Fehler: {e}")
+    return {
+        "ok": True,
+        "invoice_url": link,
+        "pack_id": req.pack_id,
+        "coins": pack["coins"],
+        "stars": pack["stars"],
+    }
 
 
 @app.get("/api/leaderboard")
@@ -1285,6 +1506,56 @@ async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
 
+
+async def on_precheckout(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    q = update.pre_checkout_query
+    try:
+        await q.answer(ok=True)
+    except Exception as e:
+        print(f"precheckout error: {e}")
+        try:
+            await q.answer(ok=False, error_message="Zahlung abgelehnt")
+        except Exception:
+            pass
+
+
+async def on_successful_payment(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    msg = update.message
+    if not msg or not msg.successful_payment:
+        return
+    sp = msg.successful_payment
+    payload = sp.invoice_payload or ""
+    # stars:{uid}:{pack_id}:{ts}
+    parts = payload.split(":")
+    if len(parts) < 3 or parts[0] != "stars":
+        print(f"unknown payment payload: {payload}")
+        return
+    try:
+        uid = int(parts[1])
+        pack_id = parts[2]
+    except Exception:
+        print(f"bad payment payload: {payload}")
+        return
+    pack = SHOP_PACKS.get(pack_id)
+    if not pack:
+        print(f"unknown pack in payment: {pack_id}")
+        return
+    # Verify stars amount roughly
+    if sp.total_amount and sp.total_amount < pack["stars"]:
+        print(f"stars amount mismatch: {sp.total_amount} < {pack['stars']}")
+        return
+    u = get_user(uid)
+    new_coins = u["coins"] + pack["coins"]
+    update_user(uid, coins=new_coins)
+    print(f"Stars payment OK uid={uid} +{pack['coins']} coins ({pack_id})")
+    try:
+        await msg.reply_text(
+            f"✅ +{pack['coins']} Coins gutgeschrieben!\nÖffne das Casino neu, falls der Stand noch alt ist."
+        )
+    except Exception:
+        pass
+
+
 async def post_init(bot_app):
     await bot_app.bot.set_my_commands(
         [
@@ -1321,7 +1592,11 @@ async def main():
             )
             bot_app.add_handler(CommandHandler("start", cmd_start))
             bot_app.add_handler(CommandHandler("help", cmd_help))
+            bot_app.add_handler(PreCheckoutQueryHandler(on_precheckout))
+            bot_app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, on_successful_payment))
             await bot_app.initialize()
+            global BOT_INSTANCE
+            BOT_INSTANCE = bot_app.bot
             try:
                 await bot_app.bot.delete_webhook(drop_pending_updates=True)
                 print("Webhook gelöscht")
