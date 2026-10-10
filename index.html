@@ -214,6 +214,15 @@ html,body{
 .card-slot.locked .em{filter:grayscale(1) brightness(.4);font-size:30px}
 .card-slot.locked::after{content:'🔒';position:absolute;font-size:22px;top:50%;left:50%;transform:translate(-50%,-50%);opacity:.9}
 .card-slot.locked .name-lbl{display:none}
+.card-slot .buy-lbl{
+  position:absolute;bottom:6px;left:4px;right:4px;
+  font-size:9px;font-weight:900;letter-spacing:.3px;
+  padding:4px 2px;border-radius:8px;text-align:center;
+  background:linear-gradient(135deg,#ffd25e,#ff9f1c);color:#2a0f00;
+  box-shadow:0 2px 8px rgba(255,159,28,.5);
+}
+.card-slot.locked .buy-lbl{display:block}
+.card-slot:not(.locked) .buy-lbl{display:none}
 .card-slot.legendary{border-color:#ffd25e;box-shadow:0 0 16px rgba(255,210,94,.6)}
 .card-slot.epic{border-color:#ec4899;box-shadow:0 0 14px rgba(236,72,153,.5)}
 .card-slot.rare{border-color:#22d3ee}
@@ -349,7 +358,7 @@ html,body{
       <div class="collection-progress"><div class="fill" id="collection-progress"></div></div>
     </div>
     <div class="card-grid" id="card-grid"></div>
-    <div class="disclaimer">Gewinne Spiele, um neue Karten zu ziehen</div>
+    <div class="disclaimer">Gewinne Spiele oder kaufe Karten mit Coins</div>
   </div>
 
   <!-- DAILY -->
@@ -538,6 +547,13 @@ const RARITY = {
   rare:      { name: "RARE",      color: "#22d3ee", glow: "rgba(34,211,238,.6)" },
   epic:      { name: "EPIC",      color: "#ec4899", glow: "rgba(236,72,153,.6)" },
   legendary: { name: "LEGENDARY", color: "#ffd25e", glow: "rgba(255,210,94,.8)" },
+};
+
+const CARD_PRICES = {
+  common: 400,
+  rare: 1200,
+  epic: 3500,
+  legendary: 9000,
 };
 
 const CARDS = [
@@ -1040,20 +1056,80 @@ function renderCollection() {
   $("collection-progress").style.width = ((owned / total) * 100) + "%";
   grid.innerHTML = CARDS.map(card => {
     const got = hasCard(card.id);
+    const price = CARD_PRICES[card.rarity] || 400;
     const cls = `card-slot ${got ? "" : "locked"} ${got ? card.rarity : ""}`;
     const style = got ? `background:linear-gradient(160deg,${card.g[0]},${card.g[1]})` : "";
     return `<div class="${cls}" data-card="${card.id}" style="${style}">
-      <div class="em">${card.icon}</div>
+      <div class="em">${got ? card.icon : "❓"}</div>
       <div class="name-lbl">${card.name}</div>
+      <div class="buy-lbl">💰 ${price.toLocaleString("de-DE")}</div>
     </div>`;
   }).join("");
   grid.querySelectorAll(".card-slot").forEach(el => {
     const id = parseInt(el.dataset.card, 10);
     el.addEventListener("click", () => {
       if (hasCard(id)) openCardView(id);
-      else showToast("🔒 Diese Karte fehlt noch");
+      else openBuyCard(id);
     });
   });
+}
+
+async function openBuyCard(cardId) {
+  const card = CARDS.find(c => c.id === cardId);
+  if (!card || hasCard(cardId)) return;
+  const price = CARD_PRICES[card.rarity] || 400;
+  const r = RARITY[card.rarity];
+
+  // Einfacher Confirm über Telegram oder Toast-Flow
+  const msg = `${card.icon} ${card.name}\n${r.name}\n\nPreis: ${price.toLocaleString("de-DE")} Coins\nDein Kontostand: ${state.coins.toLocaleString("de-DE")}`;
+
+  const doBuy = async () => {
+    if (state.busy) return;
+    if (state.coins < price) {
+      showToast("Nicht genug Coins");
+      SFX.lose();
+      return;
+    }
+    state.busy = true;
+    haptic("medium");
+    try {
+      const res = await api("/api/buy_card", {
+        method: "POST",
+        body: JSON.stringify({ card_id: cardId })
+      });
+      state.coins = res.coins;
+      updateCoins();
+      addCard(cardId);
+      await saveCollection();
+      renderCollection();
+      SFX.cardDrop();
+      notify("success");
+      showCardDrop(card, true, "🛒 GEKAUFT");
+      showToast(`✅ ${card.name} freigeschaltet!`);
+    } catch (e) {
+      showToast("Fehler: " + e.message);
+      SFX.lose();
+    } finally {
+      state.busy = false;
+    }
+  };
+
+  // Telegram Popup wenn verfügbar, sonst direkt kaufen nach kurzem Confirm via showAlert-Style
+  try {
+    if (tg.showConfirm) {
+      tg.showConfirm(msg + "\n\nJetzt kaufen?", (ok) => {
+        if (ok) doBuy();
+      });
+      return;
+    }
+  } catch (e) {}
+
+  // Fallback: direkt kaufen mit Toast-Hinweis
+  if (state.coins < price) {
+    showToast(`🔒 ${card.name} · ${price} Coins nötig`);
+    return;
+  }
+  await doBuy();
 }
 
 function rollCard() {
@@ -1202,16 +1278,13 @@ function runGame(game, bet) {
 }
 
 // ============================================================
-// CRASH (Start-Button, Einsatz wird abgezogen)
+// CRASH – serverseitiger Crash-Punkt + House Edge
 // ============================================================
 let crashRaf = 0;
 
 function playCrash(bet) {
   $("bet-row").innerHTML = "";
   state.busy = false;
-
-  const r = Math.random();
-  const crashPoint = r < 0.03 ? 1.0 : Math.max(1.01, Math.floor((1 / (1 - r)) * 97) / 100);
 
   $("stage").innerHTML = `
     <div class="crash-wrap">
@@ -1253,11 +1326,15 @@ function playCrash(bet) {
     startBtn.disabled = true;
     startBtn.textContent = "⏳ …";
 
-    // Einsatz sofort abziehen
+    let crashPoint = 2.0;
     try {
-      const wr = await api("/api/wager", { method: "POST", body: JSON.stringify({ amount: bet }) });
+      const wr = await api("/api/crash/start", {
+        method: "POST",
+        body: JSON.stringify({ bet })
+      });
       state.coins = wr.coins;
       updateCoins();
+      crashPoint = wr.crash_point;
     } catch (e) {
       showToast("Fehler: " + e.message);
       startBtn.disabled = false;
@@ -1307,18 +1384,10 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
     for (let y = 0; y <= H; y += 40) {
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
     }
-    ctx.save();
-    ctx.strokeStyle = "rgba(34,211,238,.06)";
-    ctx.lineWidth = 2;
-    for (let i = -H; i < W; i += 80) {
-      ctx.beginPath(); ctx.moveTo(i, H); ctx.lineTo(i + H, 0); ctx.stroke();
-    }
-    ctx.restore();
   }
 
   function drawTrail() {
     if (trail.length < 2) return;
-
     ctx.beginPath();
     ctx.moveTo(trail[0].x, H);
     for (const p of trail) ctx.lineTo(p.x, p.y);
@@ -1344,19 +1413,11 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
     ctx.strokeStyle = crashed ? "#ff3366" : cashed ? "#22ff88" : "#22d3ee";
     ctx.lineWidth = 5;
     ctx.lineCap = "round";
-    ctx.lineJoin = "round";
     ctx.beginPath();
     ctx.moveTo(trail[0].x, trail[0].y);
     for (let i = 1; i < trail.length; i++) ctx.lineTo(trail[i].x, trail[i].y);
     ctx.stroke();
     ctx.restore();
-
-    ctx.strokeStyle = "rgba(255,255,255,.95)";
-    ctx.lineWidth = 1.8;
-    ctx.beginPath();
-    ctx.moveTo(trail[0].x, trail[0].y);
-    for (let i = 1; i < trail.length; i++) ctx.lineTo(trail[i].x, trail[i].y);
-    ctx.stroke();
 
     const end = trail[trail.length - 1];
     ctx.save();
@@ -1371,23 +1432,6 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
 
   function drawRocket(x, y, angle) {
     if (crashed || cashed) return;
-
-    for (let i = 0; i < 3; i++) {
-      const offset = -20 - Math.random() * 15;
-      const spread = (Math.random() - 0.5) * 12;
-      const px = x + Math.cos(angle + Math.PI) * -offset + Math.cos(angle + Math.PI/2) * spread;
-      const py = y + Math.sin(angle + Math.PI) * -offset + Math.sin(angle + Math.PI/2) * spread;
-      ctx.save();
-      ctx.globalAlpha = 0.4 + Math.random() * 0.5;
-      ctx.shadowBlur = 12;
-      ctx.shadowColor = "#ff9f1c";
-      ctx.fillStyle = Math.random() < 0.5 ? "#ffd25e" : "#ff7a18";
-      ctx.beginPath();
-      ctx.arc(px, py, 2 + Math.random() * 3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(angle + Math.PI / 4);
@@ -1416,12 +1460,6 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
       graphEl.classList.add("crashed");
       SFX.crash();
       haptic("heavy");
-      let blink = 0;
-      const blinkInt = setInterval(() => {
-        drawGrid(); drawTrail();
-        blink++;
-        if (blink > 6) clearInterval(blinkInt);
-      }, 80);
       onCrashLoss(bet, crashPoint);
       return;
     }
@@ -1482,19 +1520,18 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
 async function onCrashCashout(bet, multiplier) {
   SFX.cashout();
   haptic("medium");
-  const payout = Math.floor(bet * multiplier);
-
   try {
-    // Einsatz war bereits abgezogen → vollen Payout gutschreiben
-    if (payout > 0) {
-      const r = await api("/api/payout", { method: "POST", body: JSON.stringify({ amount: payout }) });
-      state.coins = r.coins;
-      updateCoins();
-    }
+    const r = await api("/api/crash/cashout", {
+      method: "POST",
+      body: JSON.stringify({ multiplier })
+    });
+    state.coins = r.coins;
+    updateCoins();
+    const payout = r.payout || 0;
 
     markMission("play");
     markMission("bet", bet);
-    if (multiplier >= 1.01) {
+    if (payout > bet) {
       markMission("win");
       if (multiplier >= 2) markMission("crash");
     }
@@ -1509,8 +1546,10 @@ async function onCrashCashout(bet, multiplier) {
     }
 
     const div = document.createElement("div");
-    div.className = "result-text win";
-    div.innerHTML = `+${payout} <span style="font-size:13px;color:var(--hint)">(${multiplier.toFixed(2)}×)</span>`;
+    div.className = "result-text " + (payout > 0 ? "win" : "lose");
+    div.innerHTML = payout > 0
+      ? `+${payout} <span style="font-size:13px;color:var(--hint)">(${multiplier.toFixed(2)}×)</span>`
+      : `−${bet}`;
     $("stage").appendChild(div);
 
     await new Promise(r => setTimeout(r, 1200));
@@ -1523,12 +1562,12 @@ async function onCrashCashout(bet, multiplier) {
 }
 
 function onCrashLoss(bet, crashPoint) {
-  // Einsatz wurde bereits beim Start abgezogen
   markMission("play");
   markMission("bet", bet);
   state.streak = 0;
   updateStreakVisuals();
   showLossEffect(bet);
+  api("/api/crash/loss", { method: "POST" }).catch(() => {});
 
   const div = document.createElement("div");
   div.className = "result-text lose";
