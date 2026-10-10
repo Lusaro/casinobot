@@ -10,7 +10,6 @@
   --bg-0:#05030f; --bg-1:#0d0620; --bg-2:#1a0b3d;
   --neon-1:#7c3aed; --neon-2:#ec4899; --neon-3:#22d3ee;
   --gold:#ffd25e; --green:#22ff88; --red:#ff3366;
-  --blue-1:#3b82f6; --blue-2:#22d3ee;
   --txt:#f8f7ff; --hint:#8b86b8;
   --stroke:rgba(255,255,255,.10);
 }
@@ -97,54 +96,17 @@ html,body{
 .bowl-ball{position:absolute;width:38px;height:38px;border-radius:50%;transform:translate(-50%, -50%);background:radial-gradient(circle at 32% 28%, #4a4a5a 0%, #1a1a22 45%, #000 100%);box-shadow:0 6px 12px rgba(0,0,0,.7), inset -3px -3px 8px rgba(0,0,0,.6), inset 4px 4px 8px rgba(255,255,255,.15);z-index:3;transition:top .85s cubic-bezier(.4,.05,.7,.4)}
 .bowl-ball::before{content:'';position:absolute;top:32%;left:30%;width:5px;height:5px;border-radius:50%;background:#000;box-shadow:7px 0 0 #000, 3.5px -5px 0 #000}
 
-/* CRASH GAME */
+/* CRASH */
 .crash-wrap{width:100%;max-width:360px;margin:0 auto;display:flex;flex-direction:column;align-items:center}
-.crash-graph{
-  position:relative;width:100%;height:280px;
-  background:
-    radial-gradient(circle at 50% 120%, rgba(34,211,238,.15), transparent 60%),
-    linear-gradient(180deg,rgba(30,15,70,.65),rgba(10,5,30,.95));
-  border:2px solid rgba(34,211,238,.45);
-  border-radius:18px;overflow:hidden;
-  box-shadow:inset 0 0 50px rgba(0,0,0,.6), 0 0 30px rgba(34,211,238,.25), 0 0 60px rgba(124,58,237,.15);
-  transition:border-color .3s, box-shadow .3s;
-}
-.crash-graph.crashed{
-  border-color:rgba(255,51,102,.6);
-  box-shadow:inset 0 0 50px rgba(0,0,0,.6), 0 0 40px rgba(255,51,102,.5);
-}
+.crash-graph{position:relative;width:100%;height:280px;background:radial-gradient(circle at 50% 120%, rgba(34,211,238,.15), transparent 60%),linear-gradient(180deg,rgba(30,15,70,.65),rgba(10,5,30,.95));border:2px solid rgba(34,211,238,.45);border-radius:18px;overflow:hidden;box-shadow:inset 0 0 50px rgba(0,0,0,.6), 0 0 30px rgba(34,211,238,.25), 0 0 60px rgba(124,58,237,.15);transition:border-color .3s, box-shadow .3s}
+.crash-graph.crashed{border-color:rgba(255,51,102,.6);box-shadow:inset 0 0 50px rgba(0,0,0,.6), 0 0 40px rgba(255,51,102,.5)}
 #crash-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-.crash-multiplier{
-  position:absolute;top:14px;left:14px;
-  font-size:42px;font-weight:900;letter-spacing:-1.5px;
-  background:linear-gradient(135deg,#fff,#22d3ee 60%,#7c3aed);
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-  z-index:5;transition:transform .15s;
-  filter:drop-shadow(0 0 12px rgba(34,211,238,.6));
-}
-.crash-multiplier.crashed{
-  background:linear-gradient(135deg,#ff3366,#a10033);
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-  filter:drop-shadow(0 0 16px rgba(255,51,102,.9));
-  animation:crashShake .5s;
-}
-@keyframes crashShake{
-  0%,100%{transform:translateX(0) scale(1)}
-  20%{transform:translateX(-8px) scale(1.05)}
-  40%{transform:translateX(8px) scale(1.05)}
-  60%{transform:translateX(-5px)}
-  80%{transform:translateX(5px)}
-}
-.crash-cashout{
-  position:relative;z-index:2;
-  font-size:16px !important;padding:16px !important;
-  font-weight:900 !important;letter-spacing:.5px !important;
-}
-.crash-cashout.gold{animation:cashoutPulse 1s ease-in-out infinite}
-@keyframes cashoutPulse{
-  0%,100%{box-shadow:0 6px 20px rgba(255,159,28,.55), 0 0 0 0 rgba(255,159,28,.5)}
-  50%{box-shadow:0 6px 20px rgba(255,159,28,.75), 0 0 0 10px rgba(255,159,28,0)}
-}
+.crash-multiplier{position:absolute;top:14px;left:14px;font-size:42px;font-weight:900;letter-spacing:-1.5px;background:linear-gradient(135deg,#fff,#22d3ee 60%,#7c3aed);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;z-index:5;filter:drop-shadow(0 0 12px rgba(34,211,238,.6))}
+.crash-multiplier.crashed{background:linear-gradient(135deg,#ff3366,#a10033);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 16px rgba(255,51,102,.9));animation:crashShake .5s}
+@keyframes crashShake{0%,100%{transform:translateX(0) scale(1)}20%{transform:translateX(-8px) scale(1.05)}40%{transform:translateX(8px) scale(1.05)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.crash-cashout{position:relative;z-index:2;font-size:16px !important;padding:16px !important;font-weight:900 !important;letter-spacing:.5px !important}
+.crash-cashout.cashout-live{background:linear-gradient(135deg,#ffd25e,#ff9f1c);color:#2a0f00;animation:cashoutPulse 1s ease-in-out infinite}
+@keyframes cashoutPulse{0%,100%{box-shadow:0 6px 20px rgba(255,159,28,.55), 0 0 0 0 rgba(255,159,28,.5)}50%{box-shadow:0 6px 20px rgba(255,159,28,.75), 0 0 0 10px rgba(255,159,28,0)}}
 
 .hand{display:flex;gap:8px;justify-content:center;margin:8px 0;min-height:104px}
 .playing-card{width:68px;height:96px;border-radius:12px;padding:6px;font-weight:900;font-size:16px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(160deg,#fff,#e6e6f0);color:#150a33;box-shadow:0 6px 18px rgba(124,58,237,.35);animation:cardDeal .35s cubic-bezier(.34,1.56,.64,1) backwards}
@@ -172,14 +134,12 @@ html,body{
 @keyframes megaPop{0%{transform:scale(.4)}20%{transform:scale(1.1)}40%{transform:scale(1)}80%{transform:scale(1);opacity:1}100%{transform:scale(1.15);opacity:0}}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:999}
 
-/* STREAK AURA */
 #app.streak-mode{box-shadow:inset 0 0 0 3px rgba(255,90,20,.6), inset 0 0 40px rgba(255,90,20,.25);animation:streakPulse 1.2s ease-in-out infinite}
 @keyframes streakPulse{0%,100%{box-shadow:inset 0 0 0 3px rgba(255,90,20,.6), inset 0 0 40px rgba(255,90,20,.25)}50%{box-shadow:inset 0 0 0 3px rgba(255,90,20,1), inset 0 0 60px rgba(255,210,94,.4)}}
 .speed-indicator{position:fixed;top:60px;right:14px;z-index:150;font-size:10px;font-weight:900;letter-spacing:1px;padding:4px 10px;border-radius:999px;background:linear-gradient(135deg,#ff7a18,#ff3366);box-shadow:0 0 16px rgba(255,60,110,.7);color:#fff;display:none;animation:speedPulse .8s ease-in-out infinite}
 .speed-indicator.show{display:block}
 @keyframes speedPulse{50%{transform:scale(1.08);filter:brightness(1.2)}}
 
-/* MODAL */
 .modal-backdrop{position:fixed;inset:0;z-index:950;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px}
 .modal-backdrop.show{display:flex;animation:fadeIn .2s ease-out}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -209,7 +169,6 @@ html,body{
 .shop-btn{margin-top:8px;padding:7px 0;border-radius:10px;font-size:12px;font-weight:900;letter-spacing:.5px;color:#2a0f00;background:linear-gradient(135deg,#ffd25e,#ff9f1c);box-shadow:0 4px 12px rgba(255,159,28,.5)}
 .shop-card:active .shop-btn{filter:brightness(1.15)}
 
-/* INVITE MODAL */
 .invite-link-box{background:linear-gradient(135deg,rgba(59,130,246,.18),rgba(34,211,238,.14));border:1px solid rgba(59,130,246,.35);border-radius:12px;padding:12px;margin-bottom:12px;font-size:11px;font-weight:700;word-break:break-all;color:#a5d8ff;text-align:center;line-height:1.5}
 .invite-count-box{text-align:center;margin-bottom:12px}
 .invite-count-big{font-size:40px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,#22d3ee,#3b82f6);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
@@ -221,7 +180,6 @@ html,body{
 .milestone .ms-count{color:var(--hint);font-weight:900}
 .milestone .ms-reward{color:var(--gold);font-weight:900}
 
-/* EFFEKTE */
 .loss-vignette{position:fixed;inset:0;z-index:880;pointer-events:none;background:radial-gradient(ellipse at center,transparent 30%,rgba(255,0,60,.35) 70%,rgba(255,0,60,.85) 100%);opacity:0}
 .loss-vignette.show{animation:lossVignette .7s ease-out forwards}
 @keyframes lossVignette{0%{opacity:0}15%{opacity:1}60%{opacity:.6}100%{opacity:0}}
@@ -243,7 +201,6 @@ html,body{
 .full-flash.blue{background:#3b82f6;animation:flash .5s ease-out}
 @keyframes flash{0%{opacity:0}20%{opacity:.55}100%{opacity:0}}
 
-/* SAMMLUNG */
 .collection-header{margin-bottom:14px;text-align:center}
 .collection-title{font-size:22px;font-weight:900;letter-spacing:-.5px;background:linear-gradient(135deg,#fff,#ffd25e 60%,#ec4899);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .collection-count{color:var(--hint);font-size:13px;font-weight:700;margin-top:4px}
@@ -262,7 +219,6 @@ html,body{
 .card-slot.epic{border-color:#ec4899;box-shadow:0 0 14px rgba(236,72,153,.5)}
 .card-slot.rare{border-color:#22d3ee}
 
-/* KARTEN-DROP */
 .card-drop{position:fixed;inset:0;z-index:960;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px;text-align:center}
 .card-drop.show{display:flex;animation:fadeIn .2s ease-out}
 .drop-label{font-size:12px;font-weight:900;letter-spacing:3px;color:#ffd25e;margin-bottom:14px;text-shadow:0 0 20px rgba(255,210,94,.8)}
@@ -279,7 +235,6 @@ html,body{
 .drop-actions{display:flex;gap:10px;width:100%;max-width:340px;margin-top:6px}
 .drop-actions .btn{margin-top:0}
 
-/* KARTEN-VIEW */
 .card-view{position:fixed;inset:0;z-index:970;background:rgba(0,0,0,.9);backdrop-filter:blur(10px);display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px}
 .card-view.show{display:flex;animation:fadeIn .2s ease-out}
 .card-view-close{position:absolute;top:20px;right:20px;font-size:20px;color:#fff;width:40px;height:40px;background:rgba(255,255,255,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2}
@@ -287,15 +242,13 @@ html,body{
 .card-view-actions{display:flex;gap:10px;width:100%;max-width:340px}
 .card-view-actions .btn{margin-top:0}
 
-/* TABBAR */
-.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:100;padding:8px 12px 20px;display:flex;justify-content:space-around;align-items:center;background:linear-gradient(180deg,transparent,rgba(5,3,15,.9) 30%,rgba(5,3,15,.99));backdrop-filter:blur(18px);border-top:1px solid var(--stroke)}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:100;padding:8px 8px 20px;display:flex;justify-content:space-around;align-items:center;background:linear-gradient(180deg,transparent,rgba(5,3,15,.9) 30%,rgba(5,3,15,.99));backdrop-filter:blur(18px);border-top:1px solid var(--stroke)}
 .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;cursor:pointer;color:var(--hint);transition:color .2s,transform .2s;position:relative}
 .tab.active{color:#fff;transform:translateY(-2px)}
 .tab .tab-icon{font-size:20px}
 .tab .tab-label{font-size:9px;font-weight:800;letter-spacing:.3px}
 .tab .tab-badge{position:absolute;top:0;right:calc(50% - 22px);background:linear-gradient(135deg,#ff3366,#a10033);color:#fff;font-size:8px;font-weight:900;padding:2px 5px;border-radius:999px;min-width:14px;text-align:center;animation:pulseBadge 1.5s ease-in-out infinite}
 
-/* DAILY */
 .streak-days{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}
 .day-box{position:relative;padding:10px 6px;border-radius:12px;background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid var(--stroke);text-align:center;transition:all .3s}
 .day-box.current{border-color:var(--gold);background:linear-gradient(160deg,rgba(255,210,94,.18),rgba(236,72,153,.1));box-shadow:0 0 18px rgba(255,210,94,.4)}
@@ -315,15 +268,14 @@ html,body{
 .mission-bar{position:relative;height:4px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:6px}
 .mission-bar .fill{position:absolute;inset:0;width:0;background:linear-gradient(90deg,var(--neon-3),var(--neon-1));border-radius:999px;transition:width .4s}
 
-/* WHEEL */
-.wheel-container{position:relative;width:280px;height:280px;margin:14px auto}
-.wheel{width:100%;height:100%;border-radius:50%;position:relative;transition:transform 5s cubic-bezier(.15,.8,.2,1);box-shadow:0 0 0 8px #4c1d95, 0 0 0 14px #7c3aed, 0 0 40px rgba(124,58,237,.7), 0 0 80px rgba(255,210,94,.3);overflow:hidden;background:conic-gradient(from 0deg,#7c3aed 0deg 45deg,#ec4899 45deg 90deg,#22d3ee 90deg 135deg,#ffd25e 135deg 180deg,#7c3aed 180deg 225deg,#ec4899 225deg 270deg,#22d3ee 270deg 315deg,#ffd25e 315deg 360deg)}
-.wheel-seg{position:absolute;top:0;left:50%;width:2px;height:50%;background:rgba(0,0,0,.35);transform-origin:bottom center}
-.wheel-pointer-top{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:36px;color:var(--gold);z-index:10;filter:drop-shadow(0 0 12px var(--gold));animation:pointerBounce 1.2s ease-in-out infinite}
-@keyframes pointerBounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-4px)}}
-.wheel-hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70px;height:70px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff5cc,#ff9f1c 50%,#7c2d12);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:#2a0f00;box-shadow:0 0 30px rgba(255,159,28,.7), inset 0 -4px 10px rgba(0,0,0,.4);z-index:5;border:3px solid #4c1d95}
-.wheel-labels{position:absolute;inset:0;pointer-events:none;z-index:4}
-.wheel-lbl{position:absolute;top:50%;left:50%;font-size:13px;font-weight:900;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.8);transform-origin:0 0;white-space:nowrap}
+/* WHEEL SCREEN */
+.wheel-canvas-wrap{position:relative;width:100%;max-width:300px;margin:20px auto;aspect-ratio:1}
+.wheel-canvas{display:block;width:100%;height:100%;transition:transform 5s cubic-bezier(.15,.8,.2,1);will-change:transform}
+.wheel-pointer-top{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:38px;color:var(--gold);z-index:10;filter:drop-shadow(0 0 14px var(--gold));animation:pointerBounce 1.2s ease-in-out infinite;pointer-events:none}
+@keyframes pointerBounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-5px)}}
+.wheel-hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70px;height:70px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff5cc,#ff9f1c 50%,#7c2d12);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:#2a0f00;box-shadow:0 0 30px rgba(255,159,28,.7), inset 0 -4px 10px rgba(0,0,0,.4);z-index:5;border:3px solid #4c1d95;pointer-events:none}
+.wheel-segments-list{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:16px}
+.wheel-seg-chip{font-size:11px;font-weight:800;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--stroke);color:var(--txt)}
 
 .disclaimer{color:var(--hint);font-size:11px;text-align:center;margin-top:auto;padding-top:14px}
 .hidden{display:none!important}
@@ -419,26 +371,30 @@ html,body{
     <div style="margin-top:18px;font-size:13px;color:var(--hint);font-weight:800;letter-spacing:1px;text-transform:uppercase;text-align:center;margin-bottom:8px">🎯 Missionen</div>
     <div id="missions-box"></div>
 
-    <div style="margin-top:18px;font-size:13px;color:var(--hint);font-weight:800;letter-spacing:1px;text-transform:uppercase;text-align:center;margin-bottom:8px">🎡 Glücksrad (1× pro Stunde)</div>
-    <div class="wheel-container">
-      <div class="wheel-pointer-top">▼</div>
-      <div class="wheel" id="wheel">
-        <div class="wheel-seg" style="transform:rotate(22.5deg)"></div>
-        <div class="wheel-seg" style="transform:rotate(67.5deg)"></div>
-        <div class="wheel-seg" style="transform:rotate(112.5deg)"></div>
-        <div class="wheel-seg" style="transform:rotate(157.5deg)"></div>
-        <div class="wheel-seg" style="transform:rotate(202.5deg)"></div>
-        <div class="wheel-seg" style="transform:rotate(247.5deg)"></div>
-        <div class="wheel-seg" style="transform:rotate(292.5deg)"></div>
-        <div class="wheel-seg" style="transform:rotate(337.5deg)"></div>
-        <div class="wheel-labels" id="wheel-labels"></div>
+    <div class="disclaimer">Kein Echtgeld · 18+</div>
+  </div>
+
+  <!-- WHEEL -->
+  <div class="screen" id="s-wheel">
+    <div class="topbar">
+      <div class="row1">
+        <div class="brand">🎡 Glücksrad</div>
+        <div class="coin-pill" id="coins-wheel">💰 <span id="coins-wheel-num">0</span></div>
       </div>
+    </div>
+
+    <div class="wheel-canvas-wrap">
+      <div class="wheel-pointer-top">▼</div>
+      <canvas id="wheel-canvas" class="wheel-canvas"></canvas>
       <div class="wheel-hub">🎰</div>
     </div>
-    <button class="btn blue" id="spin-btn">🎡 Jetzt drehen</button>
-    <div style="text-align:center;font-size:11px;color:var(--hint);font-weight:700;margin-top:6px" id="wheel-timer">Bereit!</div>
 
-    <div class="disclaimer">Kein Echtgeld · 18+</div>
+    <button class="btn blue" id="spin-btn">🎡 Jetzt drehen</button>
+    <div style="text-align:center;font-size:12px;color:var(--hint);font-weight:700;margin-top:8px" id="wheel-timer">Bereit!</div>
+
+    <div class="wheel-segments-list" id="wheel-segments-list"></div>
+
+    <div class="disclaimer">1× pro Stunde gratis · 18+</div>
   </div>
 
   <!-- GAME -->
@@ -470,6 +426,7 @@ html,body{
   <div class="tab active" data-tab="home"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
   <div class="tab" data-tab="collection"><div class="tab-icon">📚</div><div class="tab-label">Sammlung</div></div>
   <div class="tab" data-tab="daily"><div class="tab-icon">🎁</div><div class="tab-label">Daily</div><div class="tab-badge hidden" id="daily-badge">!</div></div>
+  <div class="tab" data-tab="wheel"><div class="tab-icon">🎡</div><div class="tab-label">Rad</div></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -651,11 +608,16 @@ const WHEEL_SEGMENTS = [
   { label: "100",  value: 100,  type: "coins" },
   { label: "500",  value: 500,  type: "coins" },
   { label: "1000", value: 1000, type: "coins" },
-  { label: "Karte", value: 1,   type: "card" },
+  { label: "KARTE", value: 1,   type: "card" },
   { label: "50",   value: 50,   type: "coins" },
   { label: "5000", value: 5000, type: "coins" },
   { label: "250",  value: 250,  type: "coins" },
   { label: "2000", value: 2000, type: "coins" },
+];
+
+const WHEEL_COLORS = [
+  "#e11d48", "#120a33", "#ffd25e", "#7c3aed",
+  "#22d3ee", "#ec4899", "#22ff88", "#a10033"
 ];
 
 (function fixStaleLaunchParams() {
@@ -904,6 +866,11 @@ function show(id) {
   $("#tabbar").style.display = isGame ? "none" : "flex";
   $("#app").classList.toggle("has-tabs", !isGame);
   try { tg.BackButton.isVisible = (id !== "s-home"); } catch (e) {}
+  if (id === "s-wheel") {
+    requestAnimationFrame(() => {
+      setTimeout(() => renderWheelCanvas(), 30);
+    });
+  }
 }
 
 let toastTimer;
@@ -928,10 +895,14 @@ function rollNumber(el, to, dur = 550) {
 }
 
 function updateCoins() {
-  const topEl = $("coins-top-num"), gameEl = $("coins-game-num"), dailyEl = $("coins-daily-num"), big = $("balance-value");
-  if (topEl) rollNumber(topEl, state.coins, 500);
-  if (gameEl) gameEl.textContent = state.coins.toLocaleString("de-DE");
-  if (dailyEl) dailyEl.textContent = state.coins.toLocaleString("de-DE");
+  const ids = ["coins-top-num", "coins-game-num", "coins-daily-num", "coins-wheel-num"];
+  const big = $("balance-value");
+  ids.forEach((id, i) => {
+    const el = $(id);
+    if (!el) return;
+    if (id === "coins-top-num") rollNumber(el, state.coins, 500);
+    else el.textContent = state.coins.toLocaleString("de-DE");
+  });
   if (big) rollNumber(big, state.coins, 600);
   const pill = $("coins-top");
   if (pill) { pill.classList.add("bump"); setTimeout(() => pill.classList.remove("bump"), 200); }
@@ -1232,10 +1203,9 @@ function runGame(game, bet) {
 }
 
 // ============================================================
-// CRASH
+// CRASH (mit START-Button)
 // ============================================================
 let crashRaf = 0;
-let crashActive = false;
 
 function playCrash(bet) {
   $("bet-row").innerHTML = "";
@@ -1251,26 +1221,39 @@ function playCrash(bet) {
         <div class="crash-multiplier" id="crash-mult">1.00×</div>
       </div>
       <div style="margin-top:14px;width:100%">
-        <button class="btn gold crash-cashout" id="crash-cashout" disabled>Warte…</button>
+        <button class="btn gold crash-cashout" id="crash-start">🚀 STARTEN</button>
       </div>
-      <div style="text-align:center;font-size:12px;color:var(--hint);font-weight:700;margin-top:6px">Tippe so schnell wie möglich, um auszucashen!</div>
+      <div style="text-align:center;font-size:12px;color:var(--hint);font-weight:700;margin-top:6px">Start drücken und dann schnell auscashen!</div>
     </div>
   `;
 
   const multEl = $("crash-mult");
-  const cashoutBtn = $("crash-cashout");
+  const startBtn = $("crash-start");
   const graphEl = $("crash-graph");
 
-  let countdown = 3;
-  cashoutBtn.textContent = `Startet in ${countdown}…`;
-  const cdInterval = setInterval(() => {
-    countdown--;
-    if (countdown > 0) { cashoutBtn.textContent = `Startet in ${countdown}…`; }
-    else {
-      clearInterval(cdInterval);
-      startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl);
-    }
-  }, 1000);
+  // Statischen Grid zeichnen
+  const c = $("crash-canvas");
+  if (c) {
+    const ctx = c.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+    const rect = graphEl.getBoundingClientRect();
+    const W = rect.width || 340;
+    const H = rect.height || 280;
+    c.width = W * dpr; c.height = H * dpr;
+    c.style.width = W + "px"; c.style.height = H + "px";
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, W, H);
+    ctx.strokeStyle = "rgba(124,58,237,.14)";
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= W; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+    for (let y = 0; y <= H; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  }
+
+  startBtn.onclick = () => {
+    haptic("medium"); SFX.click();
+    startBtn.onclick = null;
+    startCrash(bet, crashPoint, multEl, startBtn, graphEl);
+  };
 }
 
 function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
@@ -1288,13 +1271,17 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
   canvas.style.height = H + "px";
   ctx.scale(dpr, dpr);
 
+  // Button wird zum Cashout
+  cashoutBtn.disabled = false;
+  cashoutBtn.textContent = "💰 CASH OUT (1.00×)";
+  cashoutBtn.classList.remove("gold");
+  cashoutBtn.classList.add("cashout-live");
+
   const startTime = performance.now();
   const trail = [];
   let crashed = false;
   let cashed = false;
   let lastTick = 0;
-
-  crashActive = true;
 
   function drawGrid() {
     ctx.clearRect(0, 0, W, H);
@@ -1389,7 +1376,6 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
 
     ctx.save();
     ctx.translate(x, y);
-    // 🚀 zeigt in Emoji-Form nach oben-links-rechts, wir richten aus
     ctx.rotate(angle + Math.PI / 4);
     ctx.shadowBlur = 28;
     ctx.shadowColor = "#22d3ee";
@@ -1407,12 +1393,11 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
 
     if (mult >= crashPoint && !crashed) {
       crashed = true;
-      crashActive = false;
       multEl.textContent = crashPoint.toFixed(2) + "×";
       multEl.classList.add("crashed");
       cashoutBtn.disabled = true;
       cashoutBtn.textContent = "💥 CRASHED";
-      cashoutBtn.classList.remove("gold");
+      cashoutBtn.classList.remove("cashout-live");
       cashoutBtn.classList.add("danger");
       graphEl.classList.add("crashed");
       SFX.crash();
@@ -1465,7 +1450,6 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
   cashoutBtn.onclick = () => {
     if (crashed || cashed) return;
     cashed = true;
-    crashActive = false;
     const m = Math.pow(1.06, (performance.now() - startTime) / 1000 * 3);
     multEl.classList.add("crashed");
     multEl.style.background = "linear-gradient(135deg,#fff,#22ff88 60%,#22d3ee)";
@@ -1473,12 +1457,10 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
     multEl.style.webkitTextFillColor = "transparent";
     cashoutBtn.disabled = true;
     cashoutBtn.textContent = `✅ +${Math.round(bet * m)} COINS`;
-    cashoutBtn.classList.remove("gold");
+    cashoutBtn.classList.remove("cashout-live");
     cashoutBtn.style.background = "linear-gradient(135deg,#22ff88,#0a5a2a)";
     graphEl.style.borderColor = "#22ff88";
-    // Re-draw mit grünem Trail
-    drawGrid();
-    drawTrail();
+    drawGrid(); drawTrail();
     onCrashCashout(bet, m);
   };
 }
@@ -2032,8 +2014,6 @@ function renderDailyScreen() {
   }
   renderMissions();
   updateDailyBadge();
-  renderWheelLabels();
-  updateWheelTimer();
 }
 
 async function claimDaily() {
@@ -2069,20 +2049,105 @@ async function claimDaily() {
 }
 
 // ============================================================
-// WHEEL
+// WHEEL (Canvas)
 // ============================================================
-function renderWheelLabels() {
-  const lbls = $("wheel-labels");
-  if (!lbls || lbls.dataset.done === "1") return;
-  lbls.dataset.done = "1";
-  lbls.innerHTML = WHEEL_SEGMENTS.map((s, i) => {
-    const angle = (i * 45 + 22.5) - 90;
-    const rad = angle * Math.PI / 180;
-    const r = 100;
-    const x = 50 + r * Math.cos(rad) / 2;
-    const y = 50 + r * Math.sin(rad) / 2;
-    return `<div class="wheel-lbl" style="left:${x}%;top:${y}%;transform:translate(-50%,-50%)">${s.label}</div>`;
-  }).join("");
+let wheelRotation = 0;
+
+function renderWheelCanvas() {
+  const cvs = $("wheel-canvas");
+  if (!cvs) return;
+  const wrap = cvs.parentElement;
+  const rect = wrap.getBoundingClientRect();
+  const size = Math.min(rect.width, 300);
+  if (size < 50) { setTimeout(renderWheelCanvas, 80); return; }
+
+  const dpr = window.devicePixelRatio || 1;
+  cvs.width = size * dpr;
+  cvs.height = size * dpr;
+  cvs.style.width = size + "px";
+  cvs.style.height = size + "px";
+
+  const ctx = cvs.getContext("2d");
+  ctx.scale(dpr, dpr);
+
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size / 2 - 10;
+  const n = WHEEL_SEGMENTS.length;
+  const segAngle = (Math.PI * 2) / n;
+
+  // Äußerer Glow-Ring
+  ctx.save();
+  ctx.shadowBlur = 40;
+  ctx.shadowColor = "rgba(124,58,237,.9)";
+  ctx.beginPath();
+  ctx.arc(cx, cy, r + 6, 0, Math.PI * 2);
+  ctx.strokeStyle = "#4c1d95";
+  ctx.lineWidth = 12;
+  ctx.stroke();
+  ctx.restore();
+
+  // Goldener Ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, r + 1, 0, Math.PI * 2);
+  ctx.strokeStyle = "#7c3aed";
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  // Segmente
+  for (let i = 0; i < n; i++) {
+    const startA = i * segAngle - Math.PI / 2 - segAngle / 2;
+    const endA = startA + segAngle;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, startA, endA);
+    ctx.closePath();
+    ctx.fillStyle = WHEEL_COLORS[i % WHEEL_COLORS.length];
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(0,0,0,.45)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Radialer Farbverlauf für mehr Tiefe
+    const grad = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, r);
+    grad.addColorStop(0, "rgba(255,255,255,.12)");
+    grad.addColorStop(1, "rgba(0,0,0,.25)");
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Label
+    const midA = startA + segAngle / 2;
+    const lr = r * 0.68;
+    const lx = cx + Math.cos(midA) * lr;
+    const ly = cy + Math.sin(midA) * lr;
+    ctx.save();
+    ctx.translate(lx, ly);
+    ctx.rotate(midA + Math.PI / 2);
+    ctx.fillStyle = "#fff";
+    ctx.font = "900 " + Math.max(12, size * 0.055) + "px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = "rgba(0,0,0,.9)";
+    ctx.fillText(WHEEL_SEGMENTS[i].label, 0, 0);
+    ctx.restore();
+  }
+
+  // Innerer Rand
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.32, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(255,210,94,.5)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Segment-Liste unter dem Rad
+  const listEl = $("wheel-segments-list");
+  if (listEl && !listEl.dataset.done) {
+    listEl.dataset.done = "1";
+    listEl.innerHTML = WHEEL_SEGMENTS.map(s => `<span class="wheel-seg-chip">${s.label}</span>`).join("");
+  }
 }
 
 function updateWheelTimer() {
@@ -2109,18 +2174,30 @@ async function spinWheel() {
   state.busy = true; haptic(); SFX.click();
   meta.wheel.lastSpin = now;
   await saveMeta();
+
   const idx = Math.floor(Math.random() * WHEEL_SEGMENTS.length);
   const seg = WHEEL_SEGMENTS[idx];
-  const baseTurns = 6;
-  const angleTarget = 360 * baseTurns + (360 - (idx * 45 + 22.5));
-  const wheel = $("wheel");
-  wheel.style.transform = `rotate(${angleTarget}deg)`;
+  const n = WHEEL_SEGMENTS.length;
+  const segDeg = 360 / n;
+
+  // Segment idx zentriert bei idx * segDeg. Um es nach oben (-90°) zu drehen:
+  // Rotation = 360 * turns - idx * segDeg (+ kleiner Zufallsoffset)
+  const turns = 6;
+  wheelRotation += 360 * turns + (360 - (idx * segDeg) - (wheelRotation % 360)) + segDeg / 2;
+
+  const cvs = $("wheel-canvas");
+  if (cvs) cvs.style.transform = `rotate(${wheelRotation}deg)`;
+
   SFX.spin();
   haptic("medium");
+
+  // Tick-Sounds
   let ticks = 0;
   const tickInt = setInterval(() => { SFX.wheelTick(); ticks++; if (ticks > 40) clearInterval(tickInt); }, 120);
+
   await new Promise(r => setTimeout(r, 5200));
   clearInterval(tickInt);
+
   try {
     if (seg.type === "coins") {
       let remaining = seg.value;
@@ -2158,6 +2235,7 @@ document.querySelectorAll(".tab").forEach(t => {
     if (tab === "home") goHome();
     else if (tab === "collection") { show("s-collection"); renderCollection(); }
     else if (tab === "daily") { show("s-daily"); renderDailyScreen(); }
+    else if (tab === "wheel") { show("s-wheel"); updateWheelTimer(); }
   });
 });
 
@@ -2172,6 +2250,7 @@ function openShop() {
 $("coins-top").addEventListener("click", openShop);
 $("coins-game").addEventListener("click", openShop);
 $("coins-daily").addEventListener("click", openShop);
+$("coins-wheel").addEventListener("click", openShop);
 $("konto-close").addEventListener("click", () => { haptic(); kontoModal.classList.remove("show"); });
 kontoModal.addEventListener("click", (e) => { if (e.target === kontoModal) kontoModal.classList.remove("show"); });
 
@@ -2192,7 +2271,7 @@ document.querySelectorAll(".shop-card").forEach(btn => {
 });
 
 // ============================================================
-// INVITE MODAL
+// INVITE
 // ============================================================
 const inviteModal = $("invite-modal");
 function inviteLink() {
@@ -2271,6 +2350,12 @@ $("btn-back").addEventListener("click", goHome);
 $("daily-claim").addEventListener("click", claimDaily);
 $("spin-btn").addEventListener("click", spinWheel);
 
+window.addEventListener("resize", () => {
+  if ($("s-wheel").classList.contains("active")) {
+    renderWheelCanvas();
+  }
+});
+
 let pressTimer;
 $("logo").addEventListener("touchstart", () => {
   pressTimer = setTimeout(async () => {
@@ -2287,9 +2372,6 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden && INIT) loadMe().catch(() => {});
 });
 
-// ============================================================
-// BOOT
-// ============================================================
 async function boot() {
   try {
     await waitForInit();
@@ -2304,6 +2386,7 @@ async function boot() {
     await loadMe();
     await claimReferralIfAny();
     renderDailyScreen();
+    updateWheelTimer();
   } catch (e) {
     $("stats-box").innerHTML = '<div class="row"><span>⚠️ Fehler</span><span>' + (e.message || e) + '</span></div><button class="btn" onclick="location.reload()">🔄 Neu laden</button>';
   }
