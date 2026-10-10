@@ -23,9 +23,6 @@ from telegram import (
 from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-# ============================================================
-# KONFIGURATION – AUS RENDER ENVIRONMENT VARIABLES
-# ============================================================
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 WEBAPP_URL = os.environ["WEBAPP_URL"]
 PORT = int(os.environ.get("PORT", 10000))
@@ -33,13 +30,12 @@ DB = "/tmp/casino.db"
 AUTH_MAX_AGE = 86400
 NO_PREVIEW = LinkPreviewOptions(is_disabled=True)
 
-# ============================================================
-# DATENBANK
-# ============================================================
+
 def db():
     con = sqlite3.connect(DB, timeout=10)
     con.row_factory = sqlite3.Row
     return con
+
 
 def init_db():
     con = db()
@@ -67,6 +63,11 @@ def init_db():
         amount INTEGER,
         created_at INTEGER
     );
+    CREATE TABLE IF NOT EXISTS referrals (
+        referred_id INTEGER PRIMARY KEY,
+        referrer_id INTEGER,
+        created_at INTEGER
+    );
     """)
     cols = [r[1] for r in con.execute("PRAGMA table_info(users)").fetchall()]
     for col, ddl in [("win_streak", "INTEGER DEFAULT 0"), ("best_streak", "INTEGER DEFAULT 0")]:
@@ -77,6 +78,7 @@ def init_db():
                 pass
     con.commit()
     con.close()
+
 
 def get_user(uid):
     con = db()
@@ -89,6 +91,7 @@ def get_user(uid):
     con.close()
     return dict(row)
 
+
 def update_user(uid, **f):
     if not f:
         return
@@ -99,18 +102,24 @@ def update_user(uid, **f):
     con.commit()
     con.close()
 
+
 def is_admin(uid):
     con = db()
     row = con.execute("SELECT 1 FROM admins WHERE user_id=?", (uid,)).fetchone()
     con.close()
     return bool(row)
 
+
 def calc_level(wagered: int):
-    level = 1 + int((max(0, wagered) / 500) ** 0.5)
-    cur = 500 * (level - 1) ** 2
-    nxt = 500 * level ** 2
-    pct = int(((wagered - cur) / max(1, nxt - cur)) * 100) if nxt > cur else 0
+    W = max(0, wagered)
+    level = 1 + int((W / 100) ** 0.6)
+    def thresh(l):
+        return int(100 * (l - 1) ** 1.667)
+    cur = thresh(level)
+    nxt = thresh(level + 1)
+    pct = int(((W - cur) / max(1, nxt - cur)) * 100) if nxt > cur else 0
     return level, max(0, min(100, pct))
+
 
 def record_outcome(uid: int, won: bool, game: str, win_amount: int):
     u = get_user(uid)
@@ -129,9 +138,7 @@ def record_outcome(uid: int, won: bool, game: str, win_amount: int):
         con.commit()
         con.close()
 
-# ============================================================
-# TELEGRAM AUTH
-# ============================================================
+
 def validate_init_data(init_data: str) -> dict:
     if not init_data:
         raise HTTPException(401, "initData fehlt")
@@ -152,24 +159,26 @@ def validate_init_data(init_data: str) -> dict:
         raise HTTPException(401, "User fehlt")
     return user
 
+
 def auth(x_init_data: str = Header(None, alias="X-Init-Data")):
     user = validate_init_data(x_init_data or "")
     return user["id"]
 
-# ============================================================
-# FASTAPI
-# ============================================================
+
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"],
                    allow_methods=["*"], allow_headers=["*"])
+
 
 @app.on_event("startup")
 def _startup():
     init_db()
 
+
 @app.get("/", response_class=HTMLResponse)
 def root():
     return "<h1>Casino backend läuft.</h1>"
+
 
 @app.get("/api/me")
 def me(uid: int = Depends(auth)):
@@ -183,10 +192,12 @@ def me(uid: int = Depends(auth)):
         "level": level, "xp_pct": xp_pct,
     }
 
+
 class PlayReq(BaseModel):
     game: str
     bet: int
     choice: Optional[str] = None
+
 
 @app.post("/api/play")
 def play(req: PlayReq, uid: int = Depends(auth)):
@@ -230,6 +241,7 @@ def play(req: PlayReq, uid: int = Depends(auth)):
     record_outcome(uid, payout > req.bet, req.game, payout)
     return {"result": result, "payout": payout, "delta": delta, "coins": new_coins}
 
+
 @app.post("/api/daily")
 def daily(uid: int = Depends(auth)):
     u = get_user(uid)
@@ -240,30 +252,90 @@ def daily(uid: int = Depends(auth)):
     update_user(uid, coins=new, last_daily=now)
     return {"ok": True, "amount": 1000, "coins": new}
 
-class LimitReq(BaseModel):
-    max_bet: int
 
-@app.post("/api/limit")
-def set_limit(req: LimitReq, uid: int = Depends(auth)):
-    if not (1 <= req.max_bet <= 1000):
-        raise HTTPException(400, "1–1000")
-    update_user(uid, max_bet=req.max_bet)
-    return {"ok": True, "max_bet": req.max_bet}
+class BonusReq(BaseModel):
+    amount: int
 
-class ExcludeReq(BaseModel):
-    hours: int
 
-@app.post("/api/exclude")
-def set_exclude(req: ExcludeReq, uid: int = Depends(auth)):
-    if not (1 <= req.hours <= 720):
-        raise HTTPException(400, "1–720")
-    update_user(uid, self_excluded_until=int(time.time()) + req.hours * 3600)
-    return {"ok": True}
+@app.post("/api/bonus")
+def bonus(req: BonusReq, uid: int = Depends(auth)):
+    if req.amount not in (100, 1000, 5000, 10000):
+        raise HTTPException(400, "Ungültiger Betrag")
+    u = get_user(uid)
+    new_coins = u["coins"] + req.amount
+    update_user(uid, coins=new_coins)
+    return {"ok": True, "amount": req.amount, "coins": new_coins}
 
-# ============================================================
-# BLACKJACK
-# ============================================================
+
+class ReferralReq(BaseModel):
+    ref_id: int
+
+
+@app.post("/api/referral")
+def register_referral(req: ReferralReq, uid: int = Depends(auth)):
+    ref_id = req.ref_id
+    if ref_id == uid or ref_id <= 0:
+        return {"ok": False, "reason": "invalid"}
+    try:
+        ref_user = get_user(ref_id)
+    except Exception:
+        return {"ok": False, "reason": "no_referrer"}
+
+    con = db()
+    existing = con.execute("SELECT referrer_id FROM referrals WHERE referred_id=?",
+                           (uid,)).fetchone()
+    if existing:
+        con.close()
+        return {"ok": False, "reason": "already_referred"}
+
+    con.execute("INSERT INTO referrals (referred_id, referrer_id, created_at) VALUES (?,?,?)",
+                (uid, ref_id, int(time.time())))
+    con.commit()
+
+    count = con.execute("SELECT COUNT(*) FROM referrals WHERE referrer_id=?",
+                        (ref_id,)).fetchone()[0]
+    con.close()
+
+    reward = 500
+    milestone = None
+    if count == 1:
+        reward += 500; milestone = 1
+    elif count == 3:
+        reward += 2000; milestone = 3
+    elif count == 5:
+        reward += 5000; milestone = 5
+    elif count == 10:
+        reward += 15000; milestone = 10
+    elif count == 25:
+        reward += 50000; milestone = 25
+
+    ref_u = get_user(ref_id)
+    update_user(ref_id, coins=ref_u["coins"] + reward)
+
+    welcome = 500
+    new_u = get_user(uid)
+    update_user(uid, coins=new_u["coins"] + welcome)
+
+    return {
+        "ok": True,
+        "welcome_bonus": welcome,
+        "referrer_reward": reward,
+        "referrer_count": count,
+        "milestone": milestone,
+    }
+
+
+@app.get("/api/referrals")
+def get_referrals(uid: int = Depends(auth)):
+    con = db()
+    count = con.execute("SELECT COUNT(*) FROM referrals WHERE referrer_id=?",
+                        (uid,)).fetchone()[0]
+    con.close()
+    return {"count": count}
+
+
 bj_sessions = {}
+
 
 def new_deck():
     ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
@@ -271,6 +343,7 @@ def new_deck():
     deck = [{"r": r, "s": s} for r in ranks for s in suits]
     random.shuffle(deck)
     return deck
+
 
 def hand_value(hand):
     total = 0
@@ -288,6 +361,7 @@ def hand_value(hand):
         total -= 10
         aces -= 1
     return total
+
 
 @app.post("/api/bj/start")
 def bj_start(req: PlayReq, uid: int = Depends(auth)):
@@ -317,6 +391,7 @@ def bj_start(req: PlayReq, uid: int = Depends(auth)):
             "dealer_value": hand_value([dealer[0]]),
             "state": state}
 
+
 @app.post("/api/bj/hit")
 def bj_hit(uid: int = Depends(auth)):
     s = bj_sessions.get(uid)
@@ -334,6 +409,7 @@ def bj_hit(uid: int = Depends(auth)):
         return {"player": s["player"], "player_value": pv,
                 "state": "bust", "coins": new_coins}
     return {"player": s["player"], "player_value": pv, "state": "continue"}
+
 
 @app.post("/api/bj/stand")
 def bj_stand(uid: int = Depends(auth)):
@@ -363,15 +439,15 @@ def bj_stand(uid: int = Depends(auth)):
             "payout": payout, "delta": delta, "coins": new_coins,
             "state": "win" if payout > s["bet"] else "push" if payout == s["bet"] else "lose"}
 
-# ============================================================
-# ROULETTE
-# ============================================================
+
 RED = {1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36}
+
 
 class RouletteReq(BaseModel):
     bet: int
     bet_type: str
     number: Optional[int] = None
+
 
 @app.post("/api/roulette")
 def roulette(req: RouletteReq, uid: int = Depends(auth)):
@@ -410,9 +486,7 @@ def roulette(req: RouletteReq, uid: int = Depends(auth)):
     return {"number": n, "color": color, "payout": payout,
             "delta": delta, "coins": new_coins}
 
-# ============================================================
-# LEADERBOARD / FEED / ADMIN
-# ============================================================
+
 @app.get("/api/leaderboard")
 def leaderboard(uid: int = Depends(auth)):
     con = db()
@@ -424,6 +498,7 @@ def leaderboard(uid: int = Depends(auth)):
                 "is_me": r["user_id"] == uid} for r in rows]
     idx = next((i for i, e in enumerate(entries) if e["is_me"]), None)
     return {"entries": entries, "my_rank": idx + 1 if idx is not None else None}
+
 
 @app.get("/api/feed")
 def feed(uid: int = Depends(auth)):
@@ -438,9 +513,11 @@ def feed(uid: int = Depends(auth)):
         for r in rows
     ]}
 
+
 def require_admin(uid):
     if not is_admin(uid):
         raise HTTPException(403, "Kein Admin")
+
 
 @app.get("/api/admin/stats")
 def admin_stats(uid: int = Depends(auth)):
@@ -455,9 +532,7 @@ def admin_stats(uid: int = Depends(auth)):
             "total_wagered": wag, "total_won": won,
             "house_edge": wag - won}
 
-# ============================================================
-# BOT
-# ============================================================
+
 WELCOME = (
     "🎰 <b>Virtual Casino</b>\n"
     "━━━━━━━━━━━━━━━━━━━━\n"
@@ -466,22 +541,26 @@ WELCOME = (
     "⚠️ VORSICHT · 18+"
 )
 
+
 def bot_kb():
     return InlineKeyboardMarkup([[
         InlineKeyboardButton("🎮 Casino öffnen",
                              web_app=WebAppInfo(url=WEBAPP_URL))
     ]])
 
+
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(WELCOME, reply_markup=bot_kb(),
                                     parse_mode=ParseMode.HTML,
                                     link_preview_options=NO_PREVIEW)
+
 
 async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🎰 <b>Virtual Casino</b>\nAlle Spiele laufen in der Mini App.\n"
         "⚠️ Kein Echtgeld · 18+",
         parse_mode=ParseMode.HTML, link_preview_options=NO_PREVIEW)
+
 
 async def post_init(bot_app):
     await bot_app.bot.set_my_commands([
@@ -495,9 +574,7 @@ async def post_init(bot_app):
     except Exception as e:
         print(f"Menu button konnte nicht gesetzt werden: {e}")
 
-# ============================================================
-# START
-# ============================================================
+
 async def main():
     bot_app = (ApplicationBuilder()
                .token(BOT_TOKEN)
@@ -519,6 +596,7 @@ async def main():
     await bot_app.updater.stop()
     await bot_app.stop()
     await bot_app.shutdown()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
