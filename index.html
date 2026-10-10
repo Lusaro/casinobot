@@ -326,18 +326,30 @@ html,body{
 }
 .card-slot img.card-img{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-  border-radius:10px;
+  border-radius:10px;z-index:1;display:block;background:#1a0b3d;
 }
 .card-slot.has-img .em,
+.card-slot.has-vip .em,
 .card-slot.vip-media .em{display:none!important}
 .card-slot.has-img .name-lbl,
+.card-slot.has-vip .name-lbl,
 .card-slot.vip-media .name-lbl{
   background:linear-gradient(transparent,rgba(0,0,0,.75));
   bottom:0;padding:8px 2px 4px;z-index:4;
 }
+.card-slot.has-vip,.card-slot.has-img{
+  background:#12081f!important;
+  overflow:hidden;
+}
+.card-slot.has-vip .card-img,
+.card-slot.has-img .card-img{
+  opacity:1!important;
+  visibility:visible!important;
+}
 .card-slot img.card-img.blurred{
-  filter:blur(14px) brightness(.45) saturate(1.2);
-  transform:scale(1.15);
+  filter:blur(10px) brightness(.55) saturate(1.15);
+  transform:scale(1.12);
+  z-index:1;
 }
 .card-slot .vip-center{
   position:absolute;inset:0;display:flex;flex-direction:column;
@@ -1152,6 +1164,7 @@ function goHome() {
 
 async function loadMe() {
   const me = await api("/api/me");
+  if (me.is_admin != null) isAdmin = !!me.is_admin;
   state.coins = me.coins; state.max_bet = me.max_bet; state.wagered = me.wagered; state.won = me.won;
   const newLevel = me.level || 1;
   state.streak = me.streak || 0; state.best_streak = me.best_streak || 0;
@@ -1255,6 +1268,7 @@ async function loadFeed() {
 
 function renderCollection() {
   const grid = $("card-grid");
+  if (!grid) return;
   const total = CARDS.length;
   const owned = collection.length;
   $("collection-count").textContent = `${owned} / ${total} Karten`;
@@ -1266,60 +1280,67 @@ function renderCollection() {
     const price = (cat.buy_price != null ? cat.buy_price : CARD_PRICES[card.rarity]) || 400;
     const vipUnlocked = !!(meta.vip || cat.vip);
     const hasMedia = !!(cat.has_vip_media || meta.has_vip_media);
-    const preview = (cat.preview_url || meta.preview_url || cat.image_url || meta.image_url || "").trim();
-    const imgUrl = vipUnlocked ? (meta.image_url || cat.image_url || preview) : null;
+    // Preview-URL robust holen
+    const preview = (
+      cat.preview_url || meta.preview_url ||
+      cat.image_url || meta.image_url ||
+      null
+    );
+    const imgUrl = vipUnlocked
+      ? (meta.image_url || cat.image_url || preview)
+      : null;
 
-    // VIP-Medien: nie Emoji, immer Bild (klar oder blur)
-    const useVipVisual = hasMedia && !!preview;
+    const isVipSlot = hasMedia && !!preview;
 
     const cls = [
       "card-slot",
       got ? "" : "locked",
       got ? card.rarity : "",
-      useVipVisual ? "has-img vip-media" : "",
-      (imgUrl && vipUnlocked) ? "vip-open" : "",
+      isVipSlot || imgUrl ? "has-img has-vip" : "",
     ].filter(Boolean).join(" ");
 
-    const style = (!useVipVisual && got)
-      ? `background:linear-gradient(160deg,${card.g[0]},${card.g[1]})`
-      : "";
+    const style = isVipSlot
+      ? "background:#12081f;overflow:hidden"
+      : (got ? `background:linear-gradient(160deg,${card.g[0]},${card.g[1]})` : "");
 
-    let body = "";
-    if (useVipVisual) {
+    let extra = "";
+    let emHtml = "";
+
+    if (isVipSlot) {
       if (vipUnlocked && imgUrl) {
-        body = `
-          <span class="vip-badge">VIP</span>
-          <img class="card-img" src="${imgUrl}" alt="" loading="lazy">
-          <div class="name-lbl">${card.name}</div>`;
+        extra = `<span class="vip-badge">VIP</span>
+          <img class="card-img" src="${imgUrl}" alt="" loading="lazy"
+               onerror="this.style.background='#333'">`;
       } else {
-        // Locked / not unlocked: blurred real image + VIP center — KEIN Emoji
-        const sub = got
-          ? "PayPal freischalten"
-          : `🔒 ${Number(price).toLocaleString("de-DE")}`;
-        body = `
-          <img class="card-img blurred" src="${preview}" alt="" loading="lazy">
+        // Immer geblurrtes Bild zeigen
+        extra = `
+          <img class="card-img blurred" src="${preview}" alt="" loading="eager"
+               onerror="this.style.filter='none';this.style.background='#2a1540'">
           <div class="vip-center">
             <div class="vip-big">VIP</div>
-            <div class="vip-sub">${sub}</div>
-          </div>
-          <div class="name-lbl">${card.name}</div>`;
+            <div class="vip-sub">${got ? (isAdmin ? "Admin · Öffnen" : "PayPal freischalten") : "VIP"}</div>
+          </div>`;
         if (!got) {
-          body += `<div class="buy-lbl">💰 ${Number(price).toLocaleString("de-DE")}</div>`;
+          extra += `<div class="buy-lbl">💰 ${Number(price).toLocaleString("de-DE")}</div>`;
+        } else if (!vipUnlocked && !isAdmin) {
+          extra += `<div class="vip-lock">💳 PayPal · VIP</div>`;
+        } else if (!vipUnlocked && isAdmin) {
+          extra += `<div class="vip-lock">👑 Admin-Vorschau</div>`;
         }
       }
     } else {
-      // Normale Karten ohne VIP-Bild → Emoji wie bisher
-      body = `
-        <div class="em">${got ? card.icon : "❓"}</div>
-        <div class="name-lbl">${card.name}</div>`;
+      emHtml = `<div class="em">${got ? card.icon : "❓"}</div>`;
       if (!got) {
-        body += `<div class="buy-lbl">💰 ${Number(price).toLocaleString("de-DE")}</div>`;
+        extra = `<div class="buy-lbl">💰 ${Number(price).toLocaleString("de-DE")}</div>`;
       }
     }
 
-    return `<div class="${cls}" data-card="${card.id}" style="${style}">${body}</div>`;
+    return `<div class="${cls}" data-card="${card.id}" style="${style}">
+      ${emHtml}
+      <div class="name-lbl">${card.name}</div>
+      ${extra}
+    </div>`;
   }).join("");
-
   grid.querySelectorAll(".card-slot").forEach(el => {
     const id = parseInt(el.dataset.card, 10);
     el.addEventListener("click", () => {
@@ -1338,6 +1359,23 @@ async function openOwnedCard(cardId) {
   const vipUnlocked = !!(meta.vip || cat.vip);
   const hasMedia = !!(cat.has_vip_media || meta.has_vip_media);
 
+  // Admin: VIP-Bild jederzeit klar ansehen + optional freischalten ohne PayPal
+  if (isAdmin && hasMedia) {
+    if (!vipUnlocked) {
+      try {
+        await api("/api/unlock_vip", {
+          method: "POST",
+          body: JSON.stringify({ card_id: cardId })
+        });
+        const data = await api("/api/collection");
+        applyCollectionData(data);
+        renderCollection();
+      } catch (e) {}
+    }
+    openCardView(cardId);
+    return;
+  }
+
   if (vipUnlocked) {
     openCardView(cardId);
     return;
@@ -1348,6 +1386,7 @@ async function openOwnedCard(cardId) {
   }
   openCardView(cardId);
 }
+
 
 async function openUnlockVip(cardId) {
   const card = CARDS.find(c => c.id === cardId);
@@ -1533,17 +1572,21 @@ function openCardView(cardId) {
   const r = RARITY[card.rarity];
   const meta = collectionMeta[cardId] || {};
   const cat = catalogMap[cardId] || {};
-  const vipUnlocked = !!(meta.vip || cat.vip);
-  const imgUrl = vipUnlocked ? (meta.image_url || cat.image_url) : null;
+  const vipUnlocked = !!(meta.vip || cat.vip) || isAdmin;
+  const preview = cat.preview_url || meta.preview_url || cat.image_url || meta.image_url || null;
+  const imgUrl = vipUnlocked
+    ? (meta.image_url || cat.image_url || preview)
+    : null;
   const creatorLink = (meta.creator_link || cat.creator_link || "").trim();
   let inner;
   if (imgUrl) {
     inner = `
     <div style="width:280px;height:390px;border-radius:20px;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 40px rgba(255,210,94,.35)">
-      <img src="${imgUrl}" alt="" style="width:100%;height:100%;object-fit:cover">
+      <img src="${imgUrl}" alt="" style="width:100%;height:100%;object-fit:cover"
+           onerror="this.parentElement.style.background='#1a0b3d'">
       <div style="position:absolute;bottom:0;left:0;right:0;padding:40px 12px 20px;background:linear-gradient(transparent,rgba(0,0,0,.85))">
         <div style="text-align:center;font-size:18px;font-weight:900;color:#fff;letter-spacing:2px">${card.name.toUpperCase()}</div>
-        <div style="text-align:center;font-size:11px;font-weight:900;color:#ffd25e;letter-spacing:4px;margin-top:4px">VIP · ${r.name}</div>
+        <div style="text-align:center;font-size:11px;font-weight:900;color:#ffd25e;letter-spacing:4px;margin-top:4px">VIP · ${r.name}${isAdmin && !(meta.vip||cat.vip) ? " · ADMIN" : ""}</div>
       </div>
     </div>`;
   } else {
@@ -1559,7 +1602,7 @@ function openCardView(cardId) {
   const btnCreator = $("card-creator-btn");
   const btnDl = $("card-download");
   const btnSh = $("card-share");
-  if (vipUnlocked && imgUrl) {
+  if (imgUrl) {
     if (btnDl) btnDl.style.display = "none";
     if (btnSh) btnSh.style.display = "none";
     if (btnCreator) {
@@ -2987,3 +3030,4 @@ async function boot() {
 boot();
 </script>
 </body>
+</html>
