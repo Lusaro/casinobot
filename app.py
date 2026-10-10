@@ -125,6 +125,199 @@ def calc_level(wagered: int):
     return level, max(0, min(100, pct))
 
 
+
+# ═══════════════════════════════════════════════════════════
+# HOUSE-EDGE / WARN-APP ENGINE
+# Ziel: Spieler fühlt sich oft als Gewinner, verliert aber langfristig.
+# Ziel-RTP ca. 82–88 % (House Edge 12–18 %).
+# ═══════════════════════════════════════════════════════════
+
+HOUSE_EDGE = 0.15          # 15 % Bankvorteil im Schnitt
+TARGET_RTP = 1.0 - HOUSE_EDGE  # 0.85
+
+RED = {1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36}
+
+def player_heat(u: dict) -> float:
+    """
+    0.0 = kalt (viele Verluste) → etwas großzügiger
+    1.0 = heiß (viele Gewinne / hohe Streak) → härter
+    """
+    streak = max(0, u.get("win_streak") or 0)
+    wagered = max(1, u.get("total_wagered") or 1)
+    won = max(0, u.get("total_won") or 0)
+    ratio = won / wagered  # >1 = im Plus
+    heat = 0.0
+    heat += min(0.5, streak * 0.08)          # Streak drückt
+    heat += min(0.5, max(0.0, (ratio - 0.7) * 1.2))  # wenn RTP des Spielers hoch
+    return max(0.0, min(1.0, heat))
+
+
+def effective_rtp(u: dict) -> float:
+    """Dynamische RTP: bei Hitze runter, bei Kälte etwas rauf (aber nie fair)."""
+    h = player_heat(u)
+    # Basis 0.85, bei Hitze bis ~0.72, bei Kälte bis ~0.90
+    return TARGET_RTP - h * 0.13 + (1.0 - h) * 0.05
+
+
+def biased_random(u: dict) -> float:
+    """Zufallszahl 0..1, bei Hitze eher höhere Werte (schlechter für Spieler bei 1/x Formeln)."""
+    r = random.random()
+    h = player_heat(u)
+    if h > 0.3 and random.random() < h * 0.55:
+        # Pull toward higher values (worse for player in inverse formulas)
+        r = 0.55 + r * 0.45
+    return r
+
+
+def decide_win(u: dict, fair_p: float) -> bool:
+    """
+    fair_p = faire Gewinnwahrscheinlichkeit.
+    Wir skalieren mit effective_rtp / erwartetem Fair-Return.
+    """
+    rtp = effective_rtp(u)
+    # grobe Skalierung der Win-Chance
+    p = fair_p * (rtp / 0.95)  # 0.95 ≈ typische "fast faire" Basis
+    p = max(0.05, min(0.48, p))
+    return random.random() < p
+
+
+def crash_multiplier(u: dict) -> float:
+    """
+    Crash-Punkt mit House Edge.
+    Klassische Formel: crash = max(1.0, edge / (1 - r))
+    Mit edge < 1 entsteht House Edge.
+    Near-Miss: oft zwischen 1.01–1.20 crashen lassen.
+    """
+    r = biased_random(u)
+    edge = 0.92 - player_heat(u) * 0.08  # 0.84–0.92
+    if r < 0.04:  # Instant crash ~4 %
+        return 1.00
+    mult = max(1.01, edge / (1.0 - r))
+    mult = min(mult, 100.0)
+    # Near-miss Cluster: häufiger im 1.05–1.35 Bereich
+    if mult > 2.5 and random.random() < 0.35 + player_heat(u) * 0.25:
+        mult = 1.05 + random.random() * 0.30
+    return round(mult, 2)
+
+
+def slots_outcome(u: dict):
+    """
+    Viele Near-Misses (2 gleich), seltene echte Hits.
+    Erwarteter RTP ~83–87 %.
+    """
+    symbols = ["🍒", "🍋", "🔔", "💎", "7️⃣"]
+    weights_base = [32, 28, 22, 12, 6]  # 7️⃣ selten
+
+    heat = player_heat(u)
+    # Bei Hitze noch seltener Jackpot-Symbole
+    weights = list(weights_base)
+    weights[3] = max(4, int(12 - heat * 6))
+    weights[4] = max(2, int(6 - heat * 3))
+
+    def pick():
+        total = sum(weights)
+        x = random.randrange(total)
+        acc = 0
+        for s, w in zip(symbols, weights):
+            acc += w
+            if x < acc:
+                return s
+        return symbols[0]
+
+    a, b, c = pick(), pick(), pick()
+
+    # Near-miss: oft 2 gleiche, drittes knapp daneben
+    if a == b and c != a and random.random() < 0.45:
+        pass  # already near miss
+    elif random.random() < 0.22:  # force near-miss look
+        a = b = pick()
+        # third different
+        others = [s for s in symbols if s != a]
+        c = random.choice(others)
+
+    if a == b == c:
+        if a == "7️⃣":
+            mult = 15  # war 20 – leicht gesenkt
+        elif a == "💎":
+            mult = 8
+        else:
+            mult = 4
+        return [a, b, c], mult
+    if a == b or b == c or a == c:
+        return [a, b, c], 1.2  # kleine "Tröst"-Auszahlung, unter Break-even bei Häufigkeit
+    return [a, b, c], 0
+
+
+def coin_outcome(u: dict, choice: str):
+    """Münzwurf mit House Edge. Multi 1.9 → bei p≈0.42 RTP ≈ 0.80."""
+    choice = (choice or "").lower()
+    want_win = decide_win(u, 0.42)
+    if want_win and choice in ("kopf", "zahl"):
+        side = choice
+        won = True
+    else:
+        if choice in ("kopf", "zahl"):
+            side = "zahl" if choice == "kopf" else "kopf"
+        else:
+            side = random.choice(["kopf", "zahl"])
+        won = False
+    return side, won
+
+
+def bowl_outcome(u: dict):
+    """
+    Wert 1–6. Strike (6) zahlt 5x.
+    Faire RTP bei p=1/6 *5 ≈ 0.83.
+    Wir steuern p(Strike) und streuen Near-Miss (Wert 5).
+    """
+    rtp = effective_rtp(u)
+    # Ziel: p_strike * 5 ≈ rtp  → p ≈ rtp/5
+    p_strike = max(0.08, min(0.18, rtp / 5.0))
+    r = random.random()
+    if r < p_strike:
+        return 6
+    if r < p_strike + 0.18:  # Near miss: 5er
+        return 5
+    return random.randint(1, 4)
+
+
+def roulette_spin(u: dict, bet_type: str, number=None):
+    """
+    Europäische Roulette-Zahlen 0–36, aber mit leicht verzerrter Verteilung
+    gegen die Wette des Spielers (House Edge spürbar höher als 2.7 %).
+    """
+    heat = player_heat(u)
+    # Mit steigender Hitze: höhere Chance, dass die Wette verliert
+    force_lose = random.random() < (0.08 + heat * 0.12)
+
+    n = random.randint(0, 36)
+    if force_lose:
+        # Wähle eine Zahl die die Wette nicht trifft
+        for _ in range(40):
+            n = random.randint(0, 36)
+            color = "green" if n == 0 else "red" if n in RED else "black"
+            hit = False
+            if bet_type == "single" and number == n:
+                hit = True
+            elif bet_type == "red" and color == "red":
+                hit = True
+            elif bet_type == "black" and color == "black":
+                hit = True
+            elif bet_type == "even" and n != 0 and n % 2 == 0:
+                hit = True
+            elif bet_type == "odd" and n % 2 == 1:
+                hit = True
+            elif bet_type == "1-18" and 1 <= n <= 18:
+                hit = True
+            elif bet_type == "19-36" and 19 <= n <= 36:
+                hit = True
+            if not hit:
+                break
+    color = "green" if n == 0 else "red" if n in RED else "black"
+    return n, color
+
+
+
 def record_outcome(uid: int, won: bool, game: str, win_amount: int):
     u = get_user(uid)
     if won:
@@ -240,22 +433,17 @@ def play(req: PlayReq, uid: int = Depends(auth)):
     result = {}
 
     if req.game == "coin":
-        side = random.choice(["kopf", "zahl"])
-        won = side == (req.choice or "")
+        side, won = coin_outcome(u, req.choice or "")
         payout = int(req.bet * 1.9) if won else 0
         result = {"outcome": side, "won": won}
     elif req.game in ("dice", "bowl"):
-        val = random.randint(1, 6)
+        val = bowl_outcome(u)
         won = val == 6
         payout = req.bet * 5 if won else 0
         result = {"outcome": val, "won": won}
     elif req.game == "slots":
-        reels = [random.choice(["🍒", "🍋", "🔔", "💎", "7️⃣"]) for _ in range(3)]
-        if reels[0] == reels[1] == reels[2]:
-            mult = 20 if reels[0] == "7️⃣" else 10 if reels[0] == "💎" else 5
-            payout = req.bet * mult
-        elif reels[0] == reels[1] or reels[1] == reels[2] or reels[0] == reels[2]:
-            payout = int(req.bet * 1.5)
+        reels, mult = slots_outcome(u)
+        payout = int(req.bet * mult) if mult else 0
         result = {"outcome": reels, "won": payout > 0}
     else:
         raise HTTPException(400, "Unbekanntes Spiel")
@@ -584,7 +772,8 @@ def bj_stand(uid: int = Depends(auth)):
 
 
 # ── Roulette ───────────────────────────────────────────────
-RED = {1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36}
+# RED already defined
+
 
 
 class RouletteReq(BaseModel):
@@ -603,8 +792,7 @@ def roulette(req: RouletteReq, uid: int = Depends(auth)):
     if req.bet > u["coins"]:
         raise HTTPException(400, "Nicht genug Münzen")
 
-    n = random.randint(0, 36)
-    color = "green" if n == 0 else "red" if n in RED else "black"
+    n, color = roulette_spin(u, req.bet_type, req.number)
     payout = 0
 
     if req.bet_type == "single" and req.number == n:
@@ -636,6 +824,123 @@ def roulette(req: RouletteReq, uid: int = Depends(auth)):
         "color": color,
         "payout": payout,
         "delta": delta,
+        "coins": new_coins,
+    }
+
+
+
+class CrashStartReq(BaseModel):
+    bet: int
+
+
+@app.post("/api/crash/start")
+def crash_start(req: CrashStartReq, uid: int = Depends(auth)):
+    """Einsatz abziehen + serverseitigen Crash-Punkt erzeugen (House Edge)."""
+    u = get_user(uid)
+    if u["self_excluded_until"] > int(time.time()):
+        raise HTTPException(403, "Selbstausgeschlossen")
+    if not (1 <= req.bet <= u["max_bet"]):
+        raise HTTPException(400, "Einsatz ungültig")
+    if req.bet > u["coins"]:
+        raise HTTPException(400, "Nicht genug Münzen")
+
+    new_coins = u["coins"] - req.bet
+    update_user(
+        uid,
+        coins=new_coins,
+        total_wagered=u["total_wagered"] + req.bet,
+    )
+    point = crash_multiplier(u)
+    # Session merken (einfach in-memory)
+    crash_sessions[uid] = {"bet": req.bet, "point": point, "cashed": False}
+    return {"ok": True, "coins": new_coins, "crash_point": point}
+
+
+class CrashCashoutReq(BaseModel):
+    multiplier: float
+
+
+@app.post("/api/crash/cashout")
+def crash_cashout(req: CrashCashoutReq, uid: int = Depends(auth)):
+    s = crash_sessions.get(uid)
+    if not s or s.get("cashed"):
+        raise HTTPException(400, "Keine Crash-Session")
+    point = float(s["point"])
+    mult = float(req.multiplier)
+    if mult >= point:
+        # Zu spät – bereits gecrasht
+        s["cashed"] = True
+        record_outcome(uid, False, "crash", 0)
+        del crash_sessions[uid]
+        u = get_user(uid)
+        return {"ok": False, "crashed": True, "coins": u["coins"], "payout": 0}
+
+    payout = int(s["bet"] * mult)
+    u = get_user(uid)
+    new_coins = u["coins"] + payout
+    update_user(uid, coins=new_coins, total_won=u["total_won"] + payout)
+    record_outcome(uid, True, "crash", payout)
+    s["cashed"] = True
+    del crash_sessions[uid]
+    return {"ok": True, "coins": new_coins, "payout": payout}
+
+
+@app.post("/api/crash/loss")
+def crash_loss(uid: int = Depends(auth)):
+    s = crash_sessions.get(uid)
+    if s:
+        record_outcome(uid, False, "crash", 0)
+        del crash_sessions[uid]
+    u = get_user(uid)
+    return {"ok": True, "coins": u["coins"]}
+
+
+crash_sessions = {}
+
+
+
+# Karten-Preise nach Seltenheit (Warn-App: teuer, damit man spielt)
+CARD_PRICES = {
+    "common": 400,
+    "rare": 1200,
+    "epic": 3500,
+    "legendary": 9000,
+}
+
+# Kartendefinition serverseitig (muss mit Frontend übereinstimmen)
+CARD_RARITY = {
+    1: "common", 2: "common", 3: "common", 4: "common", 5: "common",
+    6: "common", 7: "common", 8: "common", 9: "common", 10: "common",
+    11: "common", 12: "common", 13: "common", 14: "common", 15: "common",
+    16: "common", 17: "common", 18: "common",
+    19: "rare", 20: "rare", 21: "rare", 22: "rare", 23: "rare",
+    24: "rare", 25: "rare", 26: "rare",
+    27: "epic", 28: "epic", 29: "epic",
+    30: "legendary",
+}
+
+
+class BuyCardReq(BaseModel):
+    card_id: int
+
+
+@app.post("/api/buy_card")
+def buy_card(req: BuyCardReq, uid: int = Depends(auth)):
+    cid = req.card_id
+    if cid not in CARD_RARITY:
+        raise HTTPException(400, "Unbekannte Karte")
+    rarity = CARD_RARITY[cid]
+    price = CARD_PRICES[rarity]
+    u = get_user(uid)
+    if u["coins"] < price:
+        raise HTTPException(400, "Nicht genug Coins")
+    new_coins = u["coins"] - price
+    update_user(uid, coins=new_coins)
+    return {
+        "ok": True,
+        "card_id": cid,
+        "price": price,
+        "rarity": rarity,
         "coins": new_coins,
     }
 
