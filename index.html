@@ -1202,7 +1202,7 @@ function runGame(game, bet) {
 }
 
 // ============================================================
-// CRASH (Start-Button, kein Countdown)
+// CRASH (Start-Button, Einsatz wird abgezogen)
 // ============================================================
 let crashRaf = 0;
 
@@ -1230,7 +1230,6 @@ function playCrash(bet) {
   const startBtn = $("crash-start");
   const graphEl = $("crash-graph");
 
-  // Statisches Grid zeichnen
   const c = $("crash-canvas");
   if (c) {
     const ctx = c.getContext("2d");
@@ -1248,8 +1247,25 @@ function playCrash(bet) {
     for (let y = 0; y <= H; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
   }
 
-  startBtn.onclick = () => {
+  startBtn.onclick = async () => {
+    if (state.busy) return;
     haptic("medium"); SFX.click();
+    startBtn.disabled = true;
+    startBtn.textContent = "⏳ …";
+
+    // Einsatz sofort abziehen
+    try {
+      const wr = await api("/api/wager", { method: "POST", body: JSON.stringify({ amount: bet }) });
+      state.coins = wr.coins;
+      updateCoins();
+    } catch (e) {
+      showToast("Fehler: " + e.message);
+      startBtn.disabled = false;
+      startBtn.textContent = "🚀 STARTEN";
+      renderBets(state.game);
+      return;
+    }
+
     startBtn.onclick = null;
     startCrash(bet, crashPoint, multEl, startBtn, graphEl);
   };
@@ -1467,40 +1483,34 @@ async function onCrashCashout(bet, multiplier) {
   SFX.cashout();
   haptic("medium");
   const payout = Math.floor(bet * multiplier);
-  const delta = payout - bet;
 
   try {
-    if (delta > 0) {
-      let remaining = delta;
-      const chunks = [10000, 5000, 1000, 100];
-      for (const c of chunks) {
-        while (remaining >= c) {
-          const r = await api("/api/bonus", { method: "POST", body: JSON.stringify({ amount: c }) });
-          state.coins = r.coins;
-          remaining -= c;
-        }
-      }
+    // Einsatz war bereits abgezogen → vollen Payout gutschreiben
+    if (payout > 0) {
+      const r = await api("/api/payout", { method: "POST", body: JSON.stringify({ amount: payout }) });
+      state.coins = r.coins;
       updateCoins();
     }
+
     markMission("play");
-    if (multiplier >= 2) {
+    markMission("bet", bet);
+    if (multiplier >= 1.01) {
       markMission("win");
-      markMission("bet", bet);
-      markMission("crash");
-      state.wagered += bet;
-      meta.crashWinsToday++;
+      if (multiplier >= 2) markMission("crash");
     }
-    tryCardDrop(multiplier >= 2 ? 0.35 : 0.10);
+
     meta.jackpot = (meta.jackpot || 0) + Math.floor(bet * 0.05);
     await saveMeta();
-    if (multiplier >= 2) { showWinEffect(payout); fireMega(payout); }
-    else { showLossEffect(bet); }
+    tryCardDrop(multiplier >= 2 ? 0.35 : 0.12);
+
+    if (payout > 0) {
+      showWinEffect(payout);
+      if (payout >= bet * 2) fireMega(payout);
+    }
 
     const div = document.createElement("div");
-    div.className = "result-text " + (multiplier >= 2 ? "win" : "lose");
-    div.innerHTML = multiplier >= 2
-      ? `+${payout} <span style="font-size:13px;color:var(--hint)">(${multiplier.toFixed(2)}×)</span>`
-      : `−${bet}`;
+    div.className = "result-text win";
+    div.innerHTML = `+${payout} <span style="font-size:13px;color:var(--hint)">(${multiplier.toFixed(2)}×)</span>`;
     $("stage").appendChild(div);
 
     await new Promise(r => setTimeout(r, 1200));
@@ -1513,12 +1523,18 @@ async function onCrashCashout(bet, multiplier) {
 }
 
 function onCrashLoss(bet, crashPoint) {
+  // Einsatz wurde bereits beim Start abgezogen
   markMission("play");
+  markMission("bet", bet);
+  state.streak = 0;
+  updateStreakVisuals();
   showLossEffect(bet);
+
   const div = document.createElement("div");
   div.className = "result-text lose";
   div.innerHTML = `−${bet}`;
   $("stage").appendChild(div);
+
   setTimeout(() => {
     renderBets(state.game);
     loadMe().catch(() => {});
@@ -1747,11 +1763,30 @@ function renderBlackjack(data, bet) {
       finally { state.busy = false; }
     });
   } else if (data.state === "blackjack") {
-    setTimeout(() => { showWinEffect(Math.round(bet * 2.5)); tryCardDrop(1); markMission("win"); }, 300);
-    showResultFinal({ payout: Math.round(bet * 2.5), delta: Math.round(bet * 1.5), coins: state.coins }, "BLACKJACK!");
+    state.coins = data.coins != null ? data.coins : state.coins;
+    updateCoins();
+    setTimeout(() => {
+      showWinEffect(data.payout || Math.round(bet * 2.5));
+      tryCardDrop(1);
+      markMission("win");
+      markMission("play");
+      markMission("bet", bet);
+    }, 300);
+    showResultFinal({
+      payout: data.payout || Math.round(bet * 2.5),
+      delta: data.delta != null ? data.delta : Math.round(bet * 1.5),
+      coins: state.coins
+    }, "BLACKJACK!");
     loadMe().catch(() => {});
   } else if (data.state === "push") {
-    showResultFinal({ payout: bet, delta: 0, coins: state.coins }, "Push");
+    state.coins = data.coins != null ? data.coins : state.coins;
+    updateCoins();
+    showResultFinal({
+      payout: data.payout != null ? data.payout : bet,
+      delta: data.delta != null ? data.delta : 0,
+      coins: state.coins
+    }, "Push");
+    loadMe().catch(() => {});
   }
 }
 
@@ -2377,7 +2412,7 @@ async function boot() {
       $("stats-box").innerHTML = '<div class="row"><span>⚠️ Verbindung</span><span>initData fehlt</span></div><button class="btn" onclick="location.reload()">🔄 Neu laden</button>';
       return;
     }
-    try { await api("/api/reset", { method: "POST" }); } catch (e) {}
+    // kein Auto-Reset – Coins bleiben erhalten
     await loadCollection();
     await loadMeta();
     await loadMe();
