@@ -1267,34 +1267,14 @@ async function loadFeed() {
 }
 
 
-/** Platzhalter-Bild (SVG data-URI) – kein Emoji, keine .png-Endung nötig */
-function cardPlaceholder(card) {
-  const c1 = (card.g && card.g[0]) || "#7c3aed";
-  const c2 = (card.g && card.g[1]) || "#ec4899";
-  const name = (card.name || "?").replace(/[<>&]/g, "");
-  const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="560">` +
-    `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">` +
-    `<stop offset="0%" stop-color="${c1}"/>` +
-    `<stop offset="100%" stop-color="${c2}"/>` +
-    `</linearGradient></defs>` +
-    `<rect width="400" height="560" fill="url(#g)"/>` +
-    `<circle cx="200" cy="220" r="70" fill="rgba(255,255,255,.12)"/>` +
-    `<text x="200" y="360" text-anchor="middle" fill="#fff" font-size="32" font-family="system-ui,sans-serif" font-weight="800">${name}</text>` +
-    `</svg>`;
-  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
-}
-
-/** Bild-URL normalisieren – Query-Strings & fehlende Endung OK */
+/** Bild-URL normalisieren – Endung egal */
 function normalizeImgUrl(url) {
   if (!url || typeof url !== "string") return null;
   let u = url.trim();
   if (!u) return null;
-  // data: und https: und http: erlauben
   if (u.startsWith("data:image")) return u;
   if (u.startsWith("//")) u = "https:" + u;
   if (!/^https?:\/\//i.test(u)) {
-    // relative / bare host → https versuchen
     if (u.startsWith("/")) return null;
     u = "https://" + u.replace(/^\/+/, "");
   }
@@ -1316,61 +1296,60 @@ function renderCollection() {
     const price = (cat.buy_price != null ? cat.buy_price : CARD_PRICES[card.rarity]) || 400;
     const vipUnlocked = !!(meta.vip || cat.vip);
     const hasMedia = !!(cat.has_vip_media || meta.has_vip_media);
-
-    const rawPreview = cat.preview_url || meta.preview_url || cat.image_url || meta.image_url || null;
-    const vipSrc = normalizeImgUrl(rawPreview);
-    const isVip = hasMedia && !!vipSrc;
-
-    // Immer ein Bild – VIP-Foto oder Platzhalter (kein Emoji)
-    let imgSrc;
-    let blurred = false;
-    if (isVip) {
-      imgSrc = vipSrc;
-      blurred = !vipUnlocked;
-    } else {
-      imgSrc = cardPlaceholder(card);
-      blurred = false;
-    }
+    const preview = normalizeImgUrl(
+      cat.preview_url || meta.preview_url || cat.image_url || meta.image_url || null
+    );
+    const imgUrl = vipUnlocked
+      ? normalizeImgUrl(meta.image_url || cat.image_url || preview)
+      : null;
+    const isVipSlot = hasMedia && !!preview;
 
     const cls = [
       "card-slot",
-      "has-img",
       got ? "" : "locked",
       got ? card.rarity : "",
-      isVip ? "has-vip" : "has-base",
+      isVipSlot || imgUrl ? "has-img has-vip" : "",
     ].filter(Boolean).join(" ");
 
-    let badges = "";
-    if (isVip && vipUnlocked) {
-      badges = `<span class="vip-badge">VIP</span>`;
-    } else if (isVip && !vipUnlocked) {
-      badges = `
-        <div class="vip-center">
-          <div class="vip-big">VIP</div>
-          <div class="vip-sub">${got ? (isAdmin ? "Admin · Öffnen" : "PayPal freischalten") : "VIP"}</div>
-        </div>`;
-      if (got && !isAdmin) {
-        badges += `<div class="vip-lock">💳 PayPal · VIP</div>`;
-      } else if (got && isAdmin) {
-        badges += `<div class="vip-lock">👑 Admin-Vorschau</div>`;
+    const style = isVipSlot
+      ? "background:#12081f;overflow:hidden"
+      : (got ? `background:linear-gradient(160deg,${card.g[0]},${card.g[1]})` : "");
+
+    let extra = "";
+    let emHtml = "";
+
+    if (isVipSlot) {
+      // VIP: Bild (blur oder klar), kein Emoji
+      if (vipUnlocked && imgUrl) {
+        extra = `<span class="vip-badge">VIP</span>
+          <img class="card-img" src="${imgUrl}" alt="" loading="lazy" referrerpolicy="no-referrer">`;
+      } else {
+        extra = `
+          <img class="card-img blurred" src="${preview}" alt="" loading="eager" referrerpolicy="no-referrer">
+          <div class="vip-center">
+            <div class="vip-big">VIP</div>
+            <div class="vip-sub">${got ? (isAdmin ? "Admin · Öffnen" : "PayPal freischalten") : "VIP"}</div>
+          </div>`;
+        if (!got) {
+          extra += `<div class="buy-lbl">💰 ${Number(price).toLocaleString("de-DE")}</div>`;
+        } else if (!vipUnlocked && !isAdmin) {
+          extra += `<div class="vip-lock">💳 PayPal · VIP</div>`;
+        } else if (!vipUnlocked && isAdmin) {
+          extra += `<div class="vip-lock">👑 Admin-Vorschau</div>`;
+        }
+      }
+    } else {
+      // Normal: Emoji
+      emHtml = `<div class="em">${got ? card.icon : "❓"}</div>`;
+      if (!got) {
+        extra = `<div class="buy-lbl">💰 ${Number(price).toLocaleString("de-DE")}</div>`;
       }
     }
-    if (!got) {
-      badges += `<div class="buy-lbl">💰 ${Number(price).toLocaleString("de-DE")}</div>`;
-    }
 
-    // referrerpolicy hilft bei CDNs ohne .png-Endung / Hotlink-Schutz
-    return `<div class="${cls}" data-card="${card.id}" style="background:#12081f;overflow:hidden">
-      <img class="card-img${blurred ? " blurred" : ""}"
-           src="${imgSrc.replace(/"/g, "&quot;")}"
-           alt="${card.name}"
-           loading="lazy"
-           referrerpolicy="no-referrer"
-           decoding="async"
-           onerror="this.onerror=null;this.src=this.dataset.ph"
-           data-ph="${cardPlaceholder(card).replace(/"/g, "&quot;")}">
+    return `<div class="${cls}" data-card="${card.id}" style="${style}">
+      ${emHtml}
       <div class="name-lbl">${card.name}</div>
-      ${badges}
+      ${extra}
     </div>`;
   }).join("");
 
