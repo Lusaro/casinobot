@@ -34,11 +34,8 @@ NO_PREVIEW = LinkPreviewOptions(is_disabled=True)
 ADMIN_IDS = [6098272278]
 
 # ── Karten-Bilder aus GitHub-Repo ──
-# Struktur im Repo:  cards/1.png  cards/2.png  ...  cards/30.png
-CARDS_IMAGE_BASE = os.environ.get(
-    "CARDS_IMAGE_BASE",
-    "https://raw.githubusercontent.com/CHANGE_ME/casino-cards/main/cards",
-).rstrip("/")
+# Struktur:  cards/1.png  cards/2.png  ...  cards/30.png
+CARDS_IMAGE_BASE = os.environ.get("CARDS_IMAGE_BASE", "").strip().rstrip("/")
 CARDS_IMAGE_EXT = os.environ.get("CARDS_IMAGE_EXT", "png").lstrip(".")
 
 SHOP_PACKS = {
@@ -52,7 +49,8 @@ BOT_INSTANCE = None
 
 
 def default_card_image_url(card_id: int) -> str:
-    if not CARDS_IMAGE_BASE:
+    """GitHub-Default-Bild. Leer wenn CARDS_IMAGE_BASE nicht konfiguriert."""
+    if not CARDS_IMAGE_BASE or "CHANGE_ME" in CARDS_IMAGE_BASE:
         return ""
     return f"{CARDS_IMAGE_BASE}/{card_id}.{CARDS_IMAGE_EXT}"
 
@@ -122,7 +120,6 @@ def init_db():
                          (int(aid), int(time.time())))
         except Exception: pass
 
-    # VIP_IMAGES Env (optional): {"1":"https://...","30":"https://..."}
     raw_vip = os.environ.get("VIP_IMAGES", "").strip()
     if raw_vip:
         try:
@@ -182,25 +179,10 @@ def grant_card(uid: int, card_id: int) -> bool:
     return True
 
 
-def get_card_image_url(card_id: int) -> str:
-    """Bild-URL der Karte. Admin-Override aus DB, sonst GitHub-Default."""
-    con = db()
-    try:
-        row = con.execute("SELECT image_url FROM card_media WHERE card_id=?", (card_id,)).fetchone()
-    except Exception:
-        row = None
-    con.close()
-    if row:
-        img = (row["image_url"] or "").strip()
-        if img:
-            return img
-    return default_card_image_url(card_id)
-
-
 def get_card_vip_info(card_id: int) -> dict:
     """
-    is_vip_card: True wenn Admin einen card_media Eintrag für diese Karte angelegt hat.
-    Alle anderen sind normale Coin-Karten mit GitHub-Default-Bild.
+    Bild-URL + VIP-Flags für eine Karte.
+    is_vip_card = True nur wenn Admin einen card_media Eintrag angelegt hat.
     """
     con = db()
     try:
@@ -258,7 +240,6 @@ def get_user_collection(uid: int) -> list:
 
 
 def get_media_rows() -> dict:
-    """Alle card_media Einträge (nur VIP-Karten)."""
     con = db()
     try:
         rows = con.execute(
@@ -280,10 +261,6 @@ def get_media_rows() -> dict:
             "paypal_link": (r["paypal_link"] or "").strip(),
         }
     return out
-
-
-def get_all_media() -> dict:
-    return {k: v["image_url"] for k, v in get_media_rows().items()}
 
 
 def media_backup_path():
@@ -324,7 +301,6 @@ def load_media_backup():
                     url = str(val).strip(); clink = ""; plink = ""
                 if cid < 1 or cid > 30:
                     continue
-                # Leere URL ist OK (dann GitHub-Default) — aber Karte bleibt VIP
                 con.execute(
                     "INSERT INTO card_media (card_id, image_url, creator_link, paypal_link, updated_at) VALUES (?,?,?,?,?) "
                     "ON CONFLICT(card_id) DO UPDATE SET image_url=excluded.image_url, "
@@ -1011,9 +987,10 @@ def media_proxy(card_id: int):
     import urllib.request
     if card_id < 1 or card_id > 30:
         raise HTTPException(404, "Nicht gefunden")
-    url = get_card_image_url(card_id)
+    info = get_card_vip_info(card_id)
+    url = info.get("image_url") or ""
     if not url:
-        raise HTTPException(404, "Kein Bild")
+        raise HTTPException(404, "Kein Bild konfiguriert")
     try:
         req = urllib.request.Request(
             url,
@@ -1032,7 +1009,7 @@ def media_proxy(card_id: int):
                 content=data,
                 media_type=ctype,
                 headers={
-                    "Cache-Control": "public, max-age=3600",
+                    "Cache-Control": "public, max-age=1800",
                     "Access-Control-Allow-Origin": "*",
                 },
             )
@@ -1111,8 +1088,6 @@ class AdminImageReq(BaseModel):
 
 @app.post("/api/admin/card_image")
 def admin_card_image(req: AdminImageReq, uid: int = Depends(auth)):
-    """Admin: Karte wird automatisch zur VIP-Karte sobald ein Eintrag existiert.
-    image_url darf leer bleiben → dann GitHub-Default-Bild verwenden."""
     require_admin(uid)
     cid = req.card_id
     if cid not in CARD_RARITY:
@@ -1360,6 +1335,7 @@ async def main():
     server = uvicorn.Server(config)
     print(f"Server startet auf Port {PORT}")
     print(f"WebApp URL: {WEBAPP_URL}")
+    print(f"CARDS_IMAGE_BASE: {CARDS_IMAGE_BASE or '(nicht gesetzt!)'}")
     try:
         await server.serve()
     finally:
