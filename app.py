@@ -238,7 +238,7 @@ def get_user_collection(uid: int) -> list:
             "vip": vip_unlocked,
             "is_vip_card": info["is_vip_card"],
             "image_url": info["image_url"],
-            "creator_link": info["creator_link"] if (vip_unlocked and info["is_vip_card"]) else "",
+            "creator_link": info["creator_link"] if ((vip_unlocked or adm) and info["is_vip_card"]) else "",
             "paypal_link": info["paypal_link"] if info["is_vip_card"] else "",
         })
     return out
