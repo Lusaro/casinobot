@@ -1397,14 +1397,32 @@ async function handleCardClick(id) {
   haptic();
 
   // Admin: VIP-Karte automatisch für sich freischalten
-  if (isAdmin && isVipCard && !vipUnlocked) {
+    // Admin: Auswahl – wie normaler User testen oder als Admin öffnen
+  if (isAdmin && isVipCard) {
+    const asUser = () => {
+      if (vipUnlocked) openCardView(id);
+      else openUnlockVip(id);
+    };
+    const asAdmin = () => openCardView(id, true);
     try {
-      await api("/api/unlock_vip", { method: "POST", body: JSON.stringify({ card_id: id }) });
-      const data = await api("/api/collection");
-      applyCollectionData(data);
-      renderCollection();
+      if (tg.showPopup) {
+        tg.showPopup({
+          title: "Admin · VIP-Karte",
+          message: "Wie möchtest du die Karte öffnen?",
+          buttons: [
+            { id: "user", type: "default", text: "Wie normaler User (PayPal-Test)" },
+            { id: "admin", type: "default", text: "Als Admin öffnen" },
+            { type: "cancel" }
+          ]
+        }, (btn) => {
+          if (btn === "user") asUser();
+          else if (btn === "admin") asAdmin();
+        });
+        return;
+      }
     } catch (e) {}
-    openCardView(id);
+    if (confirm("OK = wie normaler User, Abbrechen = als Admin")) asUser();
+    else asAdmin();
     return;
   }
 
@@ -1609,7 +1627,8 @@ function showCardDrop(card, isNew, customLabel) {
 
 // Card-View – groß und scharf. VIP: nur "Creator schreiben". Normal: Herunterladen + Teilen.
 let currentViewCard = null;
-function openCardView(cardId) {
+function openCardView(cardId, adminView = false) {
+  const vipUnlocked = !!cat.vip || adminView;
   const card = CARDS.find(c => c.id === cardId);
   if (!card) return;
   currentViewCard = card;
@@ -1640,10 +1659,11 @@ function openCardView(cardId) {
   if (isVipCard) {
     btnDl.style.display = "none";
     btnSh.style.display = "none";
-    if (vipUnlocked && creatorLink) {
+    if (vipUnlocked) {
       btnCreator.style.display = "block";
       btnCreator.onclick = () => {
         haptic();
+        if (!creatorLink) { showToast("Kein Creator-Link hinterlegt"); return; }
         try { tg.openTelegramLink(creatorLink); }
         catch (e) {
           try { window.open(creatorLink, "_blank"); }
