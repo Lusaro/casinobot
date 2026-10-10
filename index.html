@@ -333,6 +333,31 @@ html,body{
   background:linear-gradient(transparent,rgba(0,0,0,.75));
   bottom:0;padding:8px 2px 4px;
 }
+.card-slot img.card-img.blurred{
+  filter:blur(14px) brightness(.45) saturate(1.2);
+  transform:scale(1.15);
+}
+.card-slot .vip-center{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:3;pointer-events:none;
+  text-align:center;padding:8px;
+}
+.card-slot .vip-center .vip-big{
+  font-size:22px;font-weight:900;letter-spacing:3px;
+  background:linear-gradient(135deg,#fff,#ffd25e 50%,#ec4899);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  text-shadow:0 0 20px rgba(255,210,94,.5);filter:drop-shadow(0 2px 8px rgba(0,0,0,.8));
+}
+.card-slot .vip-center .vip-sub{
+  margin-top:4px;font-size:9px;font-weight:800;color:rgba(255,255,255,.85);
+  letter-spacing:1px;text-transform:uppercase;
+}
+
+
+  25%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}
+  70%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-60%) scale(.95)}
+}
 .card-slot.legendary{border-color:#ffd25e;box-shadow:0 0 16px rgba(255,210,94,.6)}
 .card-slot.epic{border-color:#ec4899;box-shadow:0 0 14px rgba(236,72,153,.5)}
 .card-slot.rare{border-color:#22d3ee}
@@ -554,38 +579,38 @@ html,body{
       <div class="modal-title">🛒 Shop</div>
       <div class="modal-close" id="konto-close">✕</div>
     </div>
-    <div class="modal-sub">Hol dir Coins – 100% gratis:</div>
+    <div class="modal-sub">Hol dir Coins mit Telegram Stars ⭐</div>
     <div class="shop-grid">
-      <div class="shop-card" data-bonus="100">
+      <div class="shop-card" data-pack="100">
         <div class="shop-img-wrap"><img src="100.png" alt=""></div>
         <div class="shop-amount">100</div><div class="shop-coins-lbl">Coins</div>
         <div class="shop-old-price">0,99 €</div>
-        <div class="shop-save">JETZT SPAREN</div>
-        <div class="shop-btn">GRATIS</div>
+        <div class="shop-save">MIT STERNEN</div>
+        <div class="shop-btn">⭐ 1</div>
       </div>
-      <div class="shop-card" data-bonus="1000">
+      <div class="shop-card" data-pack="1000">
         <div class="shop-badge rabatt">20% RABATT</div>
         <div class="shop-img-wrap"><img src="1k.png" alt=""></div>
         <div class="shop-amount">1.000</div><div class="shop-coins-lbl">Coins</div>
         <div class="shop-old-price">4,99 €</div>
-        <div class="shop-save">JETZT SPAREN</div>
-        <div class="shop-btn">GRATIS</div>
+        <div class="shop-save">MIT STERNEN</div>
+        <div class="shop-btn">⭐ 5</div>
       </div>
-      <div class="shop-card featured" data-bonus="5000">
+      <div class="shop-card featured" data-pack="5000">
         <div class="shop-badge neu">NEU</div>
         <div class="shop-img-wrap"><img src="5k.png" alt=""></div>
         <div class="shop-amount">5.000</div><div class="shop-coins-lbl">Coins</div>
         <div class="shop-old-price">9,99 €</div>
-        <div class="shop-save">JETZT SPAREN</div>
-        <div class="shop-btn">GRATIS</div>
+        <div class="shop-save">MIT STERNEN</div>
+        <div class="shop-btn">⭐ 15</div>
       </div>
-      <div class="shop-card best" data-bonus="10000">
+      <div class="shop-card best" data-pack="10000">
         <div class="shop-badge best">50% RABATT</div>
         <div class="shop-img-wrap"><img src="10k.png" alt=""></div>
         <div class="shop-amount">10.000</div><div class="shop-coins-lbl">Coins</div>
         <div class="shop-old-price">19,99 €</div>
-        <div class="shop-save">JETZT SPAREN</div>
-        <div class="shop-btn">GRATIS</div>
+        <div class="shop-save">MIT STERNEN</div>
+        <div class="shop-btn">⭐ 25</div>
       </div>
     </div>
   </div>
@@ -633,7 +658,8 @@ html,body{
 <div class="card-view" id="card-view">
   <div class="card-view-close" id="card-view-close">✕</div>
   <div class="card-view-img" id="card-view-img"></div>
-  <div class="card-view-actions">
+  <div class="card-view-actions" id="card-view-actions">
+    <button class="btn gold" id="card-creator-btn" style="display:none">💬 Schreibe Creator</button>
     <button class="btn gold" id="card-download">📥 Herunterladen</button>
     <button class="btn secondary" id="card-share">📤 Teilen</button>
   </div>
@@ -1238,22 +1264,32 @@ function renderCollection() {
     const price = (cat.buy_price != null ? cat.buy_price : CARD_PRICES[card.rarity]) || 400;
     const vipUnlocked = !!(meta.vip || cat.vip);
     const hasMedia = !!(cat.has_vip_media || meta.has_vip_media);
-    const imgUrl = vipUnlocked ? (meta.image_url || cat.image_url) : null;
+    const preview = cat.preview_url || meta.preview_url || null;
+    const imgUrl = vipUnlocked ? (meta.image_url || cat.image_url || preview) : null;
     const cls = [
       "card-slot",
       got ? "" : "locked",
       got ? card.rarity : "",
-      imgUrl ? "has-img" : "",
+      (imgUrl || (hasMedia && preview)) ? "has-img" : "",
     ].filter(Boolean).join(" ");
-    const style = got && !imgUrl ? `background:linear-gradient(160deg,${card.g[0]},${card.g[1]})` : "";
+    const style = got && !imgUrl && !(hasMedia && preview)
+      ? `background:linear-gradient(160deg,${card.g[0]},${card.g[1]})` : "";
     let extra = "";
     if (!got) {
       extra = `<div class="buy-lbl">💰 ${Number(price).toLocaleString("de-DE")}</div>`;
     } else if (vipUnlocked && imgUrl) {
       extra = `<span class="vip-badge">VIP</span><img class="card-img" src="${imgUrl}" alt="" loading="lazy">`;
+    } else if (got && hasMedia && preview) {
+      const vp = (cat.vip_price != null ? cat.vip_price : 800);
+      extra = `
+        <img class="card-img blurred" src="${preview}" alt="" loading="lazy">
+        <div class="vip-center">
+          <div class="vip-big">VIP</div>
+          <div class="vip-sub">PayPal freischalten</div>
+        </div>`;
     } else if (got && hasMedia && !vipUnlocked) {
       const vp = (cat.vip_price != null ? cat.vip_price : 800);
-      extra = `<div class="vip-lock">✨ VIP · ${Number(vp).toLocaleString("de-DE")}</div>`;
+      extra = `<div class="vip-lock">💳 PayPal · VIP</div>`;
     }
     return `<div class="${cls}" data-card="${card.id}" style="${style}">
       <div class="em">${got ? card.icon : "❓"}</div>
@@ -1269,6 +1305,7 @@ function renderCollection() {
     });
   });
 }
+
 
 async function openOwnedCard(cardId) {
   const card = CARDS.find(c => c.id === cardId);
@@ -1293,22 +1330,23 @@ async function openUnlockVip(cardId) {
   const card = CARDS.find(c => c.id === cardId);
   if (!card) return;
   const cat = catalogMap[cardId] || {};
-  const price = cat.vip_price != null ? cat.vip_price : 800;
-  if (state.coins < price) {
-    showToast(`✨ VIP braucht ${price.toLocaleString("de-DE")} Coins`);
+  const meta = collectionMeta[cardId] || {};
+  const paypal = (cat.paypal_link || meta.paypal_link || "").trim();
+
+  if (!paypal) {
+    showToast("Kein PayPal-Link hinterlegt – Admin muss einen setzen");
     return;
   }
-  const go = async () => {
+
+  const doUnlock = async () => {
     if (state.busy) return;
     state.busy = true;
     haptic("medium");
     try {
-      const res = await api("/api/unlock_vip", {
+      await api("/api/unlock_vip", {
         method: "POST",
         body: JSON.stringify({ card_id: cardId })
       });
-      state.coins = res.coins;
-      updateCoins();
       const data = await api("/api/collection");
       applyCollectionData(data);
       renderCollection();
@@ -1322,14 +1360,44 @@ async function openUnlockVip(cardId) {
       state.busy = false;
     }
   };
+
+  const openPayPal = () => {
+    haptic("medium");
+    try {
+      if (tg.openLink) tg.openLink(paypal);
+      else window.open(paypal, "_blank");
+    } catch (e) {
+      showToast(paypal);
+    }
+    // Nach Zahlung: User bestätigt Freischaltung
+    setTimeout(() => {
+      try {
+        if (tg.showConfirm) {
+          tg.showConfirm(
+            `PayPal geöffnet.\n\nHast du für „${card.name}“ bezahlt?\nDann VIP jetzt freischalten.`,
+            (ok) => { if (ok) doUnlock(); }
+          );
+        } else if (confirm("PayPal bezahlt? VIP freischalten?")) {
+          doUnlock();
+        }
+      } catch (e) {
+        doUnlock();
+      }
+    }, 800);
+  };
+
   try {
     if (tg.showConfirm) {
-      tg.showConfirm(`✨ VIP-Bild für ${card.name}\\n${price.toLocaleString("de-DE")} Coins?`, (ok) => { if (ok) go(); });
+      tg.showConfirm(
+        `✨ VIP „${card.name}“\n\nFreischalten per PayPal.`,
+        (ok) => { if (ok) openPayPal(); }
+      );
       return;
     }
   } catch (e) {}
-  await go();
+  openPayPal();
 }
+
 
 async function openBuyCard(cardId) {
   const card = CARDS.find(c => c.id === cardId);
@@ -1442,7 +1510,9 @@ function openCardView(cardId) {
   const r = RARITY[card.rarity];
   const meta = collectionMeta[cardId] || {};
   const cat = catalogMap[cardId] || {};
-  const imgUrl = meta.image_url || (meta.vip || cat.vip ? cat.image_url : null);
+  const vipUnlocked = !!(meta.vip || cat.vip);
+  const imgUrl = vipUnlocked ? (meta.image_url || cat.image_url) : null;
+  const creatorLink = (meta.creator_link || cat.creator_link || "").trim();
   let inner;
   if (imgUrl) {
     inner = `
@@ -1462,9 +1532,37 @@ function openCardView(cardId) {
     </div>`;
   }
   $("card-view-img").innerHTML = inner;
+
+  const btnCreator = $("card-creator-btn");
+  const btnDl = $("card-download");
+  const btnSh = $("card-share");
+  if (vipUnlocked && imgUrl) {
+    if (btnDl) btnDl.style.display = "none";
+    if (btnSh) btnSh.style.display = "none";
+    if (btnCreator) {
+      btnCreator.style.display = "block";
+      btnCreator.onclick = () => {
+        haptic();
+        if (creatorLink) {
+          try { tg.openTelegramLink(creatorLink); }
+          catch (e) {
+            try { window.open(creatorLink, "_blank"); } catch (e2) { showToast(creatorLink); }
+          }
+        } else {
+          showToast("Kein Creator-Link hinterlegt");
+        }
+      };
+    }
+  } else {
+    if (btnCreator) btnCreator.style.display = "none";
+    if (btnDl) btnDl.style.display = "block";
+    if (btnSh) btnSh.style.display = "block";
+  }
+
   $("card-view").classList.add("show");
   haptic();
 }
+
 
 function downloadCard() {
   if (!currentViewCard) return;
@@ -2652,16 +2750,49 @@ kontoModal.addEventListener("click", (e) => { if (e.target === kontoModal) konto
 document.querySelectorAll(".shop-card").forEach(btn => {
   btn.addEventListener("click", async () => {
     if (state.busy) return;
-    state.busy = true; haptic("medium");
-    const amount = parseInt(btn.dataset.bonus, 10);
+    const packId = btn.dataset.pack;
+    if (!packId) return;
+    state.busy = true;
+    haptic("medium");
+    SFX.click();
     try {
-      const r = await api("/api/bonus", { method: "POST", body: JSON.stringify({ amount }) });
-      state.coins = r.coins; updateCoins();
-      showWinEffect(amount); SFX.daily();
-      showToast(`+${amount.toLocaleString("de-DE")} Coins`);
-      loadMe().catch(() => {});
-    } catch (e) { showToast("Fehler: " + e.message); }
-    finally { state.busy = false; }
+      const inv = await api("/api/shop/invoice", {
+        method: "POST",
+        body: JSON.stringify({ pack_id: String(packId) })
+      });
+      if (!inv.invoice_url) throw new Error("Keine Invoice-URL");
+      // Telegram Stars Zahlung öffnen
+      const open = () => {
+        try {
+          tg.openInvoice(inv.invoice_url, (status) => {
+            state.busy = false;
+            if (status === "paid") {
+              showToast("✅ Zahlung ok – Coins werden gutgeschrieben…");
+              SFX.daily();
+              // Bot schreibt Coins; kurz warten und reload
+              setTimeout(() => loadMe().catch(() => {}), 1200);
+              setTimeout(() => loadMe().catch(() => {}), 3000);
+            } else if (status === "cancelled") {
+              showToast("Zahlung abgebrochen");
+            } else if (status === "failed") {
+              showToast("Zahlung fehlgeschlagen");
+            } else {
+              showToast("Status: " + status);
+            }
+          });
+        } catch (e) {
+          // Fallback: Link öffnen
+          try { tg.openTelegramLink(inv.invoice_url); } catch (e2) {
+            showToast("Stars-Zahlung nicht verfügbar");
+          }
+          state.busy = false;
+        }
+      };
+      open();
+    } catch (e) {
+      showToast("Fehler: " + e.message);
+      state.busy = false;
+    }
   });
 });
 
@@ -2785,9 +2916,16 @@ $("logo").addEventListener("touchstart", () => {
             const url = prompt("https:// Bild-URL:");
             if (!idStr || !url) return;
             try {
+              const creator = prompt("Creator Telegram-Link (https://t.me/...) optional:") || "";
+              const paypal = prompt("PayPal-Link für VIP-Unlock (https://paypal.me/...) :") || "";
               await api("/api/admin/card_image", {
                 method: "POST",
-                body: JSON.stringify({ card_id: parseInt(idStr, 10), image_url: url })
+                body: JSON.stringify({
+                  card_id: parseInt(idStr, 10),
+                  image_url: url,
+                  creator_link: creator.trim() || null,
+                  paypal_link: paypal.trim() || null
+                })
               });
               showToast("✅ VIP-Bild gesetzt");
               await loadCollection();
