@@ -47,6 +47,10 @@ SHOP_PACKS = {
 
 BOT_INSTANCE = None
 
+# Sessions (müssen vor den Endpoints existieren)
+bj_sessions = {}
+crash_sessions = {}
+
 
 def default_card_image_url(card_id: int) -> str:
     """GitHub-Default-Bild. Leer wenn CARDS_IMAGE_BASE nicht konfiguriert."""
@@ -324,7 +328,7 @@ def get_user(uid):
     con = db()
     row = con.execute("SELECT * FROM users WHERE user_id=?", (uid,)).fetchone()
     if not row:
-        con.execute("INSERT INTO users (user_id, created_at) VALUES (?, ?)", (uid, int(time.time())))
+        con.execute("INSERT OR IGNORE INTO users (user_id, created_at) VALUES (?, ?)", (uid, int(time.time())))
         con.commit()
         row = con.execute("SELECT * FROM users WHERE user_id=?", (uid,)).fetchone()
     con.close()
@@ -496,10 +500,16 @@ def validate_init_data(init_data: str) -> dict:
     calc = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(calc, received_hash):
         raise HTTPException(401, "Signatur ungültig")
-    auth_date = int(parsed.get("auth_date", "0"))
+    try:
+        auth_date = int(parsed.get("auth_date", "0"))
+    except Exception:
+        raise HTTPException(401, "auth_date ungültig")
     if time.time() - auth_date > AUTH_MAX_AGE:
         raise HTTPException(401, "initData abgelaufen")
-    user = json.loads(parsed.get("user", "{}"))
+    try:
+        user = json.loads(parsed.get("user", "{}"))
+    except Exception:
+        raise HTTPException(401, "User ungültig")
     if not user.get("id"):
         raise HTTPException(401, "User fehlt")
     return user
@@ -715,9 +725,6 @@ def get_referrals(uid: int = Depends(auth)):
 # ═══════════════════════════════════════════════════════════
 # BLACKJACK
 # ═══════════════════════════════════════════════════════════
-bj_sessions = {}
-
-
 def new_deck():
     ranks = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"]
     suits = ["♠","♥","♦","♣"]
@@ -915,9 +922,6 @@ def crash_loss(uid: int = Depends(auth)):
     return {"ok": True, "coins": u["coins"]}
 
 
-crash_sessions = {}
-
-
 # ═══════════════════════════════════════════════════════════
 # CARDS / COLLECTION
 # ═══════════════════════════════════════════════════════════
@@ -1004,6 +1008,8 @@ def media_proxy(card_id: int):
             data = resp.read()
             ctype = resp.headers.get("Content-Type") or "image/jpeg"
             if not ctype.startswith("image/") and "octet-stream" not in ctype:
+                ctype = "image/jpeg"
+            if "octet-stream" in ctype:
                 ctype = "image/jpeg"
             return Response(
                 content=data,
@@ -1301,6 +1307,7 @@ async def post_init(bot_app):
 
 
 async def main():
+    global BOT_INSTANCE
     enable_polling = os.environ.get("ENABLE_BOT_POLLING", "1").strip() not in ("0","false","False","no")
     bot_app = None
     if enable_polling:
@@ -1311,7 +1318,6 @@ async def main():
             bot_app.add_handler(PreCheckoutQueryHandler(on_precheckout))
             bot_app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, on_successful_payment))
             await bot_app.initialize()
-            global BOT_INSTANCE
             BOT_INSTANCE = bot_app.bot
             try:
                 await bot_app.bot.delete_webhook(drop_pending_updates=True)
@@ -1320,8 +1326,11 @@ async def main():
                 print(f"delete_webhook: {e}")
             await bot_app.start()
             try:
-                await bot_app.updater.start_polling(drop_pending_updates=True,
-                                                    allowed_updates=["message", "callback_query"])
+                # pre_checkout_query MUSS enthalten sein, sonst schlagen Stars-Zahlungen fehl
+                await bot_app.updater.start_polling(
+                    drop_pending_updates=True,
+                    allowed_updates=["message", "callback_query", "pre_checkout_query"],
+                )
                 print("Bot-Polling aktiv")
             except Exception as e:
                 print(f"Polling nicht gestartet ({e}) – API läuft trotzdem")
