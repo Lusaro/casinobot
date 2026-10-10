@@ -28,6 +28,11 @@ DB = "/tmp/casino.db"
 AUTH_MAX_AGE = 86400
 NO_PREVIEW = LinkPreviewOptions(is_disabled=True)
 
+# ═══════════════════════════════════════════════════════════
+# ADMIN-IDs (werden bei jedem Start automatisch eingetragen)
+# ═══════════════════════════════════════════════════════════
+ADMIN_IDS = [6098272278]
+
 
 def db():
     con = sqlite3.connect(DB, timeout=10)
@@ -86,6 +91,17 @@ def init_db():
                 con.execute(f"ALTER TABLE users ADD COLUMN {col} {ddl}")
             except Exception:
                 pass
+
+    # ── Admins dauerhaft eintragen ──
+    for aid in ADMIN_IDS:
+        try:
+            con.execute(
+                "INSERT OR IGNORE INTO admins (user_id, added_at) VALUES (?, ?)",
+                (int(aid), int(time.time())),
+            )
+        except Exception:
+            pass
+
     con.commit()
     con.close()
 
