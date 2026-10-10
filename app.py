@@ -66,6 +66,18 @@ def init_db():
         referrer_id INTEGER,
         created_at INTEGER
     );
+    CREATE TABLE IF NOT EXISTS user_cards (
+        user_id INTEGER NOT NULL,
+        card_id INTEGER NOT NULL,
+        vip INTEGER DEFAULT 0,
+        acquired_at INTEGER DEFAULT 0,
+        PRIMARY KEY (user_id, card_id)
+    );
+    CREATE TABLE IF NOT EXISTS card_media (
+        card_id INTEGER PRIMARY KEY,
+        image_url TEXT NOT NULL,
+        updated_at INTEGER DEFAULT 0
+    );
     """)
     cols = [r[1] for r in con.execute("PRAGMA table_info(users)").fetchall()]
     for col, ddl in [("win_streak", "INTEGER DEFAULT 0"), ("best_streak", "INTEGER DEFAULT 0")]:
@@ -76,6 +88,65 @@ def init_db():
                 pass
     con.commit()
     con.close()
+
+
+def user_has_card(uid: int, card_id: int) -> bool:
+    con = db()
+    row = con.execute(
+        "SELECT 1 FROM user_cards WHERE user_id=? AND card_id=?", (uid, card_id)
+    ).fetchone()
+    con.close()
+    return bool(row)
+
+
+def grant_card(uid: int, card_id: int) -> bool:
+    """Gibt Karte, returns True wenn neu."""
+    if card_id < 1 or card_id > 30:
+        return False
+    con = db()
+    existing = con.execute(
+        "SELECT 1 FROM user_cards WHERE user_id=? AND card_id=?", (uid, card_id)
+    ).fetchone()
+    if existing:
+        con.close()
+        return False
+    con.execute(
+        "INSERT INTO user_cards (user_id, card_id, vip, acquired_at) VALUES (?,?,0,?)",
+        (uid, card_id, int(time.time())),
+    )
+    con.commit()
+    con.close()
+    return True
+
+
+def get_user_collection(uid: int) -> list:
+    con = db()
+    rows = con.execute(
+        "SELECT card_id, vip FROM user_cards WHERE user_id=? ORDER BY card_id",
+        (uid,),
+    ).fetchall()
+    media = {
+        r["card_id"]: r["image_url"]
+        for r in con.execute("SELECT card_id, image_url FROM card_media").fetchall()
+    }
+    con.close()
+    out = []
+    for r in rows:
+        cid = r["card_id"]
+        out.append({
+            "card_id": cid,
+            "vip": bool(r["vip"]),
+            "image_url": media.get(cid) if r["vip"] else None,
+            "has_vip_media": cid in media,
+        })
+    return out
+
+
+def get_all_media() -> dict:
+    con = db()
+    rows = con.execute("SELECT card_id, image_url FROM card_media").fetchall()
+    con.close()
+    return {r["card_id"]: r["image_url"] for r in rows}
 
 
 def get_user(uid):
@@ -376,9 +447,10 @@ def _startup():
     init_db()
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
+@app.head("/")
 def root():
-    return "<h1>Casino backend läuft.</h1>"
+    return HTMLResponse("<h1>Casino backend läuft.</h1>", status_code=200)
 
 
 @app.get("/api/me")
@@ -395,6 +467,8 @@ def me(uid: int = Depends(auth)):
         "best_streak": u["best_streak"],
         "level": level,
         "xp_pct": xp_pct,
+        "is_admin": is_admin(uid),
+        "owned_cards": len(get_user_collection(uid)),
     }
 
 
@@ -907,6 +981,13 @@ CARD_PRICES = {
     "legendary": 9000,
 }
 
+VIP_PRICES = {
+    "common": 800,
+    "rare": 2500,
+    "epic": 6000,
+    "legendary": 15000,
+}
+
 # Kartendefinition serverseitig (muss mit Frontend übereinstimmen)
 CARD_RARITY = {
     1: "common", 2: "common", 3: "common", 4: "common", 5: "common",
@@ -929,6 +1010,8 @@ def buy_card(req: BuyCardReq, uid: int = Depends(auth)):
     cid = req.card_id
     if cid not in CARD_RARITY:
         raise HTTPException(400, "Unbekannte Karte")
+    if user_has_card(uid, cid):
+        raise HTTPException(400, "Karte bereits vorhanden")
     rarity = CARD_RARITY[cid]
     price = CARD_PRICES[rarity]
     u = get_user(uid)
@@ -936,6 +1019,7 @@ def buy_card(req: BuyCardReq, uid: int = Depends(auth)):
         raise HTTPException(400, "Nicht genug Coins")
     new_coins = u["coins"] - price
     update_user(uid, coins=new_coins)
+    grant_card(uid, cid)
     return {
         "ok": True,
         "card_id": cid,
@@ -943,6 +1027,156 @@ def buy_card(req: BuyCardReq, uid: int = Depends(auth)):
         "rarity": rarity,
         "coins": new_coins,
     }
+
+
+class UnlockVipReq(BaseModel):
+    card_id: int
+
+
+@app.post("/api/unlock_vip")
+def unlock_vip(req: UnlockVipReq, uid: int = Depends(auth)):
+    cid = req.card_id
+    if cid not in CARD_RARITY:
+        raise HTTPException(400, "Unbekannte Karte")
+    if not user_has_card(uid, cid):
+        raise HTTPException(400, "Karte nicht im Besitz")
+    con = db()
+    row = con.execute(
+        "SELECT vip FROM user_cards WHERE user_id=? AND card_id=?", (uid, cid)
+    ).fetchone()
+    media = con.execute(
+        "SELECT image_url FROM card_media WHERE card_id=?", (cid,)
+    ).fetchone()
+    if not media:
+        con.close()
+        raise HTTPException(400, "Kein VIP-Bild für diese Karte")
+    if row and row["vip"]:
+        con.close()
+        return {
+            "ok": True,
+            "already": True,
+            "card_id": cid,
+            "image_url": media["image_url"],
+            "coins": get_user(uid)["coins"],
+        }
+    rarity = CARD_RARITY[cid]
+    price = VIP_PRICES.get(rarity, 800)
+    u = get_user(uid)
+    if u["coins"] < price:
+        con.close()
+        raise HTTPException(400, "Nicht genug Coins")
+    new_coins = u["coins"] - price
+    update_user(uid, coins=new_coins)
+    con.execute(
+        "UPDATE user_cards SET vip=1 WHERE user_id=? AND card_id=?", (uid, cid)
+    )
+    con.commit()
+    con.close()
+    return {
+        "ok": True,
+        "card_id": cid,
+        "price": price,
+        "image_url": media["image_url"],
+        "coins": new_coins,
+    }
+
+
+class GrantCardReq(BaseModel):
+    card_id: int
+
+
+@app.post("/api/grant_card")
+def grant_card_api(req: GrantCardReq, uid: int = Depends(auth)):
+    """Karte gutschreiben (Drops, Level, Rad) – kostenlos, einmalig."""
+    cid = req.card_id
+    if cid not in CARD_RARITY:
+        raise HTTPException(400, "Unbekannte Karte")
+    is_new = grant_card(uid, cid)
+    return {"ok": True, "card_id": cid, "is_new": is_new}
+
+
+class SyncCollectionReq(BaseModel):
+    card_ids: list
+
+
+@app.post("/api/collection/sync")
+def sync_collection(req: SyncCollectionReq, uid: int = Depends(auth)):
+    """Migriert lokale CloudStorage-Karten einmalig auf den Server."""
+    added = 0
+    for cid in req.card_ids or []:
+        try:
+            cid = int(cid)
+        except Exception:
+            continue
+        if grant_card(uid, cid):
+            added += 1
+    return {"ok": True, "added": added, "collection": get_user_collection(uid)}
+
+
+@app.get("/api/collection")
+def api_collection(uid: int = Depends(auth)):
+    media = get_all_media()
+    col = get_user_collection(uid)
+    owned_ids = {c["card_id"] for c in col}
+    catalog = []
+    for cid in range(1, 31):
+        rarity = CARD_RARITY.get(cid, "common")
+        owned = cid in owned_ids
+        entry = next((c for c in col if c["card_id"] == cid), None)
+        catalog.append({
+            "card_id": cid,
+            "rarity": rarity,
+            "owned": owned,
+            "vip": bool(entry and entry["vip"]),
+            "has_vip_media": cid in media,
+            "image_url": (entry["image_url"] if entry and entry["vip"] else None),
+            "buy_price": CARD_PRICES.get(rarity, 400),
+            "vip_price": VIP_PRICES.get(rarity, 800),
+        })
+    return {
+        "collection": col,
+        "catalog": catalog,
+        "owned_count": len(owned_ids),
+        "total": 30,
+        "is_admin": is_admin(uid),
+    }
+
+
+class AdminImageReq(BaseModel):
+    card_id: int
+    image_url: str
+
+
+@app.post("/api/admin/card_image")
+def admin_card_image(req: AdminImageReq, uid: int = Depends(auth)):
+    require_admin(uid)
+    cid = req.card_id
+    if cid not in CARD_RARITY:
+        raise HTTPException(400, "Unbekannte Karte")
+    url = (req.image_url or "").strip()
+    if not url.startswith("https://"):
+        raise HTTPException(400, "Nur https:// URLs erlaubt")
+    if len(url) > 2000:
+        raise HTTPException(400, "URL zu lang")
+    con = db()
+    con.execute(
+        "INSERT INTO card_media (card_id, image_url, updated_at) VALUES (?,?,?) "
+        "ON CONFLICT(card_id) DO UPDATE SET image_url=excluded.image_url, updated_at=excluded.updated_at",
+        (cid, url, int(time.time())),
+    )
+    con.commit()
+    con.close()
+    return {"ok": True, "card_id": cid, "image_url": url}
+
+
+@app.delete("/api/admin/card_image/{card_id}")
+def admin_delete_image(card_id: int, uid: int = Depends(auth)):
+    require_admin(uid)
+    con = db()
+    con.execute("DELETE FROM card_media WHERE card_id=?", (card_id,))
+    con.commit()
+    con.close()
+    return {"ok": True}
 
 
 @app.get("/api/leaderboard")
@@ -1056,24 +1290,62 @@ async def post_init(bot_app):
 
 
 async def main():
-    bot_app = (
-        ApplicationBuilder().token(BOT_TOKEN).post_init(post_init).build()
-    )
-    bot_app.add_handler(CommandHandler("start", cmd_start))
-    bot_app.add_handler(CommandHandler("help", cmd_help))
-    await bot_app.initialize()
-    await bot_app.start()
-    await bot_app.updater.start_polling()
+    """
+    API ist immer primär. Bot-Polling ist optional und darf den Server nie killen.
+    ENABLE_BOT_POLLING=0 → nur API (empfohlen wenn Conflict bestehen bleibt).
+    """
+    enable_polling = os.environ.get("ENABLE_BOT_POLLING", "1").strip() not in ("0", "false", "False", "no")
+
+    bot_app = None
+    if enable_polling:
+        try:
+            bot_app = (
+                ApplicationBuilder()
+                .token(BOT_TOKEN)
+                .post_init(post_init)
+                .build()
+            )
+            bot_app.add_handler(CommandHandler("start", cmd_start))
+            bot_app.add_handler(CommandHandler("help", cmd_help))
+            await bot_app.initialize()
+            try:
+                await bot_app.bot.delete_webhook(drop_pending_updates=True)
+                print("Webhook gelöscht")
+            except Exception as e:
+                print(f"delete_webhook: {e}")
+            await bot_app.start()
+            try:
+                await bot_app.updater.start_polling(
+                    drop_pending_updates=True,
+                    allowed_updates=["message", "callback_query"],
+                )
+                print("Bot-Polling aktiv")
+            except Exception as e:
+                print(f"Polling nicht gestartet ({e}) – API läuft trotzdem")
+        except Exception as e:
+            print(f"Bot-Init übersprungen: {e}")
+            bot_app = None
+    else:
+        print("ENABLE_BOT_POLLING=0 → nur API-Modus")
 
     config = uvicorn.Config(app, host="0.0.0.0", port=PORT, log_level="info")
     server = uvicorn.Server(config)
     print(f"Server startet auf Port {PORT}")
     print(f"WebApp URL: {WEBAPP_URL}")
-    await server.serve()
-
-    await bot_app.updater.stop()
-    await bot_app.stop()
-    await bot_app.shutdown()
+    try:
+        await server.serve()
+    finally:
+        if bot_app is not None:
+            try:
+                if bot_app.updater.running:
+                    await bot_app.updater.stop()
+            except Exception:
+                pass
+            try:
+                await bot_app.stop()
+                await bot_app.shutdown()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":
