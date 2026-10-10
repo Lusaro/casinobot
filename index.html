@@ -36,17 +36,107 @@ html,body{
 .invite-pill{display:flex;align-items:center;gap:6px;font-weight:800;font-size:13px;padding:8px 12px;border-radius:999px;background:linear-gradient(135deg,rgba(59,130,246,.6),rgba(34,211,238,.5));border:1px solid rgba(255,255,255,.18);box-shadow:0 4px 18px rgba(59,130,246,.4);transition:transform .2s;cursor:pointer}
 .invite-pill:active{transform:scale(.94)}
 .game-level-badge{display:inline-flex;align-items:center;font-weight:900;font-size:11px;letter-spacing:.5px;padding:6px 10px;border-radius:999px;background:linear-gradient(135deg,#22d3ee,#7c3aed);box-shadow:0 0 14px rgba(34,211,238,.5);color:#fff}
-.xp-wrap{position:relative;height:20px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.06);border:1px solid var(--stroke)}
-.xp-fill{position:absolute;inset:1px;border-radius:999px;width:0%;background:linear-gradient(90deg,var(--neon-3),var(--neon-1) 50%,var(--neon-2));box-shadow:0 0 14px rgba(124,58,237,.6);transition:width .5s ease-out}
-.xp-label{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center;padding:0 10px;font-size:10px;font-weight:800;letter-spacing:.4px;text-shadow:0 1px 2px rgba(0,0,0,.7)}
-.streak-chip{position:relative;display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:900;letter-spacing:.5px;padding:3px 10px 3px 18px;border-radius:999px;color:#fff;background:rgba(255,255,255,.08);overflow:visible;z-index:2;text-shadow:0 1px 3px rgba(0,0,0,.7)}
-.streak-chip::before{content:'';position:absolute;left:-14px;top:50%;transform:translateY(-50%);width:20px;height:26px;background:radial-gradient(ellipse at 50% 80%, #ffe57a 0%, #ff9f1c 35%, #ff5500 65%, #a10033 100%);border-radius:50% 50% 45% 45% / 60% 60% 40% 40%;filter:blur(.5px) drop-shadow(0 0 6px rgba(255,120,0,.9));animation:flameFlicker .18s ease-in-out infinite alternate;z-index:0}
-.streak-chip::after{content:'';position:absolute;left:-9px;top:50%;transform:translateY(-30%);width:10px;height:14px;background:radial-gradient(ellipse at 50% 80%, #fff7d6, #ffd25e 50%, #ff7a18 100%);border-radius:50% 50% 45% 45% / 60% 60% 40% 40%;filter:blur(.3px);animation:flameInner .14s ease-in-out infinite alternate;z-index:1}
-.streak-chip span{position:relative;z-index:2}
-.streak-chip.glow{box-shadow:0 0 14px rgba(255,90,20,.75), 0 0 26px rgba(255,60,110,.45);animation:flameGlow 1s ease-in-out infinite alternate}
-@keyframes flameFlicker{0%{transform:translateY(-50%) scale(1,1) rotate(-2deg)}50%{transform:translateY(-52%) scale(1.08,.92) rotate(2deg)}100%{transform:translateY(-48%) scale(.95,1.1) rotate(-1deg)}}
-@keyframes flameInner{0%{transform:translateY(-30%) scale(.9,1.05)}100%{transform:translateY(-38%) scale(1.05,.9)}}
-@keyframes flameGlow{0%{box-shadow:0 0 10px rgba(255,90,20,.6), 0 0 20px rgba(255,60,110,.35)}100%{box-shadow:0 0 18px rgba(255,120,20,.9), 0 0 34px rgba(255,60,110,.6)}}
+.xp-wrap{position:relative;height:22px;border-radius:999px;overflow:visible;background:rgba(255,255,255,.06);border:1px solid var(--stroke)}
+.xp-fill{position:absolute;left:1px;top:1px;bottom:1px;border-radius:999px;width:0%;min-width:0;background:linear-gradient(90deg,var(--neon-3),var(--neon-1) 50%,var(--neon-2));box-shadow:0 0 14px rgba(124,58,237,.6);transition:width .55s cubic-bezier(.22,1,.36,1);overflow:visible}
+.xp-label{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center;padding:0 12px;font-size:10px;font-weight:800;letter-spacing:.4px;text-shadow:0 1px 2px rgba(0,0,0,.7);z-index:3;pointer-events:none}
+/* Flamme sitzt am rechten Rand der gefüllten Leiste */
+.xp-flame{
+  position:absolute;right:-2px;top:50%;
+  transform:translate(50%,-50%);
+  width:28px;height:34px;z-index:5;pointer-events:none;
+  opacity:0;transition:opacity .3s;
+}
+.xp-flame.show{opacity:1}
+.xp-flame::before{
+  content:'';position:absolute;left:50%;top:50%;
+  transform:translate(-50%,-55%);
+  width:22px;height:30px;
+  background:radial-gradient(ellipse at 50% 80%, #fff7d6 0%, #ffd25e 25%, #ff7a18 55%, #ff3366 80%, #a10033 100%);
+  border-radius:50% 50% 45% 45% / 60% 60% 40% 40%;
+  filter:blur(.4px) drop-shadow(0 0 10px rgba(255,100,20,.95));
+  animation:flameFlicker .16s ease-in-out infinite alternate;
+}
+.xp-flame::after{
+  content:'';position:absolute;left:50%;top:42%;
+  transform:translate(-50%,-50%);
+  width:10px;height:14px;
+  background:radial-gradient(ellipse at 50% 80%, #fff, #ffd25e 60%, #ff9f1c);
+  border-radius:50% 50% 40% 40% / 55% 55% 45% 45%;
+  animation:flameInner .12s ease-in-out infinite alternate;
+}
+.xp-flame .streak-num{
+  position:absolute;left:50%;top:-14px;transform:translateX(-50%);
+  font-size:10px;font-weight:900;color:#fff;
+  text-shadow:0 0 8px #ff5500, 0 1px 2px #000;
+  white-space:nowrap;letter-spacing:.5px;
+}
+.xp-flame.glow::before{
+  filter:blur(.4px) drop-shadow(0 0 16px rgba(255,80,20,1)) drop-shadow(0 0 28px rgba(255,60,110,.7));
+  animation:flameFlicker .12s ease-in-out infinite alternate;
+}
+@keyframes flameFlicker{0%{transform:translate(-50%,-55%) scale(1,1) rotate(-3deg)}50%{transform:translate(-50%,-58%) scale(1.1,.9) rotate(3deg)}100%{transform:translate(-50%,-52%) scale(.92,1.12) rotate(-2deg)}}
+@keyframes flameInner{0%{transform:translate(-50%,-50%) scale(.85,1.1)}100%{transform:translate(-50%,-60%) scale(1.1,.85)}}
+/* Legacy streak-chip (falls noch referenziert) */
+.streak-chip{display:none!important}
+
+/* ── Bet Slider ── */
+.bet-panel{width:100%;margin:10px 0 4px}
+.bet-slider-wrap{
+  position:relative;
+  padding:14px 4px 8px;
+  border-radius:16px;
+  background:linear-gradient(160deg,rgba(124,58,237,.18),rgba(236,72,153,.12));
+  border:1px solid rgba(196,181,253,.25);
+  box-shadow:inset 0 0 24px rgba(0,0,0,.25), 0 0 20px rgba(124,58,237,.15);
+}
+.bet-slider-top{display:flex;justify-content:space-between;align-items:center;padding:0 6px 8px}
+.bet-slider-lbl{font-size:10px;font-weight:900;letter-spacing:1.5px;color:var(--hint);text-transform:uppercase}
+.bet-slider-val{
+  font-size:22px;font-weight:900;letter-spacing:-.5px;
+  background:linear-gradient(135deg,#fff,#ffd25e 50%,#ec4899);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  line-height:1;
+}
+.bet-slider-val.bump{animation:betBump .25s ease-out}
+@keyframes betBump{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
+.bet-range{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:8px;border-radius:999px;
+  background:linear-gradient(90deg,#1a0b3d,#3b1c8a);
+  outline:none;cursor:pointer;
+  box-shadow:inset 0 1px 4px rgba(0,0,0,.5);
+}
+.bet-range::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:28px;height:28px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff5cc,#ffd25e 40%,#ff9f1c 70%,#b45309);
+  border:3px solid #4c1d95;
+  box-shadow:0 0 0 3px rgba(255,210,94,.35), 0 0 18px rgba(255,159,28,.8), 0 4px 12px rgba(0,0,0,.5);
+  cursor:grab;transition:transform .12s, box-shadow .12s;
+}
+.bet-range::-webkit-slider-thumb:active{
+  cursor:grabbing;transform:scale(1.15);
+  box-shadow:0 0 0 5px rgba(255,210,94,.5), 0 0 28px rgba(255,159,28,1), 0 4px 12px rgba(0,0,0,.5);
+}
+.bet-range::-moz-range-thumb{
+  width:28px;height:28px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff5cc,#ffd25e 40%,#ff9f1c);
+  border:3px solid #4c1d95;
+  box-shadow:0 0 18px rgba(255,159,28,.8);
+  cursor:grab;
+}
+.bet-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.bet-presets .btn{margin-top:0;padding:10px 4px;font-size:13px;border-radius:12px}
+.bet-presets .btn.active-bet{
+  background:linear-gradient(135deg,#ffd25e,#ff9f1c);color:#2a0f00;
+  box-shadow:0 0 16px rgba(255,159,28,.55);
+}
+.bet-go{margin-top:10px!important;font-size:16px!important;padding:16px!important;
+  background:linear-gradient(135deg,#7c3aed,#ec4899)!important;
+  box-shadow:0 6px 24px rgba(124,58,237,.5), 0 0 0 0 rgba(236,72,153,.4);
+  animation:goPulse 2s ease-in-out infinite;
+}
+@keyframes goPulse{0%,100%{box-shadow:0 6px 24px rgba(124,58,237,.5)}50%{box-shadow:0 6px 28px rgba(236,72,153,.65), 0 0 0 6px rgba(236,72,153,.12)}}
 
 .jackpot-ticker{margin:4px 0 10px;padding:10px 14px;border-radius:14px;background:linear-gradient(90deg,rgba(255,210,94,.18),rgba(255,60,110,.15),rgba(124,58,237,.18));border:1px solid rgba(255,210,94,.45);display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 0 20px rgba(255,210,94,.15);animation:jackpotGlow 2.5s ease-in-out infinite}
 @keyframes jackpotGlow{0%,100%{box-shadow:0 0 20px rgba(255,210,94,.15)}50%{box-shadow:0 0 30px rgba(255,210,94,.4)}}
@@ -315,10 +405,9 @@ html,body{
         </div>
       </div>
       <div class="xp-wrap">
-        <div class="xp-fill" id="xp-fill"></div>
+        <div class="xp-fill" id="xp-fill"><div class="xp-flame" id="xp-flame"><span class="streak-num" id="xp-streak-num"></span></div></div>
         <div class="xp-label">
           <span id="xp-level">LVL 1</span>
-          <span id="xp-streak" class="streak-chip hidden"><span>0</span></span>
           <span id="xp-pct">0%</span>
         </div>
       </div>
@@ -417,10 +506,9 @@ html,body{
         </div>
       </div>
       <div class="xp-wrap">
-        <div class="xp-fill" id="game-xp-fill"></div>
+        <div class="xp-fill" id="game-xp-fill"><div class="xp-flame" id="game-xp-flame"><span class="streak-num" id="game-xp-streak-num"></span></div></div>
         <div class="xp-label">
           <span id="game-xp-level">LVL 1</span>
-          <span id="game-xp-streak" class="streak-chip hidden"><span>0</span></span>
           <span id="game-xp-pct">0%</span>
         </div>
       </div>
@@ -856,6 +944,21 @@ function speedMult() {
   return 1 + Math.min(s * 0.15, 1.2);
 }
 function spd(ms) { return Math.round(ms / speedMult()); }
+
+function updateXpFlame(flameId, numId, streak) {
+  const flame = $(flameId);
+  const num = $(numId);
+  if (!flame) return;
+  if (streak > 0) {
+    flame.classList.add("show");
+    flame.classList.toggle("glow", streak >= 2);
+    if (num) num.textContent = "🔥" + streak;
+  } else {
+    flame.classList.remove("show", "glow");
+    if (num) num.textContent = "";
+  }
+}
+
 function updateStreakVisuals() {
   const app = $("app");
   const ind = $("speed-indicator");
@@ -868,6 +971,8 @@ function updateStreakVisuals() {
     app.classList.remove("streak-mode");
     ind.classList.remove("show");
   }
+  updateXpFlame("xp-flame", "xp-streak-num", s);
+  updateXpFlame("game-xp-flame", "game-xp-streak-num", s);
 }
 function streakPitch() {
   const s = Math.min(state.streak || 0, 6);
@@ -945,23 +1050,13 @@ async function loadMe() {
   $("xp-fill").style.width = (me.xp_pct || 0) + "%";
   $("xp-level").textContent = "LVL " + newLevel;
   $("xp-pct").textContent = (me.xp_pct || 0) + "%";
-  const st = $("xp-streak");
-  if (state.streak > 0) {
-    st.classList.remove("hidden");
-    st.classList.toggle("glow", state.streak >= 2);
-    st.innerHTML = `<span>${state.streak}</span>`;
-  } else { st.classList.add("hidden"); st.classList.remove("glow"); }
+  updateXpFlame("xp-flame", "xp-streak-num", state.streak);
 
   $("game-level").textContent = "LVL " + newLevel;
   $("game-xp-fill").style.width = (me.xp_pct || 0) + "%";
   $("game-xp-level").textContent = "LVL " + newLevel;
   $("game-xp-pct").textContent = (me.xp_pct || 0) + "%";
-  const gs = $("game-xp-streak");
-  if (state.streak > 0) {
-    gs.classList.remove("hidden");
-    gs.classList.toggle("glow", state.streak >= 2);
-    gs.innerHTML = `<span>${state.streak}</span>`;
-  } else { gs.classList.add("hidden"); gs.classList.remove("glow"); }
+  updateXpFlame("game-xp-flame", "game-xp-streak-num", state.streak);
   updateStreakVisuals();
 
   $("stats-box").innerHTML = `
@@ -1251,20 +1346,75 @@ document.querySelectorAll(".card[data-game]").forEach(el => {
 
 function renderBets(game) {
   const row = $("bet-row");
-  row.style.gridTemplateColumns = "repeat(3,1fr)";
-  row.innerHTML = "";
-  const options = [10, 25, 50, 100].filter(b => b <= state.max_bet).slice(0, 3);
-  if (!options.length) options.push(state.max_bet);
-  options.forEach(b => {
-    const btn = document.createElement("button");
-    btn.className = "btn"; btn.textContent = b;
+  row.style.display = "block";
+  row.style.gridTemplateColumns = "";
+  const maxB = Math.max(1, state.max_bet || 100);
+  let cur = Math.min(Math.max(state.bet || 25, 1), maxB);
+  state.bet = cur;
+
+  const presets = [10, 25, 50, 100].filter(b => b <= maxB);
+  if (!presets.includes(maxB) && maxB > 100) presets.push(maxB);
+  if (!presets.length) presets.push(maxB);
+
+  row.innerHTML = `
+    <div class="bet-panel">
+      <div class="bet-slider-wrap">
+        <div class="bet-slider-top">
+          <span class="bet-slider-lbl">Einsatz</span>
+          <span class="bet-slider-val" id="bet-slider-val">${cur.toLocaleString("de-DE")}</span>
+        </div>
+        <input class="bet-range" id="bet-range" type="range" min="1" max="${maxB}" value="${cur}" step="1">
+      </div>
+      <div class="bet-presets" id="bet-presets">
+        ${presets.map(b => `<button class="btn ${b === cur ? "active-bet" : ""}" data-bet="${b}">${b}</button>`).join("")}
+      </div>
+      <button class="btn bet-go" id="bet-go">🎰 SETZEN · ${cur.toLocaleString("de-DE")}</button>
+    </div>
+  `;
+
+  const range = $("bet-range");
+  const valEl = $("bet-slider-val");
+  const goBtn = $("bet-go");
+
+  function setBet(v, fromSlider) {
+    v = Math.max(1, Math.min(maxB, Math.round(v)));
+    state.bet = v;
+    if (range && !fromSlider) range.value = v;
+    if (valEl) {
+      valEl.textContent = v.toLocaleString("de-DE");
+      valEl.classList.remove("bump");
+      void valEl.offsetWidth;
+      valEl.classList.add("bump");
+    }
+    if (goBtn) goBtn.textContent = `🎰 SETZEN · ${v.toLocaleString("de-DE")}`;
+    document.querySelectorAll("#bet-presets .btn").forEach(btn => {
+      btn.classList.toggle("active-bet", parseInt(btn.dataset.bet, 10) === v);
+    });
+    if (fromSlider) haptic("light");
+  }
+
+  if (range) {
+    range.addEventListener("input", () => {
+      setBet(parseInt(range.value, 10), true);
+      SFX.click();
+    });
+  }
+
+  document.querySelectorAll("#bet-presets .btn").forEach(btn => {
     btn.addEventListener("click", () => {
       if (state.busy) return;
-      haptic(); SFX.click(); state.bet = b;
-      runGame(game, b);
+      haptic(); SFX.click();
+      setBet(parseInt(btn.dataset.bet, 10), false);
     });
-    row.appendChild(btn);
   });
+
+  if (goBtn) {
+    goBtn.addEventListener("click", () => {
+      if (state.busy) return;
+      haptic("medium"); SFX.click();
+      runGame(game, state.bet);
+    });
+  }
 }
 
 function runGame(game, bet) {
