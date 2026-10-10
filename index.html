@@ -328,10 +328,12 @@ html,body{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
   border-radius:10px;
 }
-.card-slot.has-img .em{display:none}
-.card-slot.has-img .name-lbl{
+.card-slot.has-img .em,
+.card-slot.vip-media .em{display:none!important}
+.card-slot.has-img .name-lbl,
+.card-slot.vip-media .name-lbl{
   background:linear-gradient(transparent,rgba(0,0,0,.75));
-  bottom:0;padding:8px 2px 4px;
+  bottom:0;padding:8px 2px 4px;z-index:4;
 }
 .card-slot img.card-img.blurred{
   filter:blur(14px) brightness(.45) saturate(1.2);
@@ -1264,39 +1266,60 @@ function renderCollection() {
     const price = (cat.buy_price != null ? cat.buy_price : CARD_PRICES[card.rarity]) || 400;
     const vipUnlocked = !!(meta.vip || cat.vip);
     const hasMedia = !!(cat.has_vip_media || meta.has_vip_media);
-    const preview = cat.preview_url || meta.preview_url || null;
+    const preview = (cat.preview_url || meta.preview_url || cat.image_url || meta.image_url || "").trim();
     const imgUrl = vipUnlocked ? (meta.image_url || cat.image_url || preview) : null;
+
+    // VIP-Medien: nie Emoji, immer Bild (klar oder blur)
+    const useVipVisual = hasMedia && !!preview;
+
     const cls = [
       "card-slot",
       got ? "" : "locked",
       got ? card.rarity : "",
-      (imgUrl || (hasMedia && preview)) ? "has-img" : "",
+      useVipVisual ? "has-img vip-media" : "",
+      (imgUrl && vipUnlocked) ? "vip-open" : "",
     ].filter(Boolean).join(" ");
-    const style = got && !imgUrl && !(hasMedia && preview)
-      ? `background:linear-gradient(160deg,${card.g[0]},${card.g[1]})` : "";
-    let extra = "";
-    if (!got) {
-      extra = `<div class="buy-lbl">💰 ${Number(price).toLocaleString("de-DE")}</div>`;
-    } else if (vipUnlocked && imgUrl) {
-      extra = `<span class="vip-badge">VIP</span><img class="card-img" src="${imgUrl}" alt="" loading="lazy">`;
-    } else if (got && hasMedia && preview) {
-      const vp = (cat.vip_price != null ? cat.vip_price : 800);
-      extra = `
-        <img class="card-img blurred" src="${preview}" alt="" loading="lazy">
-        <div class="vip-center">
-          <div class="vip-big">VIP</div>
-          <div class="vip-sub">PayPal freischalten</div>
-        </div>`;
-    } else if (got && hasMedia && !vipUnlocked) {
-      const vp = (cat.vip_price != null ? cat.vip_price : 800);
-      extra = `<div class="vip-lock">💳 PayPal · VIP</div>`;
+
+    const style = (!useVipVisual && got)
+      ? `background:linear-gradient(160deg,${card.g[0]},${card.g[1]})`
+      : "";
+
+    let body = "";
+    if (useVipVisual) {
+      if (vipUnlocked && imgUrl) {
+        body = `
+          <span class="vip-badge">VIP</span>
+          <img class="card-img" src="${imgUrl}" alt="" loading="lazy">
+          <div class="name-lbl">${card.name}</div>`;
+      } else {
+        // Locked / not unlocked: blurred real image + VIP center — KEIN Emoji
+        const sub = got
+          ? "PayPal freischalten"
+          : `🔒 ${Number(price).toLocaleString("de-DE")}`;
+        body = `
+          <img class="card-img blurred" src="${preview}" alt="" loading="lazy">
+          <div class="vip-center">
+            <div class="vip-big">VIP</div>
+            <div class="vip-sub">${sub}</div>
+          </div>
+          <div class="name-lbl">${card.name}</div>`;
+        if (!got) {
+          body += `<div class="buy-lbl">💰 ${Number(price).toLocaleString("de-DE")}</div>`;
+        }
+      }
+    } else {
+      // Normale Karten ohne VIP-Bild → Emoji wie bisher
+      body = `
+        <div class="em">${got ? card.icon : "❓"}</div>
+        <div class="name-lbl">${card.name}</div>`;
+      if (!got) {
+        body += `<div class="buy-lbl">💰 ${Number(price).toLocaleString("de-DE")}</div>`;
+      }
     }
-    return `<div class="${cls}" data-card="${card.id}" style="${style}">
-      <div class="em">${got ? card.icon : "❓"}</div>
-      <div class="name-lbl">${card.name}</div>
-      ${extra}
-    </div>`;
+
+    return `<div class="${cls}" data-card="${card.id}" style="${style}">${body}</div>`;
   }).join("");
+
   grid.querySelectorAll(".card-slot").forEach(el => {
     const id = parseInt(el.dataset.card, 10);
     el.addEventListener("click", () => {
@@ -2964,4 +2987,3 @@ async function boot() {
 boot();
 </script>
 </body>
-</html>
