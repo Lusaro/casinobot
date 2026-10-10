@@ -243,6 +243,19 @@ def play(req: PlayReq, uid: int = Depends(auth)):
 
 
 @app.post("/api/daily")
+@app.post("/api/reset")
+def reset_session(uid: int = Depends(auth)):
+    """Setzt Coins, Wagered und Streak bei jedem App-Start zurück.
+    Karten/Quests/Daily/Wheel liegen in CloudStorage und bleiben erhalten."""
+    u = get_user(uid)
+    update_user(uid,
+                coins=1000,
+                total_wagered=0,
+                total_won=0,
+                win_streak=0,
+                best_streak=0,
+                last_daily=0)
+    return {"ok": True, "coins": 1000}
 def daily(uid: int = Depends(auth)):
     u = get_user(uid)
     now = int(time.time())
