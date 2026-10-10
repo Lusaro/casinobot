@@ -1329,10 +1329,13 @@ def admin_card_image(req: AdminImageReq, uid: int = Depends(auth)):
     if cid not in CARD_RARITY:
         raise HTTPException(400, "Unbekannte Karte")
     url = (req.image_url or "").strip()
-    if not url.startswith("https://"):
-        raise HTTPException(400, "Nur https:// URLs erlaubt")
-    if len(url) > 2000:
+    if url.startswith("//"):
+        url = "https:" + url
+    if not (url.startswith("https://") or url.startswith("http://")):
+        raise HTTPException(400, "Bild-URL muss mit https:// beginnen (Endung .png/.jpg egal)")
+    if len(url) > 4000:
         raise HTTPException(400, "URL zu lang")
+    # Keine Pflicht auf .png/.jpg – Query-URLs (CDN) sind erlaubt
     clink = (req.creator_link or "").strip()
     if clink:
         ok = clink.startswith("https://t.me/") or clink.startswith("https://telegram.me/")
