@@ -7,8 +7,8 @@ import json
 import asyncio
 from urllib.parse import parse_qsl
 import uvicorn
-from fastapi import FastAPI, Header, HTTPException, Depends
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Header, HTTPException, Depends, UploadFile, File, Form
+from fastapi.responses import HTMLResponse, Response, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -27,13 +27,14 @@ WEBAPP_URL = os.environ["WEBAPP_URL"]
 PORT = int(os.environ.get("PORT", 10000))
 _DATA_DIR = os.environ.get("DATA_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "data"))
 os.makedirs(_DATA_DIR, exist_ok=True)
+CARDS_MEDIA_DIR = os.path.join(_DATA_DIR, "cards")
+os.makedirs(CARDS_MEDIA_DIR, exist_ok=True)
 DB = os.environ.get("DB_PATH", os.path.join(_DATA_DIR, "casino.db"))
 AUTH_MAX_AGE = 86400
 NO_PREVIEW = LinkPreviewOptions(is_disabled=True)
 
 ADMIN_IDS = [6098272278]
 
-# ── Karten-Bilder aus GitHub-Repo ──
 CARDS_IMAGE_BASE = os.environ.get("CARDS_IMAGE_BASE", "").strip().rstrip("/")
 CARDS_IMAGE_EXT = os.environ.get("CARDS_IMAGE_EXT", "png").lstrip(".")
 
@@ -45,7 +46,6 @@ SHOP_PACKS = {
 }
 
 BOT_INSTANCE = None
-
 bj_sessions = {}
 crash_sessions = {}
 
@@ -144,7 +144,7 @@ def init_db():
                     else:
                         url = str(val).strip()
                         clink = ""; plink = ""
-                    if cid in range(1, 31) and (url.startswith("https://") or url.startswith("http://")):
+                    if cid in range(1, 31):
                         con.execute(
                             "INSERT INTO card_media (card_id, image_url, creator_link, paypal_link, updated_at) VALUES (?,?,?,?,?) "
                             "ON CONFLICT(card_id) DO UPDATE SET image_url=excluded.image_url, "
@@ -165,6 +165,35 @@ def init_db():
 # ═══════════════════════════════════════════════════════════
 # CARD HELPERS
 # ═══════════════════════════════════════════════════════════
+
+def get_local_card_file(card_id: int):
+    """Gibt Pfad zur lokal hochgeladenen Bilddatei zurück oder None."""
+    for ext in ("png", "jpg", "jpeg", "webp", "gif"):
+        p = os.path.join(CARDS_MEDIA_DIR, f"{card_id}.{ext}")
+        if os.path.isfile(p):
+            return p
+    return None
+
+
+def _catalog_version() -> int:
+    con = db()
+    row = con.execute("SELECT value FROM globals WHERE key='catalog_version'").fetchone()
+    con.close()
+    return int(row["value"]) if row else 0
+
+
+def bump_catalog_version() -> int:
+    con = db()
+    row = con.execute("SELECT value FROM globals WHERE key='catalog_version'").fetchone()
+    new = (int(row["value"]) if row else 0) + 1
+    con.execute(
+        "INSERT INTO globals (key, value) VALUES ('catalog_version', ?) "
+        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (new,),
+    )
+    con.commit(); con.close()
+    return new
+
 
 def user_has_card(uid: int, card_id: int) -> bool:
     con = db()
@@ -203,15 +232,28 @@ def get_card_vip_info(card_id: int) -> dict:
     con.close()
 
     default_paypal = os.environ.get("PAYPAL_VIP_LINK", "").strip()
+    local_exists = get_local_card_file(card_id) is not None
 
     if not row:
+        if not local_exists:
+            return {
+                "is_vip_card": False,
+                "image_url": default_card_image_url(card_id),
+                "creator_link": "",
+                "paypal_link": "",
+            }
+        # Lokale Datei, aber keine DB-Zeile (z.B. nach Restore)
         return {
-            "is_vip_card": False,
-            "image_url": default_card_image_url(card_id),
+            "is_vip_card": True,
+            "image_url": f"/api/media/{card_id}",
             "creator_link": "",
-            "paypal_link": "",
+            "paypal_link": default_paypal,
         }
-    img = (row["image_url"] or "").strip() or default_card_image_url(card_id)
+
+    img = (row["image_url"] or "").strip()
+    if not img:
+        img = default_card_image_url(card_id)
+
     return {
         "is_vip_card": True,
         "image_url": img,
@@ -724,7 +766,7 @@ def get_referrals(uid: int = Depends(auth)):
 
 
 # ═══════════════════════════════════════════════════════════
-# USER STATE (Daily, Missions, Wheel-Cooldown, Streak, ...)
+# USER STATE
 # ═══════════════════════════════════════════════════════════
 class UserStateReq(BaseModel):
     data: dict
@@ -765,7 +807,7 @@ def set_user_state(req: UserStateReq, uid: int = Depends(auth)):
 
 
 # ═══════════════════════════════════════════════════════════
-# GLOBAL JACKPOT
+# GLOBAL JACKPOT + CATALOG VERSION
 # ═══════════════════════════════════════════════════════════
 def _bump_jackpot(amount: int) -> int:
     con = db()
@@ -782,11 +824,16 @@ def _bump_jackpot(amount: int) -> int:
 
 
 @app.get("/api/jackpot")
-def get_jackpot(uid: int = Depends(auth)):
+def get_jackpot():
     con = db()
     row = con.execute("SELECT value FROM globals WHERE key='jackpot'").fetchone()
     con.close()
     return {"jackpot": int(row["value"]) if row else 0}
+
+
+@app.get("/api/catalog_version")
+def get_catalog_version():
+    return {"version": _catalog_version()}
 
 
 # ═══════════════════════════════════════════════════════════
@@ -965,22 +1012,20 @@ def crash_cashout(req: CrashCashoutReq, uid: int = Depends(auth)):
     u = get_user(uid)
 
     if mult >= point:
-        # Client war zu spät – Crash
         s["cashed"] = True
         record_outcome(uid, False, "crash", 0)
         del crash_sessions[uid]
         return {"ok": False, "crashed": True, "coins": u["coins"], "payout": 0}
 
-    # Mult auf sicheren Bereich begrenzen (Client kann nicht mehr als crash_point abräumen)
     mult = max(1.0, min(mult, max(1.0, point - 0.01)))
     payout = int(s["bet"] * mult)
     new_coins = u["coins"] + payout
     update_user(uid, coins=new_coins, total_won=u["total_won"] + payout)
     record_outcome(uid, True, "crash", payout)
     s["cashed"] = True
+    bet_val = s["bet"]
     del crash_sessions[uid]
-    # Jackpot global mit 5% des Einsatzes befüllen
-    _bump_jackpot(int(s["bet"] * 0.05))
+    _bump_jackpot(int(bet_val * 0.05))
     return {"ok": True, "coins": new_coins, "payout": payout}
 
 
@@ -1059,13 +1104,31 @@ def unlock_vip(req: UnlockVipReq, uid: int = Depends(auth)):
 
 @app.get("/api/media/{card_id}")
 def media_proxy(card_id: int):
-    from fastapi.responses import Response
     import urllib.request
     if card_id < 1 or card_id > 30:
         raise HTTPException(404, "Nicht gefunden")
+
+    # 1) Lokale Datei (Admin-Upload) hat immer Vorrang
+    local = get_local_card_file(card_id)
+    if local:
+        ext = local.rsplit(".", 1)[-1].lower()
+        mime = {
+            "png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
+            "webp": "image/webp", "gif": "image/gif",
+        }.get(ext, "image/jpeg")
+        return FileResponse(
+            local,
+            media_type=mime,
+            headers={
+                "Cache-Control": "public, max-age=31536000, immutable",
+                "Access-Control-Allow-Origin": "*",
+            },
+        )
+
+    # 2) Sonst: Remote-URL aus DB holen und durchreichen
     info = get_card_vip_info(card_id)
     url = info.get("image_url") or ""
-    if not url:
+    if not url or url.startswith("/api/media/"):
         raise HTTPException(404, "Kein Bild konfiguriert")
     try:
         req = urllib.request.Request(
@@ -1155,14 +1218,26 @@ def api_collection(uid: int = Depends(auth)):
         "owned_count": len(owned_ids),
         "total": 30,
         "is_admin": is_admin(uid),
+        "version": _catalog_version(),
     }
 
 
+# ═══════════════════════════════════════════════════════════
+# ADMIN: Karten-Bild per URL setzen
+# ═══════════════════════════════════════════════════════════
 class AdminImageReq(BaseModel):
     card_id: int
     image_url: Optional[str] = ""
     creator_link: Optional[str] = None
     paypal_link: Optional[str] = None
+
+
+def _remove_local_card_files(card_id: int):
+    for e in ("png", "jpg", "jpeg", "webp", "gif"):
+        p = os.path.join(CARDS_MEDIA_DIR, f"{card_id}.{e}")
+        if os.path.isfile(p):
+            try: os.remove(p)
+            except Exception: pass
 
 
 @app.post("/api/admin/card_image")
@@ -1177,23 +1252,22 @@ def admin_card_image(req: AdminImageReq, uid: int = Depends(auth)):
         if url.startswith("//"):
             url = "https:" + url
         if not (url.startswith("https://") or url.startswith("http://")):
-            raise HTTPException(400, "Bild-URL muss mit http(s):// beginnen – Endung egal")
+            raise HTTPException(400, "Bild-URL muss mit http(s):// beginnen")
         if len(url) > 4000:
             raise HTTPException(400, "URL zu lang")
 
     clink = (req.creator_link or "").strip()
     if clink:
-        ok = clink.startswith("https://t.me/") or clink.startswith("https://telegram.me/")
-        if not ok:
+        if not (clink.startswith("https://t.me/") or clink.startswith("https://telegram.me/")):
             raise HTTPException(400, "creator_link muss https://t.me/... sein")
-        if len(clink) > 500:
-            raise HTTPException(400, "creator_link zu lang")
 
     plink = (req.paypal_link or "").strip()
     if plink and not plink.startswith("https://"):
         raise HTTPException(400, "paypal_link muss https:// sein")
-    if plink and len(plink) > 2000:
-        raise HTTPException(400, "paypal_link zu lang")
+
+    # Wenn eine externe URL gesetzt wird: lokale Datei entfernen
+    if url and not url.startswith("/api/media/"):
+        _remove_local_card_files(cid)
 
     con = db()
     con.execute(
@@ -1205,10 +1279,82 @@ def admin_card_image(req: AdminImageReq, uid: int = Depends(auth)):
     )
     con.commit(); con.close()
     save_media_backup()
+    bump_catalog_version()
     return {"ok": True, "card_id": cid, "is_vip_card": True,
-            "image_url": url,
-            "creator_link": clink,
-            "paypal_link": plink}
+            "image_url": url, "creator_link": clink, "paypal_link": plink,
+            "version": _catalog_version()}
+
+
+# ═══════════════════════════════════════════════════════════
+# ADMIN: Karten-Bild als Datei hochladen
+# ═══════════════════════════════════════════════════════════
+@app.post("/api/admin/card_image_upload")
+async def admin_upload_image(
+    card_id: int = Form(...),
+    creator_link: str = Form(""),
+    paypal_link: str = Form(""),
+    file: UploadFile = File(...),
+    uid: int = Depends(auth),
+):
+    require_admin(uid)
+    if card_id not in CARD_RARITY:
+        raise HTTPException(400, "Ungültige Karte")
+
+    content = await file.read()
+    if len(content) > 6 * 1024 * 1024:
+        raise HTTPException(400, "Bild zu groß (max 6 MB)")
+    if len(content) < 100:
+        raise HTTPException(400, "Datei zu klein / leer")
+
+    # Magic bytes → echtes Format erkennen (ignoriert falsche Endungen)
+    ext = None
+    magic = content[:12]
+    if magic[:8] == b"\x89PNG\r\n\x1a\n":
+        ext = "png"
+    elif magic[:3] == b"\xff\xd8\xff":
+        ext = "jpg"
+    elif magic[:6] in (b"GIF87a", b"GIF89a"):
+        ext = "gif"
+    elif magic[:4] == b"RIFF" and magic[8:12] == b"WEBP":
+        ext = "webp"
+    if not ext:
+        raise HTTPException(400, "Kein gültiges Bild (PNG/JPG/GIF/WebP)")
+
+    clink = (creator_link or "").strip()
+    if clink and not (clink.startswith("https://t.me/") or clink.startswith("https://telegram.me/")):
+        raise HTTPException(400, "creator_link muss https://t.me/... sein")
+    plink = (paypal_link or "").strip()
+    if plink and not plink.startswith("https://"):
+        raise HTTPException(400, "paypal_link muss https:// sein")
+
+    # Alte Dateien der Karte entfernen (egal welche Endung)
+    _remove_local_card_files(card_id)
+
+    save_path = os.path.join(CARDS_MEDIA_DIR, f"{card_id}.{ext}")
+    with open(save_path, "wb") as f:
+        f.write(content)
+
+    ts = int(time.time())
+    image_url = f"/api/media/{card_id}?v={ts}"
+
+    con = db()
+    con.execute(
+        "INSERT INTO card_media (card_id, image_url, creator_link, paypal_link, updated_at) VALUES (?,?,?,?,?) "
+        "ON CONFLICT(card_id) DO UPDATE SET image_url=excluded.image_url, "
+        "creator_link=excluded.creator_link, paypal_link=excluded.paypal_link, "
+        "updated_at=excluded.updated_at",
+        (card_id, image_url, clink, plink, ts),
+    )
+    con.commit(); con.close()
+    save_media_backup()
+    bump_catalog_version()
+    print(f"VIP-Upload Karte {card_id}: {save_path} ({len(content)} bytes, {ext})")
+    return {
+        "ok": True, "card_id": card_id,
+        "image_url": image_url,
+        "creator_link": clink, "paypal_link": plink,
+        "version": _catalog_version(),
+    }
 
 
 @app.delete("/api/admin/card_image/{card_id}")
@@ -1216,11 +1362,14 @@ def admin_delete_image(card_id: int, uid: int = Depends(auth)):
     require_admin(uid)
     if card_id < 1 or card_id > 30:
         raise HTTPException(400, "Ungültige Karte")
+    _remove_local_card_files(card_id)
     con = db()
     con.execute("DELETE FROM card_media WHERE card_id=?", (card_id,))
     con.commit(); con.close()
     save_media_backup()
-    return {"ok": True, "card_id": card_id, "is_vip_card": False}
+    bump_catalog_version()
+    return {"ok": True, "card_id": card_id, "is_vip_card": False,
+            "version": _catalog_version()}
 
 
 # ═══════════════════════════════════════════════════════════
@@ -1417,6 +1566,8 @@ async def main():
     print(f"Server startet auf Port {PORT}")
     print(f"WebApp URL: {WEBAPP_URL}")
     print(f"CARDS_IMAGE_BASE: {CARDS_IMAGE_BASE or '(nicht gesetzt!)'}")
+    print(f"DATA_DIR: {_DATA_DIR}")
+    print(f"CARDS_MEDIA_DIR: {CARDS_MEDIA_DIR}")
     try:
         await server.serve()
     finally:
