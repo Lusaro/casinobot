@@ -39,99 +39,30 @@ html,body{
 .xp-wrap{position:relative;height:22px;border-radius:999px;overflow:visible;background:rgba(255,255,255,.06);border:1px solid var(--stroke)}
 .xp-fill{position:absolute;left:1px;top:1px;bottom:1px;border-radius:999px;width:0%;min-width:0;background:linear-gradient(90deg,var(--neon-3),var(--neon-1) 50%,var(--neon-2));box-shadow:0 0 14px rgba(124,58,237,.6);transition:width .55s cubic-bezier(.22,1,.36,1);overflow:visible}
 .xp-label{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center;padding:0 12px;font-size:10px;font-weight:800;letter-spacing:.4px;text-shadow:0 1px 2px rgba(0,0,0,.7);z-index:3;pointer-events:none}
-.xp-flame{
-  position:absolute;right:-2px;top:50%;
-  transform:translate(50%,-50%);
-  width:28px;height:34px;z-index:5;pointer-events:none;
-  opacity:0;transition:opacity .3s;
-}
+.xp-flame{position:absolute;right:-2px;top:50%;transform:translate(50%,-50%);width:28px;height:34px;z-index:5;pointer-events:none;opacity:0;transition:opacity .3s}
 .xp-flame.show{opacity:1}
-.xp-flame::before{
-  content:'';position:absolute;left:50%;top:50%;
-  transform:translate(-50%,-55%);
-  width:22px;height:30px;
-  background:radial-gradient(ellipse at 50% 80%, #fff7d6 0%, #ffd25e 25%, #ff7a18 55%, #ff3366 80%, #a10033 100%);
-  border-radius:50% 50% 45% 45% / 60% 60% 40% 40%;
-  filter:blur(.4px) drop-shadow(0 0 10px rgba(255,100,20,.95));
-  animation:flameFlicker .16s ease-in-out infinite alternate;
-}
-.xp-flame::after{
-  content:'';position:absolute;left:50%;top:42%;
-  transform:translate(-50%,-50%);
-  width:10px;height:14px;
-  background:radial-gradient(ellipse at 50% 80%, #fff, #ffd25e 60%, #ff9f1c);
-  border-radius:50% 50% 40% 40% / 55% 55% 45% 45%;
-  animation:flameInner .12s ease-in-out infinite alternate;
-}
-.xp-flame .streak-num{
-  position:absolute;left:50%;top:-14px;transform:translateX(-50%);
-  font-size:10px;font-weight:900;color:#fff;
-  text-shadow:0 0 8px #ff5500, 0 1px 2px #000;
-  white-space:nowrap;letter-spacing:.5px;
-}
-.xp-flame.glow::before{
-  filter:blur(.4px) drop-shadow(0 0 16px rgba(255,80,20,1)) drop-shadow(0 0 28px rgba(255,60,110,.7));
-  animation:flameFlicker .12s ease-in-out infinite alternate;
-}
+.xp-flame::before{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-55%);width:22px;height:30px;background:radial-gradient(ellipse at 50% 80%, #fff7d6 0%, #ffd25e 25%, #ff7a18 55%, #ff3366 80%, #a10033 100%);border-radius:50% 50% 45% 45% / 60% 60% 40% 40%;filter:blur(.4px) drop-shadow(0 0 10px rgba(255,100,20,.95));animation:flameFlicker .16s ease-in-out infinite alternate}
+.xp-flame::after{content:'';position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);width:10px;height:14px;background:radial-gradient(ellipse at 50% 80%, #fff, #ffd25e 60%, #ff9f1c);border-radius:50% 50% 40% 40% / 55% 55% 45% 45%;animation:flameInner .12s ease-in-out infinite alternate}
+.xp-flame .streak-num{position:absolute;left:50%;top:-14px;transform:translateX(-50%);font-size:10px;font-weight:900;color:#fff;text-shadow:0 0 8px #ff5500, 0 1px 2px #000;white-space:nowrap;letter-spacing:.5px}
+.xp-flame.glow::before{filter:blur(.4px) drop-shadow(0 0 16px rgba(255,80,20,1)) drop-shadow(0 0 28px rgba(255,60,110,.7));animation:flameFlicker .12s ease-in-out infinite alternate}
 @keyframes flameFlicker{0%{transform:translate(-50%,-55%) scale(1,1) rotate(-3deg)}50%{transform:translate(-50%,-58%) scale(1.1,.9) rotate(3deg)}100%{transform:translate(-50%,-52%) scale(.92,1.12) rotate(-2deg)}}
 @keyframes flameInner{0%{transform:translate(-50%,-50%) scale(.85,1.1)}100%{transform:translate(-50%,-60%) scale(1.1,.85)}}
 
 .bet-panel{width:100%;margin:10px 0 4px}
-.bet-slider-wrap{
-  position:relative;
-  padding:14px 4px 8px;
-  border-radius:16px;
-  background:linear-gradient(160deg,rgba(124,58,237,.18),rgba(236,72,153,.12));
-  border:1px solid rgba(196,181,253,.25);
-  box-shadow:inset 0 0 24px rgba(0,0,0,.25), 0 0 20px rgba(124,58,237,.15);
-}
+.bet-slider-wrap{position:relative;padding:14px 4px 8px;border-radius:16px;background:linear-gradient(160deg,rgba(124,58,237,.18),rgba(236,72,153,.12));border:1px solid rgba(196,181,253,.25);box-shadow:inset 0 0 24px rgba(0,0,0,.25), 0 0 20px rgba(124,58,237,.15)}
 .bet-slider-top{display:flex;justify-content:space-between;align-items:center;padding:0 6px 8px}
 .bet-slider-lbl{font-size:10px;font-weight:900;letter-spacing:1.5px;color:var(--hint);text-transform:uppercase}
-.bet-slider-val{
-  font-size:22px;font-weight:900;letter-spacing:-.5px;
-  background:linear-gradient(135deg,#fff,#ffd25e 50%,#ec4899);
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-  line-height:1;
-}
+.bet-slider-val{font-size:22px;font-weight:900;letter-spacing:-.5px;background:linear-gradient(135deg,#fff,#ffd25e 50%,#ec4899);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
 .bet-slider-val.bump{animation:betBump .25s ease-out}
 @keyframes betBump{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
-.bet-range{
-  -webkit-appearance:none;appearance:none;
-  width:100%;height:8px;border-radius:999px;
-  background:linear-gradient(90deg,#1a0b3d,#3b1c8a);
-  outline:none;cursor:pointer;
-  box-shadow:inset 0 1px 4px rgba(0,0,0,.5);
-}
-.bet-range::-webkit-slider-thumb{
-  -webkit-appearance:none;appearance:none;
-  width:28px;height:28px;border-radius:50%;
-  background:radial-gradient(circle at 35% 30%,#fff5cc,#ffd25e 40%,#ff9f1c 70%,#b45309);
-  border:3px solid #4c1d95;
-  box-shadow:0 0 0 3px rgba(255,210,94,.35), 0 0 18px rgba(255,159,28,.8), 0 4px 12px rgba(0,0,0,.5);
-  cursor:grab;transition:transform .12s, box-shadow .12s;
-}
-.bet-range::-webkit-slider-thumb:active{
-  cursor:grabbing;transform:scale(1.15);
-  box-shadow:0 0 0 5px rgba(255,210,94,.5), 0 0 28px rgba(255,159,28,1), 0 4px 12px rgba(0,0,0,.5);
-}
-.bet-range::-moz-range-thumb{
-  width:28px;height:28px;border-radius:50%;
-  background:radial-gradient(circle at 35% 30%,#fff5cc,#ffd25e 40%,#ff9f1c);
-  border:3px solid #4c1d95;
-  box-shadow:0 0 18px rgba(255,159,28,.8);
-  cursor:grab;
-}
+.bet-range{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:999px;background:linear-gradient(90deg,#1a0b3d,#3b1c8a);outline:none;cursor:pointer;box-shadow:inset 0 1px 4px rgba(0,0,0,.5)}
+.bet-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff5cc,#ffd25e 40%,#ff9f1c 70%,#b45309);border:3px solid #4c1d95;box-shadow:0 0 0 3px rgba(255,210,94,.35), 0 0 18px rgba(255,159,28,.8), 0 4px 12px rgba(0,0,0,.5);cursor:grab;transition:transform .12s, box-shadow .12s}
+.bet-range::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.15);box-shadow:0 0 0 5px rgba(255,210,94,.5), 0 0 28px rgba(255,159,28,1), 0 4px 12px rgba(0,0,0,.5)}
+.bet-range::-moz-range-thumb{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff5cc,#ffd25e 40%,#ff9f1c);border:3px solid #4c1d95;box-shadow:0 0 18px rgba(255,159,28,.8);cursor:grab}
 .bet-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
 .bet-presets .btn{margin-top:0;padding:10px 4px;font-size:13px;border-radius:12px}
-.bet-presets .btn.active-bet{
-  background:linear-gradient(135deg,#ffd25e,#ff9f1c);color:#2a0f00;
-  box-shadow:0 0 16px rgba(255,159,28,.55);
-}
-.bet-go{margin-top:10px!important;font-size:16px!important;padding:16px!important;
-  background:linear-gradient(135deg,#7c3aed,#ec4899)!important;
-  box-shadow:0 6px 24px rgba(124,58,237,.5), 0 0 0 0 rgba(236,72,153,.4);
-  animation:goPulse 2s ease-in-out infinite;
-}
+.bet-presets .btn.active-bet{background:linear-gradient(135deg,#ffd25e,#ff9f1c);color:#2a0f00;box-shadow:0 0 16px rgba(255,159,28,.55)}
+.bet-go{margin-top:10px!important;font-size:16px!important;padding:16px!important;background:linear-gradient(135deg,#7c3aed,#ec4899)!important;box-shadow:0 6px 24px rgba(124,58,237,.5), 0 0 0 0 rgba(236,72,153,.4);animation:goPulse 2s ease-in-out infinite}
 @keyframes goPulse{0%,100%{box-shadow:0 6px 24px rgba(124,58,237,.5)}50%{box-shadow:0 6px 28px rgba(236,72,153,.65), 0 0 0 6px rgba(236,72,153,.12)}}
 
 .jackpot-ticker{margin:4px 0 10px;padding:10px 14px;border-radius:14px;background:linear-gradient(90deg,rgba(255,210,94,.18),rgba(255,60,110,.15),rgba(124,58,237,.18));border:1px solid rgba(255,210,94,.45);display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 0 20px rgba(255,210,94,.15);animation:jackpotGlow 2.5s ease-in-out infinite}
@@ -286,135 +217,31 @@ html,body{
 .full-flash.blue{background:#3b82f6;animation:flash .5s ease-out}
 @keyframes flash{0%{opacity:0}20%{opacity:.55}100%{opacity:0}}
 
-/* ═══════════════════════════════════════════════════════════
-   SAMMLUNG
-   ═══════════════════════════════════════════════════════════ */
 .collection-header{margin-bottom:14px;text-align:center}
 .collection-title{font-size:22px;font-weight:900;letter-spacing:-.5px;background:linear-gradient(135deg,#fff,#ffd25e 60%,#ec4899);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .collection-count{color:var(--hint);font-size:13px;font-weight:700;margin-top:4px}
 .collection-progress{position:relative;height:8px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.06);border:1px solid var(--stroke);margin-top:10px}
 .collection-progress .fill{position:absolute;inset:0;width:0%;border-radius:999px;background:linear-gradient(90deg,#22d3ee,#7c3aed 50%,#ec4899);box-shadow:0 0 12px rgba(124,58,237,.6);transition:width .6s ease-out}
 
-.card-grid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:9px;
-}
-.card-slot{
-  aspect-ratio:.70;
-  border-radius:16px;
-  position:relative;
-  overflow:hidden;
-  cursor:pointer;
-  background:#12081f;
-  border:2px solid rgba(255,255,255,.08);
-  transition:transform .15s cubic-bezier(.34,1.56,.64,1), border-color .25s, box-shadow .25s;
-  -webkit-tap-highlight-color:transparent;
-  isolation:isolate;
-}
+.card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.card-slot{aspect-ratio:.70;border-radius:16px;position:relative;overflow:hidden;cursor:pointer;background:#12081f;border:2px solid rgba(255,255,255,.08);transition:transform .15s cubic-bezier(.34,1.56,.64,1), border-color .25s, box-shadow .25s;-webkit-tap-highlight-color:transparent;isolation:isolate}
 .card-slot:active{transform:scale(.94)}
-
-.card-slot .card-img{
-  position:absolute;inset:0;
-  width:100%;height:100%;
-  object-fit:cover;
-  display:block;
-  transition:filter .45s ease, transform .45s ease;
-  z-index:1;
-  background:#12081f;
-}
-
-.card-slot.locked .card-img{
-  filter:blur(12px) brightness(.55) saturate(1.15);
-  transform:scale(1.18);
-}
-
+.card-slot .card-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;transition:filter .45s ease, transform .45s ease;z-index:1;background:#12081f}
+.card-slot.locked .card-img{filter:blur(12px) brightness(.55) saturate(1.15);transform:scale(1.18)}
 .card-slot.noimg{background:linear-gradient(160deg,#2a1260,#12081f)}
-.card-slot.noimg::before{
-  content:attr(data-card);
-  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-size:34px;font-weight:900;color:rgba(255,255,255,.18);z-index:1;
-}
-
-.card-slot .card-name-lbl{
-  position:absolute;bottom:0;left:0;right:0;
-  padding:16px 4px 6px;
-  text-align:center;
-  font-size:9px;font-weight:900;letter-spacing:.6px;
-  color:#fff;
-  text-shadow:0 1px 3px rgba(0,0,0,.95);
-  background:linear-gradient(transparent,rgba(0,0,0,.85));
-  z-index:4;
-  pointer-events:none;
-}
-
-.card-slot .lock-center{
-  position:absolute;inset:0;
-  display:flex;align-items:center;justify-content:center;
-  z-index:3;pointer-events:none;
-  font-size:30px;
-  filter:drop-shadow(0 2px 10px rgba(0,0,0,.95)) drop-shadow(0 0 20px rgba(0,0,0,.7));
-  text-shadow:0 0 20px rgba(0,0,0,.9);
-}
-.card-slot .price-pill{
-  position:absolute;bottom:6px;left:6px;right:6px;
-  padding:6px 4px;
-  border-radius:10px;
-  text-align:center;
-  font-size:10px;font-weight:900;letter-spacing:.3px;
-  background:linear-gradient(135deg,#ffd25e,#ff9f1c);
-  color:#2a0f00;
-  box-shadow:0 3px 12px rgba(255,159,28,.7);
-  z-index:5;
-  pointer-events:none;
-}
-
-.card-slot .vip-center{
-  position:absolute;inset:0;
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  z-index:3;pointer-events:none;
-  text-align:center;padding:6px;
-}
-.card-slot .vip-center .vip-big{
-  font-size:26px;font-weight:900;letter-spacing:4px;
-  background:linear-gradient(135deg,#fff,#ffd25e 50%,#ec4899);
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-  filter:drop-shadow(0 4px 12px rgba(0,0,0,.95)) drop-shadow(0 0 24px rgba(255,210,94,.8));
-}
-.card-slot .paypal-pill{
-  position:absolute;bottom:6px;left:6px;right:6px;
-  padding:6px 4px;
-  border-radius:10px;
-  text-align:center;
-  font-size:10px;font-weight:900;letter-spacing:.3px;
-  background:linear-gradient(135deg,#3b82f6,#22d3ee);
-  color:#fff;
-  box-shadow:0 3px 12px rgba(59,130,246,.7);
-  z-index:5;
-  pointer-events:none;
-}
-
-.card-slot .vip-badge{
-  position:absolute;top:6px;left:6px;
-  font-size:8px;font-weight:900;letter-spacing:1.2px;
-  padding:3px 7px;border-radius:7px;
-  background:linear-gradient(135deg,#ffd25e,#ff9f1c);
-  color:#2a0f00;
-  box-shadow:0 0 12px rgba(255,210,94,.85);
-  z-index:5;
-  pointer-events:none;
-}
-
+.card-slot.noimg::before{content:attr(data-card);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:900;color:rgba(255,255,255,.18);z-index:1}
+.card-slot .card-name-lbl{position:absolute;bottom:0;left:0;right:0;padding:16px 4px 6px;text-align:center;font-size:9px;font-weight:900;letter-spacing:.6px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.95);background:linear-gradient(transparent,rgba(0,0,0,.85));z-index:4;pointer-events:none}
+.card-slot .lock-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:3;pointer-events:none;font-size:30px;filter:drop-shadow(0 2px 10px rgba(0,0,0,.95)) drop-shadow(0 0 20px rgba(0,0,0,.7));text-shadow:0 0 20px rgba(0,0,0,.9)}
+.card-slot .price-pill{position:absolute;bottom:6px;left:6px;right:6px;padding:6px 4px;border-radius:10px;text-align:center;font-size:10px;font-weight:900;letter-spacing:.3px;background:linear-gradient(135deg,#ffd25e,#ff9f1c);color:#2a0f00;box-shadow:0 3px 12px rgba(255,159,28,.7);z-index:5;pointer-events:none}
+.card-slot .vip-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:3;pointer-events:none;text-align:center;padding:6px}
+.card-slot .vip-center .vip-big{font-size:26px;font-weight:900;letter-spacing:4px;background:linear-gradient(135deg,#fff,#ffd25e 50%,#ec4899);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 4px 12px rgba(0,0,0,.95)) drop-shadow(0 0 24px rgba(255,210,94,.8))}
+.card-slot .paypal-pill{position:absolute;bottom:6px;left:6px;right:6px;padding:6px 4px;border-radius:10px;text-align:center;font-size:10px;font-weight:900;letter-spacing:.3px;background:linear-gradient(135deg,#3b82f6,#22d3ee);color:#fff;box-shadow:0 3px 12px rgba(59,130,246,.7);z-index:5;pointer-events:none}
+.card-slot .vip-badge{position:absolute;top:6px;left:6px;font-size:8px;font-weight:900;letter-spacing:1.2px;padding:3px 7px;border-radius:7px;background:linear-gradient(135deg,#ffd25e,#ff9f1c);color:#2a0f00;box-shadow:0 0 12px rgba(255,210,94,.85);z-index:5;pointer-events:none}
 .card-slot.rarity-common{border-color:rgba(139,134,184,.55)}
 .card-slot.rarity-rare{border-color:#22d3ee;box-shadow:0 0 12px rgba(34,211,238,.35)}
 .card-slot.rarity-epic{border-color:#ec4899;box-shadow:0 0 14px rgba(236,72,153,.45)}
 .card-slot.rarity-legendary{border-color:#ffd25e;box-shadow:0 0 16px rgba(255,210,94,.6)}
-
-.card-slot.vip-unlocked{
-  border-color:#ffd25e;
-  box-shadow:0 0 18px rgba(255,210,94,.7);
-}
+.card-slot.vip-unlocked{border-color:#ffd25e;box-shadow:0 0 18px rgba(255,210,94,.7)}
 
 .card-drop{position:fixed;inset:0;z-index:960;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px;text-align:center}
 .card-drop.show{display:flex;animation:fadeIn .2s ease-out}
@@ -477,6 +304,28 @@ html,body{
 @keyframes screenShake{10%{transform:translate(-3px,2px)}30%{transform:translate(4px,-2px)}50%{transform:translate(-4px,2px)}70%{transform:translate(3px,-1px)}90%{transform:translate(-2px,1px)}}
 .toast{position:fixed;left:50%;bottom:120px;transform:translateX(-50%) translateY(20px);background:rgba(20,10,50,.95);border:1px solid var(--stroke);padding:12px 20px;border-radius:14px;font-weight:800;font-size:14px;box-shadow:0 8px 30px rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;z-index:800;max-width:90vw;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Admin Upload Modal */
+.admin-panel{position:fixed;inset:0;z-index:980;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:18px}
+.admin-panel.show{display:flex;animation:fadeIn .2s ease-out}
+.admin-box{width:100%;max-width:420px;background:linear-gradient(160deg,#1a0b3d,#0d0620);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.7);max-height:90vh;overflow-y:auto}
+.admin-title{font-weight:900;font-size:18px;margin-bottom:10px}
+.admin-row{margin-bottom:10px}
+.admin-row label{display:block;font-size:11px;font-weight:800;color:var(--hint);letter-spacing:.5px;margin-bottom:4px;text-transform:uppercase}
+.admin-input{width:100%;padding:11px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;font-family:inherit;font-size:14px;font-weight:600}
+.admin-input:focus{outline:none;border-color:#7c3aed;background:rgba(124,58,237,.12)}
+.admin-file-btn{display:block;width:100%;padding:12px;border-radius:10px;border:2px dashed rgba(196,181,253,.35);background:rgba(124,58,237,.12);color:#c4b5fd;font-weight:800;text-align:center;cursor:pointer;font-size:13px}
+.admin-file-btn:active{background:rgba(124,58,237,.25)}
+.admin-file-info{font-size:11px;color:var(--green);font-weight:800;margin-top:6px;text-align:center;display:none}
+.admin-file-info.show{display:block}
+.admin-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.admin-preview{width:100%;max-height:200px;border-radius:12px;object-fit:contain;margin-top:8px;display:none;background:#12081f}
+.admin-preview.show{display:block}
+.admin-tabs{display:flex;gap:6px;margin-bottom:14px}
+.admin-tab{flex:1;padding:8px;border-radius:10px;text-align:center;font-size:12px;font-weight:800;background:rgba(255,255,255,.05);cursor:pointer;color:var(--hint)}
+.admin-tab.active{background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff}
+.admin-section{display:none}
+.admin-section.active{display:block}
 </style>
 </head>
 <body>
@@ -556,17 +405,13 @@ html,body{
         <div class="coin-pill" id="coins-daily">💰 <span id="coins-daily-num">0</span></div>
       </div>
     </div>
-
     <div style="font-size:13px;color:var(--hint);font-weight:800;letter-spacing:1px;text-transform:uppercase;text-align:center;margin-bottom:4px">7-Tage Login-Serie</div>
     <div class="streak-days" id="streak-days"></div>
     <button class="btn gold" id="daily-claim">🎁 Tagesbonus abholen</button>
-
     <div style="margin-top:18px;font-size:13px;color:var(--hint);font-weight:800;letter-spacing:1px;text-transform:uppercase;text-align:center;margin-bottom:8px">🎯 Missionen</div>
     <div id="missions-box"></div>
-
     <div style="margin-top:18px;font-size:13px;color:var(--hint);font-weight:800;letter-spacing:1px;text-transform:uppercase;text-align:center;margin-bottom:8px">🎡 Glücksrad</div>
     <button class="btn blue" id="open-wheel">🎡 Glücksrad öffnen</button>
-
     <div class="disclaimer">Kein Echtgeld · 18+</div>
   </div>
 
@@ -578,18 +423,14 @@ html,body{
         <div class="coin-pill" id="coins-spin">💰 <span id="coins-spin-num">0</span></div>
       </div>
     </div>
-
     <div class="wheel-canvas-wrap">
       <div class="wheel-pointer-top">▼</div>
       <canvas id="wheel-canvas" class="wheel-canvas"></canvas>
       <div class="wheel-hub">🎰</div>
     </div>
-
     <button class="btn blue" id="spin-btn">🎡 Jetzt drehen</button>
     <div style="text-align:center;font-size:12px;color:var(--hint);font-weight:700;margin-top:8px" id="wheel-timer">Bereit!</div>
-
     <button class="btn secondary" id="spin-back-btn">⬅️ Zurück zu Daily</button>
-
     <div class="disclaimer">1× pro Stunde gratis · 18+</div>
   </div>
 
@@ -685,6 +526,81 @@ html,body{
     <button class="btn blue" id="invite-share">📤 Einladungslink teilen</button>
     <button class="btn secondary" id="invite-copy">📋 Link kopieren</button>
     <div class="invite-milestones" id="invite-milestones"></div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="admin-panel" id="admin-panel">
+  <div class="admin-box">
+    <div class="admin-title">🛠️ Admin · Karten-Editor</div>
+    <div class="admin-tabs">
+      <div class="admin-tab active" data-atab="upload">📤 Upload</div>
+      <div class="admin-tab" data-atab="url">🔗 URL</div>
+      <div class="admin-tab" data-atab="remove">🗑️ Entfernen</div>
+    </div>
+
+    <div class="admin-section active" data-section="upload">
+      <div class="admin-row">
+        <label>Karten-ID (1–30)</label>
+        <input class="admin-input" type="number" id="up-card-id" min="1" max="30" value="30">
+      </div>
+      <div class="admin-row">
+        <label>Creator Telegram-Link (optional)</label>
+        <input class="admin-input" type="text" id="up-creator" placeholder="https://t.me/deinname">
+      </div>
+      <div class="admin-row">
+        <label>PayPal-Link (optional)</label>
+        <input class="admin-input" type="text" id="up-paypal" placeholder="https://paypal.me/deinname">
+      </div>
+      <div class="admin-row">
+        <label>Bild auswählen (max 6 MB)</label>
+        <label class="admin-file-btn" for="up-file">📁 Datei wählen</label>
+        <input type="file" id="up-file" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none">
+        <div class="admin-file-info" id="up-file-info"></div>
+        <img class="admin-preview" id="up-preview" alt="">
+      </div>
+      <div class="admin-actions">
+        <button class="btn secondary" id="up-cancel">Abbrechen</button>
+        <button class="btn gold" id="up-submit">⬆️ Hochladen</button>
+      </div>
+    </div>
+
+    <div class="admin-section" data-section="url">
+      <div class="admin-row">
+        <label>Karten-ID (1–30)</label>
+        <input class="admin-input" type="number" id="url-card-id" min="1" max="30" value="30">
+      </div>
+      <div class="admin-row">
+        <label>Bild-URL</label>
+        <input class="admin-input" type="text" id="url-image" placeholder="https://…">
+      </div>
+      <div class="admin-row">
+        <label>Creator Telegram-Link (optional)</label>
+        <input class="admin-input" type="text" id="url-creator" placeholder="https://t.me/…">
+      </div>
+      <div class="admin-row">
+        <label>PayPal-Link (optional)</label>
+        <input class="admin-input" type="text" id="url-paypal" placeholder="https://paypal.me/…">
+      </div>
+      <div class="admin-actions">
+        <button class="btn secondary" id="url-cancel">Abbrechen</button>
+        <button class="btn gold" id="url-submit">💾 Setzen</button>
+      </div>
+    </div>
+
+    <div class="admin-section" data-section="remove">
+      <div class="admin-row">
+        <label>Karten-ID (1–30)</label>
+        <input class="admin-input" type="number" id="rm-card-id" min="1" max="30" value="30">
+      </div>
+      <p style="color:var(--hint);font-size:12px;margin:8px 0">
+        Entfernt Bild + VIP-Status. Karte wird wieder normale Coin-Karte.
+      </p>
+      <div class="admin-actions">
+        <button class="btn secondary" id="rm-cancel">Abbrechen</button>
+        <button class="btn danger" id="rm-submit">🗑️ Entfernen</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -788,10 +704,7 @@ const WHEEL_SEGMENTS = [
   { label: "2000", value: 2000, type: "coins" },
 ];
 
-const WHEEL_COLORS = [
-  "#e11d48", "#120a33", "#ffd25e", "#7c3aed",
-  "#22d3ee", "#ec4899", "#22ff88", "#a10033"
-];
+const WHEEL_COLORS = ["#e11d48", "#120a33", "#ffd25e", "#7c3aed", "#22d3ee", "#ec4899", "#22ff88", "#a10033"];
 
 (function fixStaleLaunchParams() {
   try {
@@ -936,6 +849,8 @@ let collectionMeta = {};
 let catalogMap = {};
 let dropBusy = false;
 let isAdmin = false;
+let lastCatalogVersion = 0;
+let catalogPollTimer = null;
 
 function cloudGet(key) {
   return new Promise(resolve => {
@@ -956,9 +871,6 @@ function cloudSet(key, val) {
   });
 }
 
-// ═══════════════════════════════════════════════════════════
-// COLLECTION LOADING — mit fix: Cloud nur leeren wenn Sync ok
-// ═══════════════════════════════════════════════════════════
 async function loadCollection() {
   try {
     const raw = await cloudGet("card_collection");
@@ -974,7 +886,6 @@ async function loadCollection() {
           });
           synced = true;
         } catch (e) { synced = false; }
-        // Nur bei erfolgreichem Sync leeren, sonst bleibt lokales Backup
         if (synced) await cloudSet("card_collection", "[]");
       }
     }
@@ -983,6 +894,7 @@ async function loadCollection() {
   try {
     const data = await api("/api/collection");
     applyCollectionData(data);
+    if (data.version != null) lastCatalogVersion = data.version;
   } catch (e) {
     collection = [];
     collectionMeta = {};
@@ -999,6 +911,7 @@ function applyCollectionData(data) {
   (data.collection || []).forEach(c => { collectionMeta[c.card_id] = c; });
   catalogMap = {};
   (data.catalog || []).forEach(c => { catalogMap[c.card_id] = c; });
+  if (data.version != null) lastCatalogVersion = data.version;
 }
 
 async function saveCollection() {
@@ -1006,15 +919,11 @@ async function saveCollection() {
 }
 function hasCard(id) { return collection.includes(id); }
 
-// addCard: sofort in CloudStorage sichern
 async function addCard(id) {
   if (!hasCard(id)) collection.push(id);
   await cloudSet("card_collection", JSON.stringify(collection));
   try {
-    await api("/api/grant_card", {
-      method: "POST",
-      body: JSON.stringify({ card_id: id })
-    });
+    await api("/api/grant_card", { method: "POST", body: JSON.stringify({ card_id: id }) });
     const data = await api("/api/collection");
     applyCollectionData(data);
     await cloudSet("card_collection", JSON.stringify(collection));
@@ -1035,16 +944,41 @@ let meta = {
 const $ = id => document.getElementById(id);
 
 // ═══════════════════════════════════════════════════════════
-// META — serverseitig persistiert + CloudStorage-Backup
+// CATALOG LIVE-POLLING — für sofortige VIP-Updates
+// ═══════════════════════════════════════════════════════════
+async function checkCatalogVersion() {
+  if (document.hidden) return;
+  if (!INIT) return;
+  try {
+    const r = await api("/api/catalog_version");
+    if (r.version !== lastCatalogVersion) {
+      lastCatalogVersion = r.version;
+      // Silent refresh — Collection + Bilder aktualisieren
+      await loadCollection();
+      // Falls gerade ein Card-View offen ist, das Bild neu laden
+      if ($("card-view").classList.contains("show") && currentViewCard) {
+        attachImgFallback($("cv-img"), currentViewCard.id);
+      }
+    }
+  } catch (e) {}
+}
+function startCatalogPolling() {
+  if (catalogPollTimer) return;
+  catalogPollTimer = setInterval(checkCatalogVersion, 6000);
+}
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) checkCatalogVersion();
+});
+
+// ═══════════════════════════════════════════════════════════
+// META — serverseitig persistiert
 // ═══════════════════════════════════════════════════════════
 async function loadMeta() {
-  // 1) bevorzugt vom Server laden
   let merged = null;
   try {
     const res = await api("/api/user_state");
     if (res && res.data && Object.keys(res.data).length) merged = res.data;
   } catch (e) {}
-  // 2) Fallback: CloudStorage (falls Server leer, z.B. vor erstem Save)
   if (!merged) {
     const raw = await cloudGet("meta");
     if (raw) {
@@ -1067,15 +1001,11 @@ async function loadMeta() {
   }
 }
 
-// Sequenzielle Save-Queue: verhindert Race Conditions und doppelte Requests
 let _savingMeta = Promise.resolve();
 function saveMeta() {
   _savingMeta = _savingMeta.then(async () => {
     try {
-      await api("/api/user_state", {
-        method: "POST",
-        body: JSON.stringify({ data: meta })
-      });
+      await api("/api/user_state", { method: "POST", body: JSON.stringify({ data: meta }) });
     } catch (e) {}
     try { await cloudSet("meta", JSON.stringify(meta)); } catch (e) {}
   }).catch(() => {});
@@ -1093,11 +1023,7 @@ function yesterdayKey() {
 }
 function shuffle(a) { for (let i = a.length-1; i>0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
-function speedMult() {
-  const s = state.streak || 0;
-  if (s <= 0) return 1;
-  return 1 + Math.min(s * 0.15, 1.2);
-}
+function speedMult() { const s = state.streak || 0; if (s <= 0) return 1; return 1 + Math.min(s * 0.15, 1.2); }
 function spd(ms) { return Math.round(ms / speedMult()); }
 
 function updateXpFlame(flameId, numId, streak) {
@@ -1129,10 +1055,7 @@ function updateStreakVisuals() {
   updateXpFlame("xp-flame", "xp-streak-num", s);
   updateXpFlame("game-xp-flame", "game-xp-streak-num", s);
 }
-function streakPitch() {
-  const s = Math.min(state.streak || 0, 6);
-  return 1 + s * 0.06;
-}
+function streakPitch() { const s = Math.min(state.streak || 0, 6); return 1 + s * 0.06; }
 
 function show(id) {
   const app = $("app");
@@ -1153,9 +1076,7 @@ function show(id) {
   if (app) app.classList.toggle("has-tabs", !isGame);
   try { tg.BackButton.isVisible = (id !== "s-home"); } catch (e) {}
   if (id === "s-spin") {
-    requestAnimationFrame(() => {
-      setTimeout(() => renderWheelCanvas(), 60);
-    });
+    requestAnimationFrame(() => { setTimeout(() => renderWheelCanvas(), 60); });
   }
   updateStreakVisuals();
 }
@@ -1289,19 +1210,13 @@ async function checkLevelUp(newLevel) {
   }
 }
 
-// grantRandomCard: robust mit Timeout
 async function grantRandomCard(label) {
   const started = Date.now();
-  while (dropBusy && Date.now() - started < 4000) {
-    await new Promise(r => setTimeout(r, 100));
-  }
+  while (dropBusy && Date.now() - started < 4000) { await new Promise(r => setTimeout(r, 100)); }
   if (dropBusy) dropBusy = false;
   dropBusy = true;
   try {
-    const droppable = CARDS.filter(c => {
-      const cat = catalogMap[c.id] || {};
-      return !cat.is_vip_card;
-    });
+    const droppable = CARDS.filter(c => !(catalogMap[c.id] || {}).is_vip_card);
     const locked = droppable.filter(c => !hasCard(c.id));
     const card = locked.length > 0
       ? locked[Math.floor(Math.random() * locked.length)]
@@ -1312,9 +1227,7 @@ async function grantRandomCard(label) {
     await saveCollection();
     renderCollection();
     showCardDrop(card, isNew, label);
-  } catch (e) {
-    dropBusy = false;
-  }
+  } catch (e) { dropBusy = false; }
 }
 
 async function loadFeed() {
@@ -1330,12 +1243,16 @@ async function loadFeed() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// BILDER
+// BILDER — relative URLs werden mit API-Base ergänzt
 // ═══════════════════════════════════════════════════════════
 function cardImgCandidates(id) {
   const cat = catalogMap[id] || {};
   const list = [];
-  if (cat.image_url) list.push(cat.image_url);
+  if (cat.image_url) {
+    let u = cat.image_url;
+    if (u.startsWith("/")) u = API + u;
+    list.push(u);
+  }
   list.push(API + "/api/media/" + id);
   return list;
 }
@@ -1348,7 +1265,7 @@ function attachImgFallback(img, id) {
   if (!img) return;
   const c = cardImgCandidates(id);
   let i = 0;
-  img.addEventListener("error", () => {
+  img.onerror = () => {
     i++;
     if (i < c.length) {
       img.src = c[i];
@@ -1356,7 +1273,7 @@ function attachImgFallback(img, id) {
       img.style.display = "none";
       if (img.parentElement) img.parentElement.classList.add("noimg");
     }
-  });
+  };
   img.src = c[0];
 }
 
@@ -1398,23 +1315,17 @@ function renderCollection() {
     if (isVipCard) {
       if (vipUnlocked) {
         cls += " vip-unlocked";
-        overlay = `
-          <div class="vip-badge">VIP</div>
-          <div class="card-name-lbl">${card.name}</div>`;
+        overlay = `<div class="vip-badge">VIP</div><div class="card-name-lbl">${card.name}</div>`;
       } else {
         cls += " locked";
-        overlay = `
-          <div class="vip-center"><div class="vip-big">VIP</div></div>
-          <div class="paypal-pill">💳 PayPal</div>`;
+        overlay = `<div class="vip-center"><div class="vip-big">VIP</div></div><div class="paypal-pill">💳 PayPal</div>`;
       }
     } else if (owned) {
       cls += " rarity-" + card.rarity;
       overlay = `<div class="card-name-lbl">${card.name}</div>`;
     } else {
       cls += " locked";
-      overlay = `
-        <div class="lock-center">🔒</div>
-        <div class="price-pill">💰 ${Number(price).toLocaleString("de-DE")}</div>`;
+      overlay = `<div class="lock-center">🔒</div><div class="price-pill">💰 ${Number(price).toLocaleString("de-DE")}</div>`;
     }
 
     return `<div class="${cls}" data-card="${card.id}">
@@ -1439,10 +1350,7 @@ async function handleCardClick(id) {
   haptic();
 
   if (isAdmin && isVipCard) {
-    const asUser = () => {
-      if (vipUnlocked) openCardView(id);
-      else openUnlockVip(id);
-    };
+    const asUser = () => { if (vipUnlocked) openCardView(id); else openUnlockVip(id); };
     const asAdmin = () => openCardView(id, true);
     try {
       if (tg.showPopup) {
@@ -1454,10 +1362,7 @@ async function handleCardClick(id) {
             { id: "admin", type: "default", text: "Als Admin öffnen" },
             { type: "cancel" }
           ]
-        }, (btn) => {
-          if (btn === "user") asUser();
-          else if (btn === "admin") asAdmin();
-        });
+        }, (btn) => { if (btn === "user") asUser(); else if (btn === "admin") asAdmin(); });
         return;
       }
     } catch (e) {}
@@ -1482,32 +1387,22 @@ async function openUnlockVip(cardId) {
   const cat = catalogMap[cardId] || {};
   const paypal = (cat.paypal_link || "").trim();
 
-  if (!paypal) {
-    showToast("Kein PayPal-Link hinterlegt – Admin kontaktieren");
-    return;
-  }
+  if (!paypal) { showToast("Kein PayPal-Link hinterlegt – Admin kontaktieren"); return; }
 
   const doUnlock = async () => {
     if (state.busy) return;
     state.busy = true;
     haptic("medium");
     try {
-      await api("/api/unlock_vip", {
-        method: "POST",
-        body: JSON.stringify({ card_id: cardId })
-      });
+      await api("/api/unlock_vip", { method: "POST", body: JSON.stringify({ card_id: cardId }) });
       const data = await api("/api/collection");
       applyCollectionData(data);
       renderCollection();
-      SFX.cardDrop();
-      notify("success");
+      SFX.cardDrop(); notify("success");
       showToast(`✨ VIP freigeschaltet: ${card.name}`);
       openCardView(cardId);
-    } catch (e) {
-      showToast("Fehler: " + e.message);
-    } finally {
-      state.busy = false;
-    }
+    } catch (e) { showToast("Fehler: " + e.message); }
+    finally { state.busy = false; }
   };
 
   const openPayPal = () => {
@@ -1515,9 +1410,7 @@ async function openUnlockVip(cardId) {
     try {
       if (tg.openLink) tg.openLink(paypal);
       else window.open(paypal, "_blank");
-    } catch (e) {
-      showToast(paypal);
-    }
+    } catch (e) { showToast(paypal); }
     setTimeout(() => {
       try {
         if (tg.showConfirm) {
@@ -1525,19 +1418,15 @@ async function openUnlockVip(cardId) {
             `PayPal geöffnet.\n\nHast du für „${card.name}“ bezahlt?\nDann VIP jetzt freischalten.`,
             (ok) => { if (ok) doUnlock(); }
           );
-        } else if (confirm("PayPal bezahlt? VIP freischalten?")) {
-          doUnlock();
-        }
+        } else if (confirm("PayPal bezahlt? VIP freischalten?")) { doUnlock(); }
       } catch (e) { doUnlock(); }
     }, 800);
   };
 
   try {
     if (tg.showConfirm) {
-      tg.showConfirm(
-        `✨ VIP „${card.name}“\n\nFreischalten per PayPal.`,
-        (ok) => { if (ok) openPayPal(); }
-      );
+      tg.showConfirm(`✨ VIP „${card.name}“\n\nFreischalten per PayPal.`,
+        (ok) => { if (ok) openPayPal(); });
       return;
     }
   } catch (e) {}
@@ -1554,57 +1443,36 @@ async function openBuyCard(cardId) {
 
   const doBuy = async () => {
     if (state.busy) return;
-    if (state.coins < price) {
-      showToast("Nicht genug Coins");
-      SFX.lose();
-      return;
-    }
+    if (state.coins < price) { showToast("Nicht genug Coins"); SFX.lose(); return; }
     state.busy = true;
     haptic("medium");
     try {
-      const res = await api("/api/buy_card", {
-        method: "POST",
-        body: JSON.stringify({ card_id: cardId })
-      });
-      state.coins = res.coins;
-      updateCoins();
+      const res = await api("/api/buy_card", { method: "POST", body: JSON.stringify({ card_id: cardId }) });
+      state.coins = res.coins; updateCoins();
       const data = await api("/api/collection");
       applyCollectionData(data);
       renderCollection();
-      SFX.cardDrop();
-      notify("success");
+      SFX.cardDrop(); notify("success");
       showCardDrop(card, true, "🛒 GEKAUFT");
       showToast(`✅ ${card.name} freigeschaltet!`);
       setTimeout(() => openCardView(cardId), 1400);
-    } catch (e) {
-      showToast("Fehler: " + e.message);
-      SFX.lose();
-    } finally {
-      state.busy = false;
-    }
+    } catch (e) { showToast("Fehler: " + e.message); SFX.lose(); }
+    finally { state.busy = false; }
   };
 
   try {
     if (tg.showConfirm) {
-      tg.showConfirm(
-        `${card.name}\n${r.name}\n\n${price.toLocaleString("de-DE")} Coins kaufen?`,
-        (ok) => { if (ok) doBuy(); }
-      );
+      tg.showConfirm(`${card.name}\n${r.name}\n\n${price.toLocaleString("de-DE")} Coins kaufen?`,
+        (ok) => { if (ok) doBuy(); });
       return;
     }
   } catch (e) {}
-  if (state.coins < price) {
-    showToast(`🔒 ${card.name} · ${price} Coins nötig`);
-    return;
-  }
+  if (state.coins < price) { showToast(`🔒 ${card.name} · ${price} Coins nötig`); return; }
   await doBuy();
 }
 
 function rollCard() {
-  const droppable = CARDS.filter(c => {
-    const cat = catalogMap[c.id] || {};
-    return !cat.is_vip_card;
-  });
+  const droppable = CARDS.filter(c => !(catalogMap[c.id] || {}).is_vip_card);
   if (!droppable.length) return CARDS[0];
   const r = Math.random();
   let pool;
@@ -1628,9 +1496,7 @@ async function tryCardDrop(chance = 0.15) {
     await saveCollection();
     renderCollection();
     showCardDrop(card, isNew);
-  } catch (e) {
-    dropBusy = false;
-  }
+  } catch (e) { dropBusy = false; }
 }
 
 function showCardDrop(card, isNew, customLabel) {
@@ -1704,10 +1570,7 @@ function openCardView(cardId, adminView = false) {
         haptic();
         if (!creatorLink) { showToast("Kein Creator-Link hinterlegt"); return; }
         try { tg.openTelegramLink(creatorLink); }
-        catch (e) {
-          try { window.open(creatorLink, "_blank"); }
-          catch (e2) { showToast(creatorLink); }
-        }
+        catch (e) { try { window.open(creatorLink, "_blank"); } catch (e2) { showToast(creatorLink); } }
       };
     } else {
       btnCreator.style.display = "none";
@@ -1772,9 +1635,7 @@ function renderBets(game) {
   state.bet = cur;
 
   const presets = [];
-  for (const p of [10, 25, 50, 100, 250, 500, 1000]) {
-    if (p <= maxB) presets.push(p);
-  }
+  for (const p of [10, 25, 50, 100, 250, 500, 1000]) { if (p <= maxB) presets.push(p); }
   if (!presets.includes(maxB)) presets.push(maxB);
 
   row.innerHTML = `
@@ -1807,15 +1668,11 @@ function renderBets(game) {
     if (range && !fromSlider) range.value = v;
     if (valEl) {
       valEl.textContent = v.toLocaleString("de-DE");
-      valEl.classList.remove("bump");
-      void valEl.offsetWidth;
-      valEl.classList.add("bump");
+      valEl.classList.remove("bump"); void valEl.offsetWidth; valEl.classList.add("bump");
     }
     if (goBtn) {
       const allIn = v >= maxB;
-      goBtn.textContent = allIn
-        ? `🔥 ALL IN · ${v.toLocaleString("de-DE")}`
-        : `🎰 SETZEN · ${v.toLocaleString("de-DE")}`;
+      goBtn.textContent = allIn ? `🔥 ALL IN · ${v.toLocaleString("de-DE")}` : `🎰 SETZEN · ${v.toLocaleString("de-DE")}`;
     }
     document.querySelectorAll("#bet-presets .btn").forEach(btn => {
       btn.classList.toggle("active-bet", parseInt(btn.dataset.bet, 10) === v);
@@ -1823,27 +1680,14 @@ function renderBets(game) {
     if (fromSlider) haptic("light");
   }
 
-  if (range) {
-    range.addEventListener("input", () => {
-      setBet(parseInt(range.value, 10), true);
-    });
-  }
-
+  if (range) range.addEventListener("input", () => { setBet(parseInt(range.value, 10), true); });
   document.querySelectorAll("#bet-presets .btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      if (state.busy) return;
-      haptic(); SFX.click();
-      setBet(parseInt(btn.dataset.bet, 10), false);
-    });
+    btn.addEventListener("click", () => { if (state.busy) return; haptic(); SFX.click(); setBet(parseInt(btn.dataset.bet, 10), false); });
   });
-
   if (goBtn) {
     goBtn.addEventListener("click", () => {
       if (state.busy) return;
-      if (state.bet > state.coins) {
-        showToast("Nicht genug Coins");
-        return;
-      }
+      if (state.bet > state.coins) { showToast("Nicht genug Coins"); return; }
       haptic("medium"); SFX.click();
       runGame(game, state.bet);
     });
@@ -1895,8 +1739,7 @@ function playCrash(bet) {
     c.style.width = W + "px"; c.style.height = H + "px";
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, W, H);
-    ctx.strokeStyle = "rgba(124,58,237,.14)";
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(124,58,237,.14)"; ctx.lineWidth = 1;
     for (let x = 0; x <= W; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
     for (let y = 0; y <= H; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
   }
@@ -1909,10 +1752,7 @@ function playCrash(bet) {
 
     let crashPoint = 2.0;
     try {
-      const wr = await api("/api/crash/start", {
-        method: "POST",
-        body: JSON.stringify({ bet })
-      });
+      const wr = await api("/api/crash/start", { method: "POST", body: JSON.stringify({ bet }) });
       state.coins = wr.coins;
       updateCoins();
       crashPoint = wr.crash_point;
@@ -1936,12 +1776,9 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
 
   const dpr = window.devicePixelRatio || 1;
   const rect = graphEl.getBoundingClientRect();
-  const W = rect.width;
-  const H = rect.height;
-  canvas.width = W * dpr;
-  canvas.height = H * dpr;
-  canvas.style.width = W + "px";
-  canvas.style.height = H + "px";
+  const W = rect.width; const H = rect.height;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + "px"; canvas.style.height = H + "px";
   ctx.scale(dpr, dpr);
 
   cashoutBtn.disabled = false;
@@ -1957,14 +1794,9 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
 
   function drawGrid() {
     ctx.clearRect(0, 0, W, H);
-    ctx.strokeStyle = "rgba(124,58,237,.14)";
-    ctx.lineWidth = 1;
-    for (let x = 0; x <= W; x += 40) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-    }
-    for (let y = 0; y <= H; y += 40) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-    }
+    ctx.strokeStyle = "rgba(124,58,237,.14)"; ctx.lineWidth = 1;
+    for (let x = 0; x <= W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y <= H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
   }
 
   function drawTrail() {
@@ -1975,25 +1807,16 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
     ctx.lineTo(trail[trail.length - 1].x, H);
     ctx.closePath();
     const grad = ctx.createLinearGradient(0, 0, 0, H);
-    if (crashed) {
-      grad.addColorStop(0, "rgba(255,51,102,.45)");
-      grad.addColorStop(1, "rgba(255,51,102,0)");
-    } else if (cashed) {
-      grad.addColorStop(0, "rgba(34,255,136,.45)");
-      grad.addColorStop(1, "rgba(34,255,136,0)");
-    } else {
-      grad.addColorStop(0, "rgba(34,211,238,.35)");
-      grad.addColorStop(1, "rgba(34,211,238,0)");
-    }
-    ctx.fillStyle = grad;
-    ctx.fill();
+    if (crashed) { grad.addColorStop(0, "rgba(255,51,102,.45)"); grad.addColorStop(1, "rgba(255,51,102,0)"); }
+    else if (cashed) { grad.addColorStop(0, "rgba(34,255,136,.45)"); grad.addColorStop(1, "rgba(34,255,136,0)"); }
+    else { grad.addColorStop(0, "rgba(34,211,238,.35)"); grad.addColorStop(1, "rgba(34,211,238,0)"); }
+    ctx.fillStyle = grad; ctx.fill();
 
     ctx.save();
     ctx.shadowBlur = 24;
     ctx.shadowColor = crashed ? "#ff3366" : cashed ? "#22ff88" : "#22d3ee";
     ctx.strokeStyle = crashed ? "#ff3366" : cashed ? "#22ff88" : "#22d3ee";
-    ctx.lineWidth = 5;
-    ctx.lineCap = "round";
+    ctx.lineWidth = 5; ctx.lineCap = "round";
     ctx.beginPath();
     ctx.moveTo(trail[0].x, trail[0].y);
     for (let i = 1; i < trail.length; i++) ctx.lineTo(trail[i].x, trail[i].y);
@@ -2005,22 +1828,16 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
     ctx.shadowBlur = 30;
     ctx.shadowColor = crashed ? "#ff3366" : cashed ? "#22ff88" : "#22d3ee";
     ctx.fillStyle = crashed ? "#ff3366" : cashed ? "#22ff88" : "#22d3ee";
-    ctx.beginPath();
-    ctx.arc(end.x, end.y, 5, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(end.x, end.y, 5, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
 
   function drawRocket(x, y, angle) {
     if (crashed || cashed) return;
     ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle + Math.PI / 4);
-    ctx.shadowBlur = 28;
-    ctx.shadowColor = "#22d3ee";
-    ctx.font = "36px serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    ctx.translate(x, y); ctx.rotate(angle + Math.PI / 4);
+    ctx.shadowBlur = 28; ctx.shadowColor = "#22d3ee";
+    ctx.font = "36px serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText("🚀", 0, 0);
     ctx.restore();
   }
@@ -2039,8 +1856,7 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
       cashoutBtn.classList.remove("cashout-live");
       cashoutBtn.classList.add("danger");
       graphEl.classList.add("crashed");
-      SFX.crash();
-      haptic("heavy");
+      SFX.crash(); haptic("heavy");
       onCrashLoss(bet, crashPoint);
       return;
     }
@@ -2057,24 +1873,18 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
     trail.push({ x, y });
     if (trail.length > 600) trail.shift();
 
-    drawGrid();
-    drawTrail();
+    drawGrid(); drawTrail();
 
     let angle = -Math.PI / 4;
     if (trail.length > 8) {
       const p1 = trail[trail.length - 8];
       const p2 = trail[trail.length - 1];
-      const dx = p2.x - p1.x;
-      const dy = p2.y - p1.y;
+      const dx = p2.x - p1.x; const dy = p2.y - p1.y;
       if (Math.abs(dx) > 0.01) angle = Math.atan2(dy, dx);
     }
     drawRocket(x, y, angle);
 
-    if (now - lastTick > 110) {
-      lastTick = now;
-      if (Math.random() < 0.35) SFX.wheelTick();
-    }
-
+    if (now - lastTick > 110) { lastTick = now; if (Math.random() < 0.35) SFX.wheelTick(); }
     if (!crashed && !cashed) crashRaf = requestAnimationFrame(frame);
   }
 
@@ -2090,10 +1900,8 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
   };
 }
 
-// ── CRASH CASHOUT: prüft Serverantwort, zeigt nur bei Erfolg Win ──
 async function onCrashCashout(bet, multiplier) {
-  SFX.cashout();
-  haptic("medium");
+  SFX.cashout(); haptic("medium");
   try {
     const r = await api("/api/crash/cashout", {
       method: "POST",
@@ -2101,20 +1909,13 @@ async function onCrashCashout(bet, multiplier) {
     });
 
     if (r.crashed || r.ok === false) {
-      // Server sagt: zu spät!
       const multEl = document.querySelector(".crash-multiplier");
       const btn = document.querySelector(".crash-cashout");
       const graphEl = document.querySelector(".crash-graph");
       if (multEl) multEl.classList.add("crashed");
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = "💥 CRASHED";
-        btn.classList.remove("cashout-live");
-        btn.classList.add("danger");
-      }
+      if (btn) { btn.disabled = true; btn.textContent = "💥 CRASHED"; btn.classList.remove("cashout-live"); btn.classList.add("danger"); }
       if (graphEl) graphEl.classList.add("crashed");
-      state.coins = r.coins;
-      updateCoins();
+      state.coins = r.coins; updateCoins();
       showLossEffect(bet);
       const div = document.createElement("div");
       div.className = "result-text lose";
@@ -2127,8 +1928,7 @@ async function onCrashCashout(bet, multiplier) {
       return;
     }
 
-    state.coins = r.coins;
-    updateCoins();
+    state.coins = r.coins; updateCoins();
     const payout = r.payout || 0;
 
     markMission("play").catch(()=>{});
@@ -2137,8 +1937,8 @@ async function onCrashCashout(bet, multiplier) {
       markMission("win").catch(()=>{});
       if (multiplier >= 2) markMission("crash").catch(()=>{});
     }
-
     tryCardDrop(multiplier >= 2 ? 0.35 : 0.12);
+    renderJackpot().catch(()=>{});
 
     if (payout > 0) {
       showWinEffect(payout);
@@ -2155,29 +1955,21 @@ async function onCrashCashout(bet, multiplier) {
     await new Promise(x => setTimeout(x, 1200));
     renderBets(state.game);
     loadMe().catch(() => {});
-  } catch (e) {
-    showToast("Fehler: " + e.message);
-  }
+  } catch (e) { showToast("Fehler: " + e.message); }
   state.busy = false;
 }
 
 function onCrashLoss(bet, crashPoint) {
   markMission("play").catch(()=>{});
   markMission("bet", bet).catch(()=>{});
-  state.streak = 0;
-  updateStreakVisuals();
+  state.streak = 0; updateStreakVisuals();
   showLossEffect(bet);
   api("/api/crash/loss", { method: "POST" }).catch(() => {});
-
   const div = document.createElement("div");
   div.className = "result-text lose";
   div.innerHTML = `−${bet}`;
   $("stage").appendChild(div);
-
-  setTimeout(() => {
-    renderBets(state.game);
-    loadMe().catch(() => {});
-  }, 1200);
+  setTimeout(() => { renderBets(state.game); loadMe().catch(() => {}); }, 1200);
   state.busy = false;
 }
 
@@ -2282,10 +2074,7 @@ function spinReel(el, finalSymbol, duration) {
     const start = performance.now();
     function tick() {
       const elapsed = performance.now() - start;
-      if (elapsed >= duration) {
-        el.textContent = finalSymbol; el.classList.remove("spinning");
-        resolve(); return;
-      }
+      if (elapsed >= duration) { el.textContent = finalSymbol; el.classList.remove("spinning"); resolve(); return; }
       el.textContent = symbols[Math.floor(Math.random() * symbols.length)];
       const delay = Math.max(45, Math.min(110, (duration - elapsed) / 3));
       setTimeout(tick, delay);
@@ -2378,9 +2167,7 @@ function renderBlackjack(data, bet) {
           showLossEffect(bet);
           showResultFinal({ payout: 0, delta: -bet, coins: d.coins }, "BUST!");
           loadMe().catch(() => {});
-        } else {
-          hit.disabled = false; st.disabled = false;
-        }
+        } else { hit.disabled = false; st.disabled = false; }
       } catch (e) {
         showToast("Fehler: " + e.message);
         hit.disabled = false; st.disabled = false;
@@ -2482,9 +2269,7 @@ async function runRoulette(bet, type) {
 // ═══════════════════════════════════════════════════════════
 // EFFEKTE
 // ═══════════════════════════════════════════════════════════
-function flashScreen(color) {
-  const el = $("full-flash"); el.className = "full-flash"; void el.offsetWidth; el.classList.add(color);
-}
+function flashScreen(color) { const el = $("full-flash"); el.className = "full-flash"; void el.offsetWidth; el.classList.add(color); }
 function shakeScreen(hard = false) {
   const app = $("app");
   app.classList.remove("shake-screen", "shake-hard"); void app.offsetWidth;
@@ -2504,16 +2289,12 @@ function floatingLoss(amount) {
   document.body.appendChild(el); setTimeout(() => el.remove(), 1300);
 }
 function showLossEffect(amount) {
-  state.streak = 0;
-  updateStreakVisuals();
+  state.streak = 0; updateStreakVisuals();
   flashScreen("red");
   const v = $("loss-vignette"); v.classList.remove("show"); void v.offsetWidth; v.classList.add("show");
   shakeScreen(true); lossRings(); floatingLoss(amount);
   const big = $("balance-value");
-  if (big) {
-    big.classList.remove("lose-shake"); void big.offsetWidth; big.classList.add("lose-shake");
-    setTimeout(() => big.classList.remove("lose-shake"), 600);
-  }
+  if (big) { big.classList.remove("lose-shake"); void big.offsetWidth; big.classList.add("lose-shake"); setTimeout(() => big.classList.remove("lose-shake"), 600); }
   SFX.lose(); notify("error");
 }
 function showWinEffect(amount) {
@@ -2583,8 +2364,7 @@ function burstConfetti(n = 80) {
     particles.push({
       x: cvs.width/2 + (Math.random()-.5)*80,
       y: cvs.height/2 + (Math.random()-.5)*80,
-      vx: (Math.random()-.5)*18,
-      vy: (Math.random()-.5)*18 - 6,
+      vx: (Math.random()-.5)*18, vy: (Math.random()-.5)*18 - 6,
       life: 1, rot: Math.random()*Math.PI*2, vr: (Math.random()-.5)*.4,
       color: ["#ffd25e","#22ff88","#22d3ee","#ec4899","#fff","#ff9f1c","#7c3aed"][Math.floor(Math.random()*7)],
       size: 4 + Math.random()*6,
@@ -2605,8 +2385,7 @@ function loop() {
       ctx.fillText(p.emoji, 0, 0);
     } else {
       ctx.fillStyle = p.color;
-      ctx.shadowColor = p.color;
-      ctx.shadowBlur = 10;
+      ctx.shadowColor = p.color; ctx.shadowBlur = 10;
       ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
     }
     ctx.restore();
@@ -2616,7 +2395,7 @@ function loop() {
 loop();
 
 // ═══════════════════════════════════════════════════════════
-// MISSIONS — fix: Belohnung nur einmal, sauber awaited
+// MISSIONS
 // ═══════════════════════════════════════════════════════════
 function renderMissions() {
   const box = $("missions-box");
@@ -2655,16 +2434,13 @@ async function markMission(type, amount = 1) {
     const cur = meta.missions.progress[id] || 0;
     if (cur >= m.target) continue;
     meta.missions.progress[id] = cur + amount;
-    if (meta.missions.progress[id] >= m.target) {
-      completions.push(m);
-    }
+    if (meta.missions.progress[id] >= m.target) completions.push(m);
     changed = true;
   }
   if (changed) {
     await saveMeta();
     renderMissions();
     updateDailyBadge();
-    // Belohnungen erst NACH dem Save – verhindert Doppel-Belohnung
     for (const m of completions) {
       try {
         const r = await api("/api/bonus", { method: "POST", body: JSON.stringify({ amount: m.reward }) });
@@ -2770,71 +2546,45 @@ function renderWheelCanvas() {
   const ctxW = cvsW.getContext("2d");
   ctxW.scale(dpr, dpr);
 
-  const cx = size / 2;
-  const cy = size / 2;
+  const cx = size / 2, cy = size / 2;
   const r = size / 2 - 10;
   const n = WHEEL_SEGMENTS.length;
   const segAngle = (Math.PI * 2) / n;
 
   ctxW.save();
-  ctxW.shadowBlur = 40;
-  ctxW.shadowColor = "rgba(124,58,237,.9)";
-  ctxW.beginPath();
-  ctxW.arc(cx, cy, r + 6, 0, Math.PI * 2);
-  ctxW.strokeStyle = "#4c1d95";
-  ctxW.lineWidth = 12;
-  ctxW.stroke();
+  ctxW.shadowBlur = 40; ctxW.shadowColor = "rgba(124,58,237,.9)";
+  ctxW.beginPath(); ctxW.arc(cx, cy, r + 6, 0, Math.PI * 2);
+  ctxW.strokeStyle = "#4c1d95"; ctxW.lineWidth = 12; ctxW.stroke();
   ctxW.restore();
 
-  ctxW.beginPath();
-  ctxW.arc(cx, cy, r + 1, 0, Math.PI * 2);
-  ctxW.strokeStyle = "#7c3aed";
-  ctxW.lineWidth = 4;
-  ctxW.stroke();
+  ctxW.beginPath(); ctxW.arc(cx, cy, r + 1, 0, Math.PI * 2);
+  ctxW.strokeStyle = "#7c3aed"; ctxW.lineWidth = 4; ctxW.stroke();
 
   for (let i = 0; i < n; i++) {
     const startA = i * segAngle - Math.PI / 2 - segAngle / 2;
     const endA = startA + segAngle;
-
-    ctxW.beginPath();
-    ctxW.moveTo(cx, cy);
-    ctxW.arc(cx, cy, r, startA, endA);
-    ctxW.closePath();
-    ctxW.fillStyle = WHEEL_COLORS[i % WHEEL_COLORS.length];
-    ctxW.fill();
-
-    ctxW.strokeStyle = "rgba(0,0,0,.45)";
-    ctxW.lineWidth = 2;
-    ctxW.stroke();
-
+    ctxW.beginPath(); ctxW.moveTo(cx, cy); ctxW.arc(cx, cy, r, startA, endA); ctxW.closePath();
+    ctxW.fillStyle = WHEEL_COLORS[i % WHEEL_COLORS.length]; ctxW.fill();
+    ctxW.strokeStyle = "rgba(0,0,0,.45)"; ctxW.lineWidth = 2; ctxW.stroke();
     const grad = ctxW.createRadialGradient(cx, cy, r * 0.2, cx, cy, r);
-    grad.addColorStop(0, "rgba(255,255,255,.12)");
-    grad.addColorStop(1, "rgba(0,0,0,.25)");
-    ctxW.fillStyle = grad;
-    ctxW.fill();
-
+    grad.addColorStop(0, "rgba(255,255,255,.12)"); grad.addColorStop(1, "rgba(0,0,0,.25)");
+    ctxW.fillStyle = grad; ctxW.fill();
     const midA = startA + segAngle / 2;
     const lr = r * 0.68;
     const lx = cx + Math.cos(midA) * lr;
     const ly = cy + Math.sin(midA) * lr;
     ctxW.save();
-    ctxW.translate(lx, ly);
-    ctxW.rotate(midA + Math.PI / 2);
+    ctxW.translate(lx, ly); ctxW.rotate(midA + Math.PI / 2);
     ctxW.fillStyle = "#fff";
     ctxW.font = "900 " + Math.max(12, size * 0.055) + "px sans-serif";
-    ctxW.textAlign = "center";
-    ctxW.textBaseline = "middle";
-    ctxW.shadowBlur = 6;
-    ctxW.shadowColor = "rgba(0,0,0,.9)";
+    ctxW.textAlign = "center"; ctxW.textBaseline = "middle";
+    ctxW.shadowBlur = 6; ctxW.shadowColor = "rgba(0,0,0,.9)";
     ctxW.fillText(WHEEL_SEGMENTS[i].label, 0, 0);
     ctxW.restore();
   }
 
-  ctxW.beginPath();
-  ctxW.arc(cx, cy, r * 0.32, 0, Math.PI * 2);
-  ctxW.strokeStyle = "rgba(255,210,94,.5)";
-  ctxW.lineWidth = 2;
-  ctxW.stroke();
+  ctxW.beginPath(); ctxW.arc(cx, cy, r * 0.32, 0, Math.PI * 2);
+  ctxW.strokeStyle = "rgba(255,210,94,.5)"; ctxW.lineWidth = 2; ctxW.stroke();
 }
 
 function updateWheelTimer() {
@@ -2843,10 +2593,8 @@ function updateWheelTimer() {
   const now = Date.now();
   const diff = (meta.wheel.lastSpin || 0) + 3600 * 1000 - now;
   const btn = $("spin-btn");
-  if (diff <= 0) {
-    if (btn) btn.disabled = false;
-    t.textContent = "Bereit!";
-  } else {
+  if (diff <= 0) { if (btn) btn.disabled = false; t.textContent = "Bereit!"; }
+  else {
     if (btn) btn.disabled = true;
     const m = Math.floor(diff / 60000);
     const s = Math.floor((diff % 60000) / 1000);
@@ -2857,10 +2605,7 @@ function updateWheelTimer() {
 async function spinWheel() {
   if (state.busy) return;
   const now = Date.now();
-  if (now - (meta.wheel.lastSpin || 0) < 3600 * 1000) {
-    showToast("⏳ Noch nicht bereit");
-    return;
-  }
+  if (now - (meta.wheel.lastSpin || 0) < 3600 * 1000) { showToast("⏳ Noch nicht bereit"); return; }
   state.busy = true; haptic(); SFX.click();
   meta.wheel.lastSpin = now;
   await saveMeta();
@@ -2871,26 +2616,20 @@ async function spinWheel() {
   const n = WHEEL_SEGMENTS.length;
   const segDeg = 360 / n;
 
-  const turns = 6;
-  wheelRotation += 360 * turns + (360 - (idx * segDeg) - (wheelRotation % 360));
-
+  wheelRotation += 360 * 6 + (360 - (idx * segDeg) - (wheelRotation % 360));
   const cvsW = $("wheel-canvas");
   if (cvsW) cvsW.style.transform = `rotate(${wheelRotation}deg)`;
 
-  SFX.spin();
-  haptic("medium");
-
+  SFX.spin(); haptic("medium");
   let ticks = 0;
   const tickInt = setInterval(() => { SFX.wheelTick(); ticks++; if (ticks > 40) clearInterval(tickInt); }, 120);
-
   await new Promise(r => setTimeout(r, 5200));
   clearInterval(tickInt);
 
   try {
     if (seg.type === "coins") {
       const r = await api("/api/bonus", { method: "POST", body: JSON.stringify({ amount: seg.value }) });
-      state.coins = r.coins;
-      updateCoins();
+      state.coins = r.coins; updateCoins();
       showWinEffect(seg.value);
       showAlert(`🎡 +${seg.value} Coins`);
     } else if (seg.type === "card") {
@@ -2939,14 +2678,9 @@ document.querySelectorAll(".shop-card").forEach(btn => {
     if (state.busy) return;
     const packId = btn.dataset.pack;
     if (!packId) return;
-    state.busy = true;
-    haptic("medium");
-    SFX.click();
+    state.busy = true; haptic("medium"); SFX.click();
     try {
-      const inv = await api("/api/shop/invoice", {
-        method: "POST",
-        body: JSON.stringify({ pack_id: String(packId) })
-      });
+      const inv = await api("/api/shop/invoice", { method: "POST", body: JSON.stringify({ pack_id: String(packId) }) });
       if (!inv.invoice_url) throw new Error("Keine Invoice-URL");
       try {
         tg.openInvoice(inv.invoice_url, (status) => {
@@ -2956,24 +2690,15 @@ document.querySelectorAll(".shop-card").forEach(btn => {
             SFX.daily();
             setTimeout(() => loadMe().catch(() => {}), 1200);
             setTimeout(() => loadMe().catch(() => {}), 3000);
-          } else if (status === "cancelled") {
-            showToast("Zahlung abgebrochen");
-          } else if (status === "failed") {
-            showToast("Zahlung fehlgeschlagen");
-          } else {
-            showToast("Status: " + status);
-          }
+          } else if (status === "cancelled") showToast("Zahlung abgebrochen");
+          else if (status === "failed") showToast("Zahlung fehlgeschlagen");
+          else showToast("Status: " + status);
         });
       } catch (e) {
-        try { tg.openTelegramLink(inv.invoice_url); } catch (e2) {
-          showToast("Stars-Zahlung nicht verfügbar");
-        }
+        try { tg.openTelegramLink(inv.invoice_url); } catch (e2) { showToast("Stars-Zahlung nicht verfügbar"); }
         state.busy = false;
       }
-    } catch (e) {
-      showToast("Fehler: " + e.message);
-      state.busy = false;
-    }
+    } catch (e) { showToast("Fehler: " + e.message); state.busy = false; }
   });
 });
 
@@ -2987,10 +2712,8 @@ function inviteLink() {
 }
 function updateInviteCountUI() {
   const c = state.refCount || 0;
-  const el = $("invite-top-count");
-  if (el) el.textContent = c;
-  const modalCount = $("invite-modal-count");
-  if (modalCount) modalCount.textContent = c;
+  const el = $("invite-top-count"); if (el) el.textContent = c;
+  const modalCount = $("invite-modal-count"); if (modalCount) modalCount.textContent = c;
   const milestones = $("invite-milestones");
   if (milestones) {
     milestones.innerHTML = REF_MILESTONES.map(m => {
@@ -3059,31 +2782,158 @@ $("btn-back").addEventListener("click", goHome);
 
 $("daily-claim").addEventListener("click", claimDaily);
 $("spin-btn").addEventListener("click", spinWheel);
-$("open-wheel").addEventListener("click", () => {
-  haptic(); SFX.click();
-  show("s-spin");
-  updateWheelTimer();
-});
-$("spin-back").addEventListener("click", () => {
-  haptic();
-  show("s-daily");
-  renderDailyScreen();
-});
-$("spin-back-btn").addEventListener("click", () => {
-  haptic();
-  show("s-daily");
-  renderDailyScreen();
-});
+$("open-wheel").addEventListener("click", () => { haptic(); SFX.click(); show("s-spin"); updateWheelTimer(); });
+$("spin-back").addEventListener("click", () => { haptic(); show("s-daily"); renderDailyScreen(); });
+$("spin-back-btn").addEventListener("click", () => { haptic(); show("s-daily"); renderDailyScreen(); });
 
 window.addEventListener("resize", () => {
-  if ($("s-spin").classList.contains("active")) {
-    renderWheelCanvas();
+  if ($("s-spin").classList.contains("active")) renderWheelCanvas();
+});
+
+// ═══════════════════════════════════════════════════════════
+// ADMIN PANEL
+// ═══════════════════════════════════════════════════════════
+const adminPanel = $("admin-panel");
+let adminFileBuffer = null;
+
+function openAdminPanel() {
+  haptic("heavy");
+  adminPanel.classList.add("show");
+  resetAdminUpload();
+}
+function closeAdminPanel() {
+  adminPanel.classList.remove("show");
+  resetAdminUpload();
+}
+function resetAdminUpload() {
+  adminFileBuffer = null;
+  const info = $("up-file-info"); if (info) { info.classList.remove("show"); info.textContent = ""; }
+  const prev = $("up-preview"); if (prev) { prev.classList.remove("show"); prev.src = ""; }
+  const inp = $("up-file"); if (inp) inp.value = "";
+}
+
+document.querySelectorAll(".admin-tab").forEach(t => {
+  t.addEventListener("click", () => {
+    haptic();
+    document.querySelectorAll(".admin-tab").forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    document.querySelectorAll(".admin-section").forEach(x => x.classList.remove("active"));
+    const sec = document.querySelector(`.admin-section[data-section="${t.dataset.atab}"]`);
+    if (sec) sec.classList.add("active");
+  });
+});
+
+// Upload-Tab
+$("up-file").addEventListener("change", (e) => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  if (f.size > 6 * 1024 * 1024) {
+    showToast("Bild zu groß (max 6 MB)");
+    e.target.value = "";
+    return;
+  }
+  adminFileBuffer = f;
+  const info = $("up-file-info");
+  info.textContent = `✅ ${f.name} · ${(f.size/1024).toFixed(0)} KB`;
+  info.classList.add("show");
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const prev = $("up-preview");
+    prev.src = ev.target.result;
+    prev.classList.add("show");
+  };
+  reader.readAsDataURL(f);
+});
+
+$("up-cancel").addEventListener("click", closeAdminPanel);
+$("up-submit").addEventListener("click", async () => {
+  const cardId = parseInt($("up-card-id").value, 10);
+  if (!(cardId >= 1 && cardId <= 30)) { showToast("Ungültige Karten-ID"); return; }
+  if (!adminFileBuffer) { showToast("Bitte Bild auswählen"); return; }
+  const creator = $("up-creator").value.trim();
+  const paypal = $("up-paypal").value.trim();
+
+  const btn = $("up-submit");
+  btn.disabled = true;
+  btn.textContent = "⏳ Lädt hoch…";
+
+  try {
+    const fd = new FormData();
+    fd.append("card_id", String(cardId));
+    fd.append("creator_link", creator);
+    fd.append("paypal_link", paypal);
+    fd.append("file", adminFileBuffer, adminFileBuffer.name || `card${cardId}.png`);
+
+    const res = await fetch(API + "/api/admin/card_image_upload", {
+      method: "POST",
+      headers: { "X-Init-Data": INIT },
+      body: fd,
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      throw new Error(j.detail || res.statusText);
+    }
+    const data = await res.json();
+    showToast(`✅ Karte ${cardId} aktualisiert – alle User sehen es live`);
+    closeAdminPanel();
+    await loadCollection();
+  } catch (e) {
+    showToast("Fehler: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "⬆️ Hochladen";
   }
 });
 
-// ═══════════════════════════════════════════════════════════
-// ADMIN PANEL – Long-Press Logo
-// ═══════════════════════════════════════════════════════════
+// URL-Tab
+$("url-cancel").addEventListener("click", closeAdminPanel);
+$("url-submit").addEventListener("click", async () => {
+  const cardId = parseInt($("url-card-id").value, 10);
+  if (!(cardId >= 1 && cardId <= 30)) { showToast("Ungültige Karten-ID"); return; }
+  const imageUrl = $("url-image").value.trim();
+  if (!imageUrl) { showToast("Bild-URL fehlt"); return; }
+  const creator = $("url-creator").value.trim();
+  const paypal = $("url-paypal").value.trim();
+  const btn = $("url-submit");
+  btn.disabled = true; btn.textContent = "⏳ …";
+  try {
+    await api("/api/admin/card_image", {
+      method: "POST",
+      body: JSON.stringify({ card_id: cardId, image_url: imageUrl, creator_link: creator || null, paypal_link: paypal || null })
+    });
+    showToast(`✅ Karte ${cardId} aktualisiert`);
+    closeAdminPanel();
+    await loadCollection();
+  } catch (e) {
+    showToast("Fehler: " + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "💾 Setzen";
+  }
+});
+
+// Remove-Tab
+$("rm-cancel").addEventListener("click", closeAdminPanel);
+$("rm-submit").addEventListener("click", async () => {
+  const cardId = parseInt($("rm-card-id").value, 10);
+  if (!(cardId >= 1 && cardId <= 30)) { showToast("Ungültige Karten-ID"); return; }
+  if (!confirm(`Karte ${cardId} wirklich von VIP entfernen?`)) return;
+  const btn = $("rm-submit");
+  btn.disabled = true; btn.textContent = "⏳ …";
+  try {
+    await api("/api/admin/card_image/" + cardId, { method: "DELETE" });
+    showToast(`✅ Karte ${cardId} ist wieder normale Coin-Karte`);
+    closeAdminPanel();
+    await loadCollection();
+  } catch (e) {
+    showToast("Fehler: " + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "🗑️ Entfernen";
+  }
+});
+
+adminPanel.addEventListener("click", (e) => { if (e.target === adminPanel) closeAdminPanel(); });
+
+// Long-press Logo → Admin-Panel
 let pressTimer;
 $("logo").addEventListener("touchstart", () => {
   pressTimer = setTimeout(async () => {
@@ -3091,52 +2941,9 @@ $("logo").addEventListener("touchstart", () => {
     try {
       const r = await api("/api/admin/stats");
       showToast(`👥 ${r.users} · 💰 ${r.coins_in_circulation} · 🏦 ${r.house_edge}`);
-      try {
-        if (tg.showPopup) {
-          tg.showPopup({
-            title: "Admin · Karten-Einstellungen",
-            message: "Karte als VIP markieren (Bild + Creator + PayPal) oder VIP entfernen?",
-            buttons: [
-              { id: "set", type: "default", text: "Als VIP setzen / bearbeiten" },
-              { id: "remove", type: "destructive", text: "VIP entfernen" },
-              { type: "cancel" }
-            ]
-          }, async (btn) => {
-            if (btn === "set") {
-              const idStr = prompt("1/4 · Welche Karte? (ID 1–30)");
-              if (!idStr) return;
-              const id = parseInt(idStr, 10);
-              if (!(id >= 1 && id <= 30)) { showToast("Ungültige ID"); return; }
-              const url = prompt("2/4 · Bild-URL (leer = GitHub-Default nutzen):") || "";
-              const creator = prompt("3/4 · Creator Telegram-Link (https://t.me/… , leer = keine):") || "";
-              const paypal = prompt("4/4 · PayPal-Link (https://paypal.me/… , leer = globaler Fallback):") || "";
-              try {
-                await api("/api/admin/card_image", {
-                  method: "POST",
-                  body: JSON.stringify({
-                    card_id: id,
-                    image_url: url.trim(),
-                    creator_link: creator.trim() || null,
-                    paypal_link: paypal.trim() || null
-                  })
-                });
-                showToast(`✅ Karte ${id} ist jetzt VIP`);
-                await loadCollection();
-              } catch (e) { showToast("Fehler: " + e.message); }
-            } else if (btn === "remove") {
-              const idStr = prompt("Karten-ID (1–30) die keine VIP-Karte mehr sein soll:");
-              if (!idStr) return;
-              const id = parseInt(idStr, 10);
-              if (!(id >= 1 && id <= 30)) { showToast("Ungültige ID"); return; }
-              try {
-                await api("/api/admin/card_image/" + id, { method: "DELETE" });
-                showToast(`✅ Karte ${id} ist normale Coin-Karte`);
-                await loadCollection();
-              } catch (e) { showToast("Fehler: " + e.message); }
-            }
-          });
-        }
-      } catch (e) {}
+      // Nur Admin darf Panel öffnen
+      if (isAdmin) openAdminPanel();
+      else showToast("Kein Admin-Zugriff");
     } catch (e) { showToast("Kein Zugriff."); }
   }, 1200);
 });
@@ -3146,6 +2953,7 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden && INIT) {
     loadMe().catch(() => {});
     renderJackpot().catch(() => {});
+    checkCatalogVersion();
   }
 });
 
@@ -3157,7 +2965,6 @@ async function boot() {
       $("stats-box").innerHTML = '<div class="row"><span>⚠️ Verbindung</span><span>initData fehlt</span></div><button class="btn" onclick="location.reload()">🔄 Neu laden</button>';
       return;
     }
-    // Balance-Anzeige zuerst resetten
     const bv = $("balance-value");
     if (bv) { bv.textContent = "0"; bv.dataset.v = "0"; }
     await loadCollection();
@@ -3167,6 +2974,7 @@ async function boot() {
     renderDailyScreen();
     updateWheelTimer();
     renderJackpot();
+    startCatalogPolling();
   } catch (e) {
     $("stats-box").innerHTML = '<div class="row"><span>⚠️ Fehler</span><span>' + (e.message || e) + '</span></div><button class="btn" onclick="location.reload()">🔄 Neu laden</button>';
   }
