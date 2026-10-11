@@ -34,7 +34,6 @@ NO_PREVIEW = LinkPreviewOptions(is_disabled=True)
 ADMIN_IDS = [6098272278]
 
 # ── Karten-Bilder aus GitHub-Repo ──
-# Struktur:  cards/1.png  cards/2.png  ...  cards/30.png
 CARDS_IMAGE_BASE = os.environ.get("CARDS_IMAGE_BASE", "").strip().rstrip("/")
 CARDS_IMAGE_EXT = os.environ.get("CARDS_IMAGE_EXT", "png").lstrip(".")
 
@@ -47,13 +46,11 @@ SHOP_PACKS = {
 
 BOT_INSTANCE = None
 
-# Sessions (müssen vor den Endpoints existieren)
 bj_sessions = {}
 crash_sessions = {}
 
 
 def default_card_image_url(card_id: int) -> str:
-    """GitHub-Default-Bild. Leer wenn CARDS_IMAGE_BASE nicht konfiguriert."""
     if not CARDS_IMAGE_BASE or "CHANGE_ME" in CARDS_IMAGE_BASE:
         return ""
     return f"{CARDS_IMAGE_BASE}/{card_id}.{CARDS_IMAGE_EXT}"
@@ -105,6 +102,15 @@ def init_db():
         creator_link TEXT DEFAULT '',
         paypal_link TEXT DEFAULT '',
         updated_at INTEGER DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS user_state (
+        user_id INTEGER PRIMARY KEY,
+        data TEXT DEFAULT '{}',
+        updated_at INTEGER DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS globals (
+        key TEXT PRIMARY KEY,
+        value INTEGER DEFAULT 0
     );
     """)
     cols = [r[1] for r in con.execute("PRAGMA table_info(users)").fetchall()]
@@ -184,10 +190,6 @@ def grant_card(uid: int, card_id: int) -> bool:
 
 
 def get_card_vip_info(card_id: int) -> dict:
-    """
-    Bild-URL + VIP-Flags für eine Karte.
-    is_vip_card = True nur wenn Admin einen card_media Eintrag angelegt hat.
-    """
     con = db()
     try:
         row = con.execute(
@@ -698,11 +700,9 @@ def register_referral(req: ReferralReq, uid: int = Depends(auth)):
 
     reward = 500
     milestone = None
-    if count == 1: reward += 500; milestone = 1
-    elif count == 3: reward += 2000; milestone = 3
-    elif count == 5: reward += 5000; milestone = 5
-    elif count == 10: reward += 15000; milestone = 10
-    elif count == 25: reward += 50000; milestone = 25
+    if count in (1, 3, 5, 10, 25):
+        milestone = count
+        reward += {1: 500, 3: 2000, 5: 5000, 10: 15000, 25: 50000}[count]
 
     ref_u = get_user(ref_id)
     update_user(ref_id, coins=ref_u["coins"] + reward)
@@ -721,6 +721,72 @@ def get_referrals(uid: int = Depends(auth)):
     count = con.execute("SELECT COUNT(*) FROM referrals WHERE referrer_id=?", (uid,)).fetchone()[0]
     con.close()
     return {"count": count}
+
+
+# ═══════════════════════════════════════════════════════════
+# USER STATE (Daily, Missions, Wheel-Cooldown, Streak, ...)
+# ═══════════════════════════════════════════════════════════
+class UserStateReq(BaseModel):
+    data: dict
+
+
+@app.get("/api/user_state")
+def get_user_state(uid: int = Depends(auth)):
+    con = db()
+    row = con.execute("SELECT data FROM user_state WHERE user_id=?", (uid,)).fetchone()
+    con.close()
+    if not row:
+        return {"data": {}}
+    try:
+        return {"data": json.loads(row["data"] or "{}")}
+    except Exception:
+        return {"data": {}}
+
+
+@app.post("/api/user_state")
+def set_user_state(req: UserStateReq, uid: int = Depends(auth)):
+    con = db()
+    row = con.execute("SELECT data FROM user_state WHERE user_id=?", (uid,)).fetchone()
+    existing = {}
+    if row:
+        try:
+            existing = json.loads(row["data"] or "{}")
+        except Exception:
+            existing = {}
+    existing.update(req.data or {})
+    payload = json.dumps(existing, separators=(",", ":"))
+    con.execute(
+        "INSERT INTO user_state (user_id, data, updated_at) VALUES (?,?,?) "
+        "ON CONFLICT(user_id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at",
+        (uid, payload, int(time.time())),
+    )
+    con.commit(); con.close()
+    return {"ok": True, "data": existing}
+
+
+# ═══════════════════════════════════════════════════════════
+# GLOBAL JACKPOT
+# ═══════════════════════════════════════════════════════════
+def _bump_jackpot(amount: int) -> int:
+    con = db()
+    row = con.execute("SELECT value FROM globals WHERE key='jackpot'").fetchone()
+    cur = int(row["value"]) if row else 0
+    new = cur + int(amount)
+    con.execute(
+        "INSERT INTO globals (key, value) VALUES ('jackpot', ?) "
+        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (new,),
+    )
+    con.commit(); con.close()
+    return new
+
+
+@app.get("/api/jackpot")
+def get_jackpot(uid: int = Depends(auth)):
+    con = db()
+    row = con.execute("SELECT value FROM globals WHERE key='jackpot'").fetchone()
+    con.close()
+    return {"jackpot": int(row["value"]) if row else 0}
 
 
 # ═══════════════════════════════════════════════════════════
@@ -896,20 +962,25 @@ def crash_cashout(req: CrashCashoutReq, uid: int = Depends(auth)):
     if not s or s.get("cashed"):
         raise HTTPException(400, "Keine Crash-Session")
     point = float(s["point"]); mult = float(req.multiplier)
+    u = get_user(uid)
+
     if mult >= point:
+        # Client war zu spät – Crash
         s["cashed"] = True
         record_outcome(uid, False, "crash", 0)
         del crash_sessions[uid]
-        u = get_user(uid)
         return {"ok": False, "crashed": True, "coins": u["coins"], "payout": 0}
 
+    # Mult auf sicheren Bereich begrenzen (Client kann nicht mehr als crash_point abräumen)
+    mult = max(1.0, min(mult, max(1.0, point - 0.01)))
     payout = int(s["bet"] * mult)
-    u = get_user(uid)
     new_coins = u["coins"] + payout
     update_user(uid, coins=new_coins, total_won=u["total_won"] + payout)
     record_outcome(uid, True, "crash", payout)
     s["cashed"] = True
     del crash_sessions[uid]
+    # Jackpot global mit 5% des Einsatzes befüllen
+    _bump_jackpot(int(s["bet"] * 0.05))
     return {"ok": True, "coins": new_coins, "payout": payout}
 
 
@@ -1328,7 +1399,6 @@ async def main():
                 print(f"delete_webhook: {e}")
             await bot_app.start()
             try:
-                # pre_checkout_query MUSS enthalten sein, sonst schlagen Stars-Zahlungen fehl
                 await bot_app.updater.start_polling(
                     drop_pending_updates=True,
                     allowed_updates=["message", "callback_query", "pre_checkout_query"],
