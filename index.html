@@ -287,7 +287,7 @@ html,body{
 @keyframes flash{0%{opacity:0}20%{opacity:.55}100%{opacity:0}}
 
 /* ═══════════════════════════════════════════════════════════
-   SAMMLUNG – Tinder-Style mit Bildern, Blur & Reveal
+   SAMMLUNG
    ═══════════════════════════════════════════════════════════ */
 .collection-header{margin-bottom:14px;text-align:center}
 .collection-title{font-size:22px;font-weight:900;letter-spacing:-.5px;background:linear-gradient(135deg,#fff,#ffd25e 60%,#ec4899);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
@@ -324,13 +324,11 @@ html,body{
   background:#12081f;
 }
 
-/* Blur für locked (Tinder-Feeling) */
 .card-slot.locked .card-img{
   filter:blur(12px) brightness(.55) saturate(1.15);
   transform:scale(1.18);
 }
 
-/* Fallback wenn kein Bild lädt */
 .card-slot.noimg{background:linear-gradient(160deg,#2a1260,#12081f)}
 .card-slot.noimg::before{
   content:attr(data-card);
@@ -338,7 +336,6 @@ html,body{
   font-size:34px;font-weight:900;color:rgba(255,255,255,.18);z-index:1;
 }
 
-/* Card-Name unten */
 .card-slot .card-name-lbl{
   position:absolute;bottom:0;left:0;right:0;
   padding:16px 4px 6px;
@@ -351,7 +348,6 @@ html,body{
   pointer-events:none;
 }
 
-/* Locked (normale, nicht besessene Karte) */
 .card-slot .lock-center{
   position:absolute;inset:0;
   display:flex;align-items:center;justify-content:center;
@@ -373,7 +369,6 @@ html,body{
   pointer-events:none;
 }
 
-/* VIP-Karten (locked) */
 .card-slot .vip-center{
   position:absolute;inset:0;
   display:flex;flex-direction:column;
@@ -400,7 +395,6 @@ html,body{
   pointer-events:none;
 }
 
-/* VIP freigeschaltet → Badge */
 .card-slot .vip-badge{
   position:absolute;top:6px;left:6px;
   font-size:8px;font-weight:900;letter-spacing:1.2px;
@@ -412,19 +406,16 @@ html,body{
   pointer-events:none;
 }
 
-/* Seltenheits-Border (nur für besessene normale Karten) */
 .card-slot.rarity-common{border-color:rgba(139,134,184,.55)}
 .card-slot.rarity-rare{border-color:#22d3ee;box-shadow:0 0 12px rgba(34,211,238,.35)}
 .card-slot.rarity-epic{border-color:#ec4899;box-shadow:0 0 14px rgba(236,72,153,.45)}
 .card-slot.rarity-legendary{border-color:#ffd25e;box-shadow:0 0 16px rgba(255,210,94,.6)}
 
-/* VIP freigeschaltet → goldener Glow */
 .card-slot.vip-unlocked{
   border-color:#ffd25e;
   box-shadow:0 0 18px rgba(255,210,94,.7);
 }
 
-/* Card Drop Modal – Bild als Vollflächen-Hintergrund */
 .card-drop{position:fixed;inset:0;z-index:960;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px;text-align:center}
 .card-drop.show{display:flex;animation:fadeIn .2s ease-out}
 .drop-label{font-size:12px;font-weight:900;letter-spacing:3px;color:#ffd25e;margin-bottom:14px;text-shadow:0 0 20px rgba(255,210,94,.8)}
@@ -530,7 +521,7 @@ html,body{
 
     <div class="hero">
       <div class="hero-coin"><div class="sym">🪙</div></div>
-      <div class="balance-xl" id="balance-value">1 000</div>
+      <div class="balance-xl" id="balance-value" data-v="0">0</div>
       <div class="balance-lbl">Deine Coins</div>
     </div>
     <div class="ticker" id="ticker"></div>
@@ -746,7 +737,6 @@ const RARITY = {
 
 const CARD_PRICES = { common: 400, rare: 1200, epic: 3500, legendary: 9000 };
 
-// 30 Karten – reine Bild-Karten, keine Emojis
 const CARDS = Array.from({ length: 30 }, (_, i) => {
   const id = i + 1;
   let rarity;
@@ -966,6 +956,9 @@ function cloudSet(key, val) {
   });
 }
 
+// ═══════════════════════════════════════════════════════════
+// COLLECTION LOADING — mit fix: Cloud nur leeren wenn Sync ok
+// ═══════════════════════════════════════════════════════════
 async function loadCollection() {
   try {
     const raw = await cloudGet("card_collection");
@@ -973,11 +966,16 @@ async function loadCollection() {
       let local = [];
       try { local = JSON.parse(raw); } catch (e) { local = []; }
       if (Array.isArray(local) && local.length) {
-        await api("/api/collection/sync", {
-          method: "POST",
-          body: JSON.stringify({ card_ids: local })
-        }).catch(() => null);
-        await cloudSet("card_collection", "[]");
+        let synced = false;
+        try {
+          await api("/api/collection/sync", {
+            method: "POST",
+            body: JSON.stringify({ card_ids: local })
+          });
+          synced = true;
+        } catch (e) { synced = false; }
+        // Nur bei erfolgreichem Sync leeren, sonst bleibt lokales Backup
+        if (synced) await cloudSet("card_collection", "[]");
       }
     }
   } catch (e) {}
@@ -1007,8 +1005,11 @@ async function saveCollection() {
   await cloudSet("card_collection", JSON.stringify(collection));
 }
 function hasCard(id) { return collection.includes(id); }
+
+// addCard: sofort in CloudStorage sichern
 async function addCard(id) {
   if (!hasCard(id)) collection.push(id);
+  await cloudSet("card_collection", JSON.stringify(collection));
   try {
     await api("/api/grant_card", {
       method: "POST",
@@ -1016,6 +1017,7 @@ async function addCard(id) {
     });
     const data = await api("/api/collection");
     applyCollectionData(data);
+    await cloudSet("card_collection", JSON.stringify(collection));
   } catch (e) {}
 }
 
@@ -1032,25 +1034,53 @@ let meta = {
 
 const $ = id => document.getElementById(id);
 
+// ═══════════════════════════════════════════════════════════
+// META — serverseitig persistiert + CloudStorage-Backup
+// ═══════════════════════════════════════════════════════════
 async function loadMeta() {
-  const raw = await cloudGet("meta");
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw);
-      meta = { ...meta, ...parsed };
-    } catch (e) {}
+  // 1) bevorzugt vom Server laden
+  let merged = null;
+  try {
+    const res = await api("/api/user_state");
+    if (res && res.data && Object.keys(res.data).length) merged = res.data;
+  } catch (e) {}
+  // 2) Fallback: CloudStorage (falls Server leer, z.B. vor erstem Save)
+  if (!merged) {
+    const raw = await cloudGet("meta");
+    if (raw) {
+      try { merged = JSON.parse(raw); } catch (e) {}
+    }
   }
+  if (merged) meta = { ...meta, ...merged };
+
   const today = todayKey();
-  if (meta.missions.date !== today) {
+  if (!meta.missions || meta.missions.date !== today) {
     const picks = shuffle([...MISSION_POOL]).slice(0, 3);
     meta.missions = { date: today, tasks: picks.map(t => t.id), progress: {} };
     picks.forEach(t => { meta.missions.progress[t.id] = 0; });
     await saveMeta();
   }
-  const todayC = todayKey();
-  if (meta.crashWinsDate !== todayC) { meta.crashWinsToday = 0; meta.crashWinsDate = todayC; await saveMeta(); }
+  if (!meta.crashWinsDate || meta.crashWinsDate !== today) {
+    meta.crashWinsToday = 0;
+    meta.crashWinsDate = today;
+    await saveMeta();
+  }
 }
-async function saveMeta() { await cloudSet("meta", JSON.stringify(meta)); }
+
+// Sequenzielle Save-Queue: verhindert Race Conditions und doppelte Requests
+let _savingMeta = Promise.resolve();
+function saveMeta() {
+  _savingMeta = _savingMeta.then(async () => {
+    try {
+      await api("/api/user_state", {
+        method: "POST",
+        body: JSON.stringify({ data: meta })
+      });
+    } catch (e) {}
+    try { await cloudSet("meta", JSON.stringify(meta)); } catch (e) {}
+  }).catch(() => {});
+  return _savingMeta;
+}
 
 function todayKey() {
   const d = new Date();
@@ -1124,7 +1154,7 @@ function show(id) {
   try { tg.BackButton.isVisible = (id !== "s-home"); } catch (e) {}
   if (id === "s-spin") {
     requestAnimationFrame(() => {
-      setTimeout(() => renderWheelCanvas(), 40);
+      setTimeout(() => renderWheelCanvas(), 60);
     });
   }
   updateStreakVisuals();
@@ -1166,7 +1196,11 @@ function updateCoins() {
   renderJackpot();
 }
 
-function renderJackpot() {
+async function renderJackpot() {
+  try {
+    const r = await api("/api/jackpot");
+    meta.jackpot = r.jackpot || 0;
+  } catch (e) {}
   const el = $("jackpot-val");
   if (el) el.textContent = (meta.jackpot || 0).toLocaleString("de-DE");
 }
@@ -1255,24 +1289,32 @@ async function checkLevelUp(newLevel) {
   }
 }
 
+// grantRandomCard: robust mit Timeout
 async function grantRandomCard(label) {
-  while (dropBusy) await new Promise(r => setTimeout(r, 100));
+  const started = Date.now();
+  while (dropBusy && Date.now() - started < 4000) {
+    await new Promise(r => setTimeout(r, 100));
+  }
+  if (dropBusy) dropBusy = false;
   dropBusy = true;
-  // Nur normale Karten (keine VIP) droppen
-  const droppable = CARDS.filter(c => {
-    const cat = catalogMap[c.id] || {};
-    return !cat.is_vip_card;
-  });
-  const locked = droppable.filter(c => !hasCard(c.id));
-  const card = locked.length > 0
-    ? locked[Math.floor(Math.random() * locked.length)]
-    : droppable[Math.floor(Math.random() * droppable.length)];
-  if (!card) { dropBusy = false; return; }
-  const isNew = !hasCard(card.id);
-  await addCard(card.id);
-  await saveCollection();
-  renderCollection();
-  showCardDrop(card, isNew, label);
+  try {
+    const droppable = CARDS.filter(c => {
+      const cat = catalogMap[c.id] || {};
+      return !cat.is_vip_card;
+    });
+    const locked = droppable.filter(c => !hasCard(c.id));
+    const card = locked.length > 0
+      ? locked[Math.floor(Math.random() * locked.length)]
+      : droppable[Math.floor(Math.random() * droppable.length)];
+    if (!card) { dropBusy = false; return; }
+    const isNew = !hasCard(card.id);
+    await addCard(card.id);
+    await saveCollection();
+    renderCollection();
+    showCardDrop(card, isNew, label);
+  } catch (e) {
+    dropBusy = false;
+  }
 }
 
 async function loadFeed() {
@@ -1288,7 +1330,7 @@ async function loadFeed() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// BILDER – direkte URL zuerst, dann Backend-Proxy, dann Platzhalter
+// BILDER
 // ═══════════════════════════════════════════════════════════
 function cardImgCandidates(id) {
   const cat = catalogMap[id] || {};
@@ -1333,7 +1375,7 @@ function loadFirstImage(urls) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SAMMLUNG – Tinder-Grid
+// SAMMLUNG
 // ═══════════════════════════════════════════════════════════
 function renderCollection() {
   const grid = $("card-grid");
@@ -1396,7 +1438,6 @@ async function handleCardClick(id) {
   const owned = hasCard(id);
   haptic();
 
-  // Admin: Auswahl – wie normaler User testen oder als Admin öffnen
   if (isAdmin && isVipCard) {
     const asUser = () => {
       if (vipUnlocked) openCardView(id);
@@ -1435,7 +1476,6 @@ async function handleCardClick(id) {
   else openBuyCard(id);
 }
 
-// VIP per PayPal freischalten
 async function openUnlockVip(cardId) {
   const card = CARDS.find(c => c.id === cardId);
   if (!card) return;
@@ -1504,7 +1544,6 @@ async function openUnlockVip(cardId) {
   openPayPal();
 }
 
-// Normale Karte mit Coins kaufen
 async function openBuyCard(cardId) {
   const card = CARDS.find(c => c.id === cardId);
   if (!card || hasCard(cardId)) return;
@@ -1561,7 +1600,6 @@ async function openBuyCard(cardId) {
   await doBuy();
 }
 
-// Karten-Drop – nur für normale Karten
 function rollCard() {
   const droppable = CARDS.filter(c => {
     const cat = catalogMap[c.id] || {};
@@ -1583,12 +1621,16 @@ async function tryCardDrop(chance = 0.15) {
   if (Math.random() > chance) return;
   dropBusy = true;
   await new Promise(r => setTimeout(r, spd(600)));
-  const card = rollCard();
-  const isNew = !hasCard(card.id);
-  await addCard(card.id);
-  await saveCollection();
-  renderCollection();
-  showCardDrop(card, isNew);
+  try {
+    const card = rollCard();
+    const isNew = !hasCard(card.id);
+    await addCard(card.id);
+    await saveCollection();
+    renderCollection();
+    showCardDrop(card, isNew);
+  } catch (e) {
+    dropBusy = false;
+  }
 }
 
 function showCardDrop(card, isNew, customLabel) {
@@ -1624,7 +1666,6 @@ function showCardDrop(card, isNew, customLabel) {
   }
 }
 
-// Card-View – groß und scharf. VIP: "Creator schreiben". Normal: Herunterladen + Teilen.
 let currentViewCard = null;
 function openCardView(cardId, adminView = false) {
   const card = CARDS.find(c => c.id === cardId);
@@ -2043,20 +2084,13 @@ function startCrash(bet, crashPoint, multEl, cashoutBtn, graphEl) {
     if (crashed || cashed) return;
     cashed = true;
     const m = Math.pow(1.06, (performance.now() - startTime) / 1000 * 3);
-    multEl.classList.add("crashed");
-    multEl.style.background = "linear-gradient(135deg,#fff,#22ff88 60%,#22d3ee)";
-    multEl.style.webkitBackgroundClip = "text";
-    multEl.style.webkitTextFillColor = "transparent";
     cashoutBtn.disabled = true;
-    cashoutBtn.textContent = `✅ +${Math.round(bet * m)} COINS`;
-    cashoutBtn.classList.remove("cashout-live");
-    cashoutBtn.style.background = "linear-gradient(135deg,#22ff88,#0a5a2a)";
-    graphEl.style.borderColor = "#22ff88";
-    drawGrid(); drawTrail();
+    cashoutBtn.textContent = "⏳ CASHING OUT…";
     onCrashCashout(bet, m);
   };
 }
 
+// ── CRASH CASHOUT: prüft Serverantwort, zeigt nur bei Erfolg Win ──
 async function onCrashCashout(bet, multiplier) {
   SFX.cashout();
   haptic("medium");
@@ -2065,19 +2099,45 @@ async function onCrashCashout(bet, multiplier) {
       method: "POST",
       body: JSON.stringify({ multiplier })
     });
+
+    if (r.crashed || r.ok === false) {
+      // Server sagt: zu spät!
+      const multEl = document.querySelector(".crash-multiplier");
+      const btn = document.querySelector(".crash-cashout");
+      const graphEl = document.querySelector(".crash-graph");
+      if (multEl) multEl.classList.add("crashed");
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "💥 CRASHED";
+        btn.classList.remove("cashout-live");
+        btn.classList.add("danger");
+      }
+      if (graphEl) graphEl.classList.add("crashed");
+      state.coins = r.coins;
+      updateCoins();
+      showLossEffect(bet);
+      const div = document.createElement("div");
+      div.className = "result-text lose";
+      div.textContent = `−${bet}`;
+      $("stage").appendChild(div);
+      await new Promise(x => setTimeout(x, 1200));
+      renderBets(state.game);
+      loadMe().catch(() => {});
+      state.busy = false;
+      return;
+    }
+
     state.coins = r.coins;
     updateCoins();
     const payout = r.payout || 0;
 
-    markMission("play");
-    markMission("bet", bet);
+    markMission("play").catch(()=>{});
+    markMission("bet", bet).catch(()=>{});
     if (payout > bet) {
-      markMission("win");
-      if (multiplier >= 2) markMission("crash");
+      markMission("win").catch(()=>{});
+      if (multiplier >= 2) markMission("crash").catch(()=>{});
     }
 
-    meta.jackpot = (meta.jackpot || 0) + Math.floor(bet * 0.05);
-    await saveMeta();
     tryCardDrop(multiplier >= 2 ? 0.35 : 0.12);
 
     if (payout > 0) {
@@ -2092,7 +2152,7 @@ async function onCrashCashout(bet, multiplier) {
       : `−${bet}`;
     $("stage").appendChild(div);
 
-    await new Promise(r => setTimeout(r, 1200));
+    await new Promise(x => setTimeout(x, 1200));
     renderBets(state.game);
     loadMe().catch(() => {});
   } catch (e) {
@@ -2102,8 +2162,8 @@ async function onCrashCashout(bet, multiplier) {
 }
 
 function onCrashLoss(bet, crashPoint) {
-  markMission("play");
-  markMission("bet", bet);
+  markMission("play").catch(()=>{});
+  markMission("bet", bet).catch(()=>{});
   state.streak = 0;
   updateStreakVisuals();
   showLossEffect(bet);
@@ -2144,8 +2204,8 @@ async function runCoinflip(bet, choice) {
   try {
     const data = await apiCall;
     d.textContent = data.result.outcome === "kopf" ? "🪙" : "🔢";
-    markMission("play"); markMission("bet", bet);
-    if (data.payout > bet) markMission("win");
+    markMission("play").catch(()=>{}); markMission("bet", bet).catch(()=>{});
+    if (data.payout > bet) markMission("win").catch(()=>{});
     showResult(data, data.result.outcome);
   } catch (e) { showToast("Fehler: " + e.message); renderBets(state.game); }
   finally { state.busy = false; }
@@ -2207,8 +2267,8 @@ async function playBowl(bet) {
       if (status) status.textContent = value === 6 ? "🎳 STRIKE!" : `Wert ${value} · ${pinsDown} Pins gefallen`;
     }, 200);
     await new Promise(r => setTimeout(r, spd(700) + pinsDown * 40));
-    markMission("play"); markMission("bet", bet);
-    if (data.payout > bet) markMission("win");
+    markMission("play").catch(()=>{}); markMission("bet", bet).catch(()=>{});
+    if (data.payout > bet) markMission("win").catch(()=>{});
     showResult(data, value === 6 ? "STRIKE!" : `Wert ${value}`);
   } catch (e) { showToast("Fehler: " + e.message); renderBets(state.game); }
   finally { state.busy = false; }
@@ -2250,8 +2310,8 @@ async function playSlots(bet) {
       spinReel($("r2"), outcome[2], 1500/m)
     ]);
     clearInterval(tick);
-    markMission("play"); markMission("bet", bet);
-    if (data.payout > bet) markMission("win");
+    markMission("play").catch(()=>{}); markMission("bet", bet).catch(()=>{});
+    if (data.payout > bet) markMission("win").catch(()=>{});
     showResult(data, outcome.join(" "));
   } catch (e) {
     clearInterval(tick);
@@ -2314,7 +2374,7 @@ function renderBlackjack(data, bet) {
         if (d.state === "bust") {
           state.coins = d.coins; updateCoins();
           state.streak = 0; updateStreakVisuals();
-          markMission("play"); markMission("bet", bet);
+          markMission("play").catch(()=>{}); markMission("bet", bet).catch(()=>{});
           showLossEffect(bet);
           showResultFinal({ payout: 0, delta: -bet, coins: d.coins }, "BUST!");
           loadMe().catch(() => {});
@@ -2337,8 +2397,8 @@ function renderBlackjack(data, bet) {
         SFX.card();
         await new Promise(r => setTimeout(r, spd(400)));
         state.coins = d.coins; updateCoins();
-        markMission("play"); markMission("bet", bet);
-        if (d.state === "win") { showWinEffect(d.payout); tryCardDrop(0.35); markMission("win"); }
+        markMission("play").catch(()=>{}); markMission("bet", bet).catch(()=>{});
+        if (d.state === "win") { showWinEffect(d.payout); tryCardDrop(0.35); markMission("win").catch(()=>{}); }
         else if (d.state === "lose") { state.streak = 0; updateStreakVisuals(); showLossEffect(Math.abs(d.delta)); }
         showResultFinal(d, `Dealer ${d.dealer_value} · Du ${d.player_value}`);
         loadMe().catch(() => {});
@@ -2351,9 +2411,9 @@ function renderBlackjack(data, bet) {
     setTimeout(() => {
       showWinEffect(data.payout || Math.round(bet * 2.5));
       tryCardDrop(1);
-      markMission("win");
-      markMission("play");
-      markMission("bet", bet);
+      markMission("win").catch(()=>{});
+      markMission("play").catch(()=>{});
+      markMission("bet", bet).catch(()=>{});
     }, 300);
     showResultFinal({
       payout: data.payout || Math.round(bet * 2.5),
@@ -2364,7 +2424,7 @@ function renderBlackjack(data, bet) {
   } else if (data.state === "push") {
     state.coins = data.coins != null ? data.coins : state.coins;
     updateCoins();
-    markMission("play"); markMission("bet", bet);
+    markMission("play").catch(()=>{}); markMission("bet", bet).catch(()=>{});
     showResultFinal({
       payout: data.payout != null ? data.payout : bet,
       delta: data.delta != null ? data.delta : 0,
@@ -2410,8 +2470,8 @@ async function runRoulette(bet, type) {
     await new Promise(r => setTimeout(r, spinMs + 200));
     $("wnum").textContent = d.number;
     state.coins = d.coins; updateCoins();
-    markMission("play"); markMission("bet", bet);
-    if (d.payout > 0) { showWinEffect(d.payout); tryCardDrop(0.25); markMission("win"); }
+    markMission("play").catch(()=>{}); markMission("bet", bet).catch(()=>{});
+    if (d.payout > 0) { showWinEffect(d.payout); tryCardDrop(0.25); markMission("win").catch(()=>{}); }
     else { state.streak = 0; updateStreakVisuals(); showLossEffect(Math.abs(d.delta)); }
     showResultFinal({ payout: d.payout, delta: d.delta, coins: d.coins }, `${d.number} ${d.color.toUpperCase()}`);
     loadMe().catch(() => {});
@@ -2556,7 +2616,7 @@ function loop() {
 loop();
 
 // ═══════════════════════════════════════════════════════════
-// MISSIONS
+// MISSIONS — fix: Belohnung nur einmal, sauber awaited
 // ═══════════════════════════════════════════════════════════
 function renderMissions() {
   const box = $("missions-box");
@@ -2588,6 +2648,7 @@ async function markMission(type, amount = 1) {
   const today = todayKey();
   if (meta.missions.date !== today) return;
   let changed = false;
+  const completions = [];
   for (const id of meta.missions.tasks) {
     const m = MISSION_POOL.find(x => x.id === id);
     if (!m || m.type !== type) continue;
@@ -2595,19 +2656,24 @@ async function markMission(type, amount = 1) {
     if (cur >= m.target) continue;
     meta.missions.progress[id] = cur + amount;
     if (meta.missions.progress[id] >= m.target) {
-      setTimeout(async () => {
-        try {
-          // Fix: volle Missions-Belohnung auszahlen (vorher nur 100)
-          const r = await api("/api/bonus", { method: "POST", body: JSON.stringify({ amount: m.reward }) });
-          state.coins = r.coins; updateCoins();
-          showToast(`🎯 Mission geschafft! +${m.reward} Coins`);
-          SFX.daily();
-        } catch (e) {}
-      }, 500);
+      completions.push(m);
     }
     changed = true;
   }
-  if (changed) { await saveMeta(); renderMissions(); updateDailyBadge(); }
+  if (changed) {
+    await saveMeta();
+    renderMissions();
+    updateDailyBadge();
+    // Belohnungen erst NACH dem Save – verhindert Doppel-Belohnung
+    for (const m of completions) {
+      try {
+        const r = await api("/api/bonus", { method: "POST", body: JSON.stringify({ amount: m.reward }) });
+        state.coins = r.coins; updateCoins();
+        showToast(`🎯 Mission geschafft! +${m.reward} Coins`);
+        SFX.daily();
+      } catch (e) {}
+    }
+  }
 }
 
 function updateDailyBadge() {
@@ -2690,6 +2756,7 @@ function renderWheelCanvas() {
   const cvsW = $("wheel-canvas");
   if (!cvsW) return;
   const wrap = cvsW.parentElement;
+  if (!wrap || !wrap.isConnected) return;
   const rect = wrap.getBoundingClientRect();
   const size = Math.min(rect.width, 300);
   if (size < 50) { setTimeout(renderWheelCanvas, 80); return; }
@@ -3076,7 +3143,10 @@ $("logo").addEventListener("touchstart", () => {
 ["touchend", "touchmove"].forEach(ev => $("logo").addEventListener(ev, () => clearTimeout(pressTimer)));
 
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && INIT) loadMe().catch(() => {});
+  if (!document.hidden && INIT) {
+    loadMe().catch(() => {});
+    renderJackpot().catch(() => {});
+  }
 });
 
 async function boot() {
@@ -3087,12 +3157,16 @@ async function boot() {
       $("stats-box").innerHTML = '<div class="row"><span>⚠️ Verbindung</span><span>initData fehlt</span></div><button class="btn" onclick="location.reload()">🔄 Neu laden</button>';
       return;
     }
+    // Balance-Anzeige zuerst resetten
+    const bv = $("balance-value");
+    if (bv) { bv.textContent = "0"; bv.dataset.v = "0"; }
     await loadCollection();
     await loadMeta();
     await loadMe();
     await claimReferralIfAny();
     renderDailyScreen();
     updateWheelTimer();
+    renderJackpot();
   } catch (e) {
     $("stats-box").innerHTML = '<div class="row"><span>⚠️ Fehler</span><span>' + (e.message || e) + '</span></div><button class="btn" onclick="location.reload()">🔄 Neu laden</button>';
   }
