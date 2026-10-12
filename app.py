@@ -35,11 +35,8 @@ DB = os.environ.get("DB_PATH", os.path.join(_DATA_DIR, "casino.db"))
 AUTH_MAX_AGE = 86400
 NO_PREVIEW = LinkPreviewOptions(is_disabled=True)
 
-# ═══════════════════════════════════════════════════════════
-# TELEGRAM STORAGE (kostenlose Persistenz)
-# ═══════════════════════════════════════════════════════════
 STORAGE_CHAT_ID = os.environ.get("STORAGE_CHAT_ID", "").strip()
-DB_BACKUP_INTERVAL = int(os.environ.get("DB_BACKUP_INTERVAL", "300"))  # Sekunden
+DB_BACKUP_INTERVAL = int(os.environ.get("DB_BACKUP_INTERVAL", "120"))
 
 ADMIN_IDS = [6098272278]
 
@@ -115,6 +112,8 @@ def init_db():
         image_url TEXT NOT NULL DEFAULT '',
         creator_link TEXT DEFAULT '',
         paypal_link TEXT DEFAULT '',
+        tg_file_id TEXT DEFAULT '',
+        tg_voice_file_id TEXT DEFAULT '',
         updated_at INTEGER DEFAULT 0
     );
     CREATE TABLE IF NOT EXISTS user_state (
@@ -137,9 +136,15 @@ def init_db():
         ("creator_link", "TEXT DEFAULT ''"),
         ("paypal_link", "TEXT DEFAULT ''"),
         ("tg_file_id", "TEXT DEFAULT ''"),
+        ("tg_voice_file_id", "TEXT DEFAULT ''"),
     ]:
         if col not in media_cols:
             try: con.execute(f"ALTER TABLE card_media ADD COLUMN {col} {ddl}")
+            except Exception: pass
+    ref_cols = [r[1] for r in con.execute("PRAGMA table_info(referrals)").fetchall()]
+    for col, ddl in [("played_first_game", "INTEGER DEFAULT 0"), ("invite_reward_given", "INTEGER DEFAULT 0")]:
+        if col not in ref_cols:
+            try: con.execute(f"ALTER TABLE referrals ADD COLUMN {col} {ddl}")
             except Exception: pass
 
     for aid in ADMIN_IDS:
@@ -160,7 +165,7 @@ def init_db():
                         plink = str(val.get("paypal_link", "")).strip()
                     else:
                         url = str(val).strip(); clink = ""; plink = ""
-                    if cid in range(1, 31):
+                    if cid in range(1, 41):
                         con.execute(
                             "INSERT INTO card_media (card_id, image_url, creator_link, paypal_link, updated_at) VALUES (?,?,?,?,?) "
                             "ON CONFLICT(card_id) DO UPDATE SET image_url=excluded.image_url, "
@@ -179,10 +184,9 @@ def init_db():
 
 
 # ═══════════════════════════════════════════════════════════
-# TELEGRAM STORAGE HELPERS
+# TELEGRAM STORAGE
 # ═══════════════════════════════════════════════════════════
 async def tg_send_document(content: bytes, filename: str, caption: str = "") -> Optional[dict]:
-    """Sendet Bytes als Dokument an den Storage-Channel. Gibt {file_id, message_id} zurück."""
     if not STORAGE_CHAT_ID or BOT_INSTANCE is None:
         return None
     try:
@@ -229,58 +233,94 @@ async def tg_save_db_backup(force: bool = False):
             return False
         gz = gzip.compress(data, compresslevel=6)
         ts = int(time.time())
+        try:
+            await BOT_INSTANCE.unpin_all_chat_messages(chat_id=STORAGE_CHAT_ID)
+        except Exception as e:
+            print(f"unpin_all: {e}")
         res = await tg_send_document(
             gz, f"casino-{ts}.db.gz",
             f"🗄️ DB-Backup · {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(ts))} · {len(data)} B → {len(gz)} B"
         )
-        if res:
-            try:
-                await BOT_INSTANCE.pin_chat_message(
-                    chat_id=STORAGE_CHAT_ID,
-                    message_id=res["message_id"],
-                    disable_notification=True,
-                )
-            except Exception as e:
-                print(f"pin message: {e}")
-            print(f"✅ DB-Backup hochgeladen: msg_id={res['message_id']}, {len(gz)} bytes")
-            _db_dirty = False
-            return True
+        if not res:
+            print("tg_send_document lieferte nichts zurück")
+            return False
+        try:
+            await BOT_INSTANCE.pin_chat_message(
+                chat_id=STORAGE_CHAT_ID,
+                message_id=res["message_id"],
+                disable_notification=True,
+            )
+            print(f"✅ DB-Backup + Pin: msg_id={res['message_id']}, {len(gz)} bytes")
+        except Exception as e:
+            print(f"⚠️ Pin fehlgeschlagen: {e} (Backup liegt trotzdem im Channel)")
+        _db_dirty = False
+        return True
     except Exception as e:
         print(f"tg_save_db_backup error: {e}")
     return False
 
 
 async def tg_restore_db():
-    """Beim Start: Wenn DB fehlt oder leer ist → vom gepinnten Backup wiederherstellen."""
-    if not STORAGE_CHAT_ID or BOT_INSTANCE is None:
+    if not STORAGE_CHAT_ID:
+        print("ℹ️ STORAGE_CHAT_ID nicht gesetzt – kein Restore möglich")
         return False
+    if BOT_INSTANCE is None:
+        print("⚠️ Bot noch nicht bereit – Restore verschoben")
+        return False
+
+    for attempt in range(6):
+        try:
+            await BOT_INSTANCE.get_me()
+            break
+        except Exception as e:
+            print(f"Bot wartet... ({attempt+1}/6): {e}")
+            await asyncio.sleep(2)
+    else:
+        print("❌ Bot nicht erreichbar – Restore abgebrochen")
+        return False
+
     if os.path.isfile(DB) and os.path.getsize(DB) > 8192:
-        print(f"DB vorhanden ({os.path.getsize(DB)} B) – kein Restore nötig")
+        print(f"ℹ️ DB bereits vorhanden ({os.path.getsize(DB)} B) – kein Restore")
         return False
+
+    file_id = None
+    file_name = ""
     try:
         chat = await BOT_INSTANCE.get_chat(STORAGE_CHAT_ID)
         pinned = getattr(chat, "pinned_message", None)
-        if not pinned or not pinned.document:
-            print("Kein gepinntes DB-Backup gefunden")
-            return False
-        file_id = pinned.document.file_id
+        if pinned and pinned.document:
+            fn = pinned.document.file_name or ""
+            if fn.endswith(".db.gz"):
+                file_id = pinned.document.file_id
+                file_name = fn
+                print(f"📌 Backup gefunden (gepinnt): {fn}")
+            else:
+                print(f"⚠️ Angepinnte Nachricht ist kein DB-Backup: {fn}")
+    except Exception as e:
+        print(f"Pin-Check fehlgeschlagen: {e}")
+
+    if not file_id:
+        print("⚠️ Kein DB-Backup im Channel gefunden")
+        return False
+
+    try:
         content = await tg_get_document_content(file_id)
         if not content:
+            print("❌ Backup-Download leer")
             return False
         raw = gzip.decompress(content)
         if not raw.startswith(b"SQLite format 3"):
-            print("⚠️ Backup ist keine gültige SQLite-Datei")
+            print("❌ Backup ist keine valide SQLite-Datei")
             return False
-        # Backup der aktuellen (leeren) DB zur Sicherheit
         if os.path.isfile(DB):
-            try: os.rename(DB, DB + ".old")
+            try: os.rename(DB, DB + ".pre_restore")
             except Exception: pass
         with open(DB, "wb") as f:
             f.write(raw)
-        print(f"✅ DB vom Telegram-Backup wiederhergestellt: {len(raw)} bytes")
+        print(f"✅ DB wiederhergestellt aus {file_name}: {len(raw)} bytes")
         return True
     except Exception as e:
-        print(f"tg_restore_db error: {e}")
+        print(f"❌ Restore fehlgeschlagen: {e}")
         return False
 
 
@@ -324,6 +364,7 @@ def bump_catalog_version() -> int:
         (new,),
     )
     con.commit(); con.close()
+    mark_db_dirty()
     return new
 
 
@@ -335,7 +376,7 @@ def user_has_card(uid: int, card_id: int) -> bool:
 
 
 def grant_card(uid: int, card_id: int) -> bool:
-    if card_id < 1 or card_id > 30:
+    if card_id < 1 or card_id > 40:
         return False
     con = db()
     existing = con.execute("SELECT 1 FROM user_cards WHERE user_id=? AND card_id=?", (uid, card_id)).fetchone()
@@ -357,7 +398,8 @@ def get_card_vip_info(card_id: int) -> dict:
             "SELECT COALESCE(image_url,'') AS image_url, "
             "COALESCE(creator_link,'') AS creator_link, "
             "COALESCE(paypal_link,'') AS paypal_link, "
-            "COALESCE(tg_file_id,'') AS tg_file_id FROM card_media WHERE card_id=?",
+            "COALESCE(tg_file_id,'') AS tg_file_id, "
+            "COALESCE(tg_voice_file_id,'') AS tg_voice_file_id FROM card_media WHERE card_id=?",
             (card_id,)
         ).fetchone()
     except Exception:
@@ -375,6 +417,7 @@ def get_card_vip_info(card_id: int) -> dict:
                 "creator_link": "",
                 "paypal_link": "",
                 "tg_file_id": "",
+                "tg_voice_file_id": "",
             }
         return {
             "is_vip_card": True,
@@ -382,6 +425,7 @@ def get_card_vip_info(card_id: int) -> dict:
             "creator_link": "",
             "paypal_link": default_paypal,
             "tg_file_id": "",
+            "tg_voice_file_id": "",
         }
 
     img = (row["image_url"] or "").strip()
@@ -394,6 +438,7 @@ def get_card_vip_info(card_id: int) -> dict:
         "creator_link": (row["creator_link"] or "").strip(),
         "paypal_link": (row["paypal_link"] or "").strip() or default_paypal,
         "tg_file_id": (row["tg_file_id"] or "").strip(),
+        "tg_voice_file_id": (row["tg_voice_file_id"] or "").strip(),
     }
 
 
@@ -428,7 +473,9 @@ def get_media_rows() -> dict:
         rows = con.execute(
             "SELECT card_id, COALESCE(image_url,'') AS image_url, "
             "COALESCE(creator_link,'') AS creator_link, "
-            "COALESCE(paypal_link,'') AS paypal_link FROM card_media"
+            "COALESCE(paypal_link,'') AS paypal_link, "
+            "COALESCE(tg_file_id,'') AS tg_file_id, "
+            "COALESCE(tg_voice_file_id,'') AS tg_voice_file_id FROM card_media"
         ).fetchall()
     except Exception:
         rows = []
@@ -436,12 +483,14 @@ def get_media_rows() -> dict:
     out = {}
     for r in rows:
         cid = r["card_id"]
-        if cid < 1 or cid > 30:
+        if cid < 1 or cid > 40:
             continue
         out[cid] = {
             "image_url": (r["image_url"] or "").strip(),
             "creator_link": (r["creator_link"] or "").strip(),
             "paypal_link": (r["paypal_link"] or "").strip(),
+            "tg_file_id": (r["tg_file_id"] or "").strip(),
+            "tg_voice_file_id": (r["tg_voice_file_id"] or "").strip(),
         }
     return out
 
@@ -457,6 +506,8 @@ def save_media_backup():
             "image_url": v["image_url"],
             "creator_link": v.get("creator_link") or "",
             "paypal_link": v.get("paypal_link") or "",
+            "tg_file_id": v.get("tg_file_id") or "",
+            "tg_voice_file_id": v.get("tg_voice_file_id") or "",
         } for k, v in media.items()}
         with open(media_backup_path(), "w", encoding="utf-8") as f:
             json.dump(payload, f)
@@ -480,16 +531,20 @@ def load_media_backup():
                     url = str(val.get("image_url") or "").strip()
                     clink = str(val.get("creator_link") or "").strip()
                     plink = str(val.get("paypal_link") or "").strip()
+                    tfid = str(val.get("tg_file_id") or "").strip()
+                    tvfid = str(val.get("tg_voice_file_id") or "").strip()
                 else:
-                    url = str(val).strip(); clink = ""; plink = ""
-                if cid < 1 or cid > 30:
+                    url = str(val).strip(); clink = ""; plink = ""; tfid = ""; tvfid = ""
+                if cid < 1 or cid > 40:
                     continue
                 con.execute(
-                    "INSERT INTO card_media (card_id, image_url, creator_link, paypal_link, updated_at) VALUES (?,?,?,?,?) "
+                    "INSERT INTO card_media (card_id, image_url, creator_link, paypal_link, tg_file_id, tg_voice_file_id, updated_at) "
+                    "VALUES (?,?,?,?,?,?,?) "
                     "ON CONFLICT(card_id) DO UPDATE SET image_url=excluded.image_url, "
                     "creator_link=excluded.creator_link, paypal_link=excluded.paypal_link, "
+                    "tg_file_id=excluded.tg_file_id, tg_voice_file_id=excluded.tg_voice_file_id, "
                     "updated_at=excluded.updated_at",
-                    (cid, url, clink, plink, int(time.time())),
+                    (cid, url, clink, plink, tfid, tvfid, int(time.time())),
                 )
                 n += 1
             except Exception:
@@ -788,18 +843,9 @@ def play(req: PlayReq, uid: int = Depends(auth)):
                 total_wagered=u["total_wagered"] + req.bet,
                 total_won=u["total_won"] + payout)
     record_outcome(uid, payout > req.bet, req.game, payout)
+    try: maybe_grant_invite_reward(uid)
+    except Exception: pass
     return {"result": result, "payout": payout, "delta": delta, "coins": new_coins}
-
-
-@app.post("/api/daily")
-def daily(uid: int = Depends(auth)):
-    u = get_user(uid)
-    now = int(time.time())
-    if now - u["last_daily"] < 86400:
-        return {"ok": False, "remaining": 86400 - (now - u["last_daily"])}
-    new = u["coins"] + 1000
-    update_user(uid, coins=new, last_daily=now)
-    return {"ok": True, "amount": 1000, "coins": new}
 
 
 class BonusReq(BaseModel):
@@ -814,38 +860,6 @@ def bonus(req: BonusReq, uid: int = Depends(auth)):
     new_coins = u["coins"] + req.amount
     update_user(uid, coins=new_coins)
     return {"ok": True, "amount": req.amount, "coins": new_coins}
-
-
-class WagerReq(BaseModel):
-    amount: int
-
-
-@app.post("/api/wager")
-def wager(req: WagerReq, uid: int = Depends(auth)):
-    if req.amount < 1:
-        raise HTTPException(400, "Ungültiger Betrag")
-    u = get_user(uid)
-    if req.amount > u["coins"]:
-        raise HTTPException(400, "Nicht genug Coins")
-    new_coins = u["coins"] - req.amount
-    update_user(uid, coins=new_coins, total_wagered=u["total_wagered"] + req.amount)
-    return {"ok": True, "coins": new_coins}
-
-
-class PayoutReq(BaseModel):
-    amount: int
-
-
-@app.post("/api/payout")
-def payout_endpoint(req: PayoutReq, uid: int = Depends(auth)):
-    if not (0 <= req.amount <= 10000000):
-        raise HTTPException(400, "Ungültiger Betrag")
-    u = get_user(uid)
-    new_coins = u["coins"] + req.amount
-    update_user(uid, coins=new_coins, total_won=u["total_won"] + req.amount)
-    if req.amount > 0:
-        record_outcome(uid, True, "crash", req.amount)
-    return {"ok": True, "coins": new_coins}
 
 
 class ReferralReq(BaseModel):
@@ -886,6 +900,12 @@ def register_referral(req: ReferralReq, uid: int = Depends(auth)):
     new_u = get_user(uid)
     update_user(uid, coins=new_u["coins"] + welcome)
 
+    try:
+        if new_u["total_wagered"] > 0:
+            maybe_grant_invite_reward(uid)
+    except Exception as e:
+        print(f"invite reward immediate: {e}")
+
     return {"ok": True, "welcome_bonus": welcome, "referrer_reward": reward,
             "referrer_count": count, "milestone": milestone}
 
@@ -896,6 +916,49 @@ def get_referrals(uid: int = Depends(auth)):
     count = con.execute("SELECT COUNT(*) FROM referrals WHERE referrer_id=?", (uid,)).fetchone()[0]
     con.close()
     return {"count": count}
+
+
+# ═══════════════════════════════════════════════════════════
+# INVITE-KARTEN BELOHNUNG
+# ═══════════════════════════════════════════════════════════
+INVITE_CARD_IDS = list(range(31, 41))
+
+def maybe_grant_invite_reward(referred_uid: int):
+    con = db()
+    row = con.execute(
+        "SELECT referrer_id, played_first_game, invite_reward_given FROM referrals WHERE referred_id=?",
+        (referred_uid,)
+    ).fetchone()
+    if not row:
+        con.close(); return None
+    if row["played_first_game"] or row["invite_reward_given"]:
+        con.close(); return None
+
+    referrer_id = row["referrer_id"]
+    owned = {r["card_id"] for r in con.execute(
+        "SELECT card_id FROM user_cards WHERE user_id=? AND card_id BETWEEN 31 AND 40",
+        (referrer_id,)
+    ).fetchall()}
+    available = [cid for cid in INVITE_CARD_IDS if cid not in owned]
+
+    con.execute(
+        "UPDATE referrals SET played_first_game=1, invite_reward_given=1 WHERE referred_id=?",
+        (referred_uid,)
+    )
+    con.commit(); con.close()
+    mark_db_dirty()
+
+    if available:
+        card_id = random.choice(available)
+        grant_card(referrer_id, card_id)
+        bump_catalog_version()
+        print(f"🎁 Invite-Karte {card_id} an User {referrer_id}")
+        return {"referrer_id": referrer_id, "card_id": card_id, "duplicate": False}
+    else:
+        ref_u = get_user(referrer_id)
+        update_user(referrer_id, coins=ref_u["coins"] + 500)
+        print(f"💰 Alle Invite-Karten da → 500 Coins Bonus an {referrer_id}")
+        return {"referrer_id": referrer_id, "card_id": None, "duplicate": True, "bonus_coins": 500}
 
 
 # ═══════════════════════════════════════════════════════════
@@ -936,6 +999,110 @@ def set_user_state(req: UserStateReq, uid: int = Depends(auth)):
     con.commit(); con.close()
     mark_db_dirty()
     return {"ok": True, "data": existing}
+
+
+# ═══════════════════════════════════════════════════════════
+# DAILY CARD + TODAY OFFER
+# ═══════════════════════════════════════════════════════════
+@app.post("/api/daily_card")
+def daily_card(uid: int = Depends(auth)):
+    """Gratis-Karte 1× pro Tag. Prüft via user_state."""
+    con = db()
+    row = con.execute("SELECT data FROM user_state WHERE user_id=?", (uid,)).fetchone()
+    state = {}
+    if row:
+        try: state = json.loads(row["data"] or "{}")
+        except Exception: state = {}
+    today = time.strftime("%Y-%m-%d", time.localtime())
+    last = state.get("dailyCardDate", "")
+    if last == today:
+        return {"ok": False, "reason": "already_claimed"}
+
+    owned = {r["card_id"] for r in con.execute("SELECT card_id FROM user_cards WHERE user_id=?", (uid,)).fetchall()}
+    con.close()
+
+    droppable = [cid for cid in range(1, 31) if cid not in owned]
+    if not droppable:
+        droppable = list(range(1, 31))
+
+    r = random.random()
+    if r < 0.75:
+        pool = [c for c in droppable if c <= 18]
+    elif r < 0.95:
+        pool = [c for c in droppable if 19 <= c <= 26]
+    else:
+        pool = [c for c in droppable if 27 <= c <= 30]
+    if not pool:
+        pool = droppable
+
+    card_id = random.choice(pool)
+    is_new = grant_card(uid, card_id)
+    bump_catalog_version()
+
+    state["dailyCardDate"] = today
+    payload = json.dumps(state, separators=(",", ":"))
+    con = db()
+    con.execute(
+        "INSERT INTO user_state (user_id, data, updated_at) VALUES (?,?,?) "
+        "ON CONFLICT(user_id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at",
+        (uid, payload, int(time.time())),
+    )
+    con.commit(); con.close()
+    mark_db_dirty()
+    asyncio.create_task(tg_save_db_backup(force=True))
+
+    return {"ok": True, "card_id": card_id, "is_new": is_new}
+
+
+@app.get("/api/today_offer")
+def today_offer(uid: int = Depends(auth)):
+    """Ein zufälliges Tages-Angebot basierend auf Datum + User."""
+    seed_str = f"{uid}-{time.strftime('%Y-%m-%d')}"
+    h = int(hashlib.md5(seed_str.encode()).hexdigest(), 16)
+    rng = random.Random(h)
+    card_id = rng.randint(1, 30)
+    discount = rng.choice([0.3, 0.5])
+    # Skip wenn User Karte schon hat
+    if user_has_card(uid, card_id):
+        return {"ok": False, "reason": "already_owned"}
+    rarity = CARD_RARITY.get(card_id, "common")
+    base_price = CARD_PRICES.get(rarity, 400)
+    return {
+        "ok": True,
+        "card_id": card_id,
+        "rarity": rarity,
+        "base_price": base_price,
+        "discount_pct": int(discount * 100),
+        "price": int(base_price * (1 - discount)),
+    }
+
+
+class BuyOfferReq(BaseModel):
+    card_id: int
+
+
+@app.post("/api/buy_offer")
+def buy_offer(req: BuyOfferReq, uid: int = Depends(auth)):
+    seed_str = f"{uid}-{time.strftime('%Y-%m-%d')}"
+    h = int(hashlib.md5(seed_str.encode()).hexdigest(), 16)
+    rng = random.Random(h)
+    expected_card = rng.randint(1, 30)
+    discount = rng.choice([0.3, 0.5])
+    if req.card_id != expected_card:
+        raise HTTPException(400, "Ungültiges Angebot")
+    if user_has_card(uid, req.card_id):
+        raise HTTPException(400, "Karte bereits vorhanden")
+    rarity = CARD_RARITY.get(req.card_id, "common")
+    base_price = CARD_PRICES.get(rarity, 400)
+    price = int(base_price * (1 - discount))
+    u = get_user(uid)
+    if u["coins"] < price:
+        raise HTTPException(400, "Nicht genug Coins")
+    new_coins = u["coins"] - price
+    update_user(uid, coins=new_coins)
+    grant_card(uid, req.card_id)
+    bump_catalog_version()
+    return {"ok": True, "card_id": req.card_id, "price": price, "coins": new_coins}
 
 
 # ═══════════════════════════════════════════════════════════
@@ -1001,6 +1168,9 @@ def bj_start(req: PlayReq, uid: int = Depends(auth)):
         raise HTTPException(400, "Einsatz ungültig")
     if req.bet > u["coins"]:
         raise HTTPException(400, "Nicht genug Coins")
+
+    try: maybe_grant_invite_reward(uid)
+    except Exception: pass
 
     deck = new_deck()
     player = [deck.pop(), deck.pop()]
@@ -1106,6 +1276,8 @@ def roulette(req: RouletteReq, uid: int = Depends(auth)):
                 total_wagered=u["total_wagered"] + req.bet,
                 total_won=u["total_won"] + payout)
     record_outcome(uid, payout > req.bet, "roulette", payout)
+    try: maybe_grant_invite_reward(uid)
+    except Exception: pass
     return {"number": n, "color": color, "payout": payout, "delta": delta, "coins": new_coins}
 
 
@@ -1129,6 +1301,8 @@ def crash_start(req: CrashStartReq, uid: int = Depends(auth)):
     update_user(uid, coins=new_coins, total_wagered=u["total_wagered"] + req.bet)
     point = crash_multiplier(u)
     crash_sessions[uid] = {"bet": req.bet, "point": point, "cashed": False}
+    try: maybe_grant_invite_reward(uid)
+    except Exception: pass
     return {"ok": True, "coins": new_coins, "crash_point": point}
 
 
@@ -1179,6 +1353,11 @@ CARD_PRICES = {"common": 400, "rare": 1200, "epic": 3500, "legendary": 9000}
 VIP_PRICES  = {"common": 800, "rare": 2500, "epic": 6000, "legendary": 15000}
 CARD_RARITY = {i: ("common" if i <= 18 else "rare" if i <= 26 else "epic" if i <= 29 else "legendary")
                for i in range(1, 31)}
+CARD_RARITY.update({
+    31: "rare", 32: "rare", 33: "rare", 34: "rare", 35: "rare", 36: "rare",
+    37: "epic", 38: "epic",
+    39: "legendary", 40: "legendary",
+})
 
 
 class BuyCardReq(BaseModel):
@@ -1188,7 +1367,7 @@ class BuyCardReq(BaseModel):
 @app.post("/api/buy_card")
 def buy_card(req: BuyCardReq, uid: int = Depends(auth)):
     cid = req.card_id
-    if cid not in CARD_RARITY:
+    if cid not in CARD_RARITY or cid >= 31:
         raise HTTPException(400, "Unbekannte Karte")
     info = get_card_vip_info(cid)
     if info["is_vip_card"]:
@@ -1203,6 +1382,7 @@ def buy_card(req: BuyCardReq, uid: int = Depends(auth)):
     new_coins = u["coins"] - price
     update_user(uid, coins=new_coins)
     grant_card(uid, cid)
+    bump_catalog_version()
     return {"ok": True, "card_id": cid, "price": price, "rarity": rarity, "coins": new_coins}
 
 
@@ -1239,68 +1419,58 @@ def unlock_vip(req: UnlockVipReq, uid: int = Depends(auth)):
 @app.get("/api/media/{card_id}")
 async def media_proxy(card_id: int):
     import urllib.request
-    if card_id < 1 or card_id > 30:
+    if card_id < 1 or card_id > 40:
         raise HTTPException(404, "Nicht gefunden")
-
     info = get_card_vip_info(card_id)
-
-    # 1) Telegram-Storage hat Vorrang (falls hochgeladen)
     tg_fid = info.get("tg_file_id") or ""
     if tg_fid:
         data = await tg_get_document_content(tg_fid)
         if data:
-            # MIME aus magic bytes
             mime = "image/jpeg"
             if data[:8] == b"\x89PNG\r\n\x1a\n": mime = "image/png"
             elif data[:6] in (b"GIF87a", b"GIF89a"): mime = "image/gif"
             elif data[:4] == b"RIFF" and data[8:12] == b"WEBP": mime = "image/webp"
-            return Response(
-                content=data, media_type=mime,
-                headers={
-                    "Cache-Control": "public, max-age=3600",
-                    "Access-Control-Allow-Origin": "*",
-                },
-            )
-
-    # 2) Lokale Datei (falls vorhanden)
+            return Response(content=data, media_type=mime,
+                headers={"Cache-Control": "public, max-age=3600", "Access-Control-Allow-Origin": "*"})
     local = get_local_card_file(card_id)
     if local:
         ext = local.rsplit(".", 1)[-1].lower()
-        mime = {
-            "png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
-            "webp": "image/webp", "gif": "image/gif",
-        }.get(ext, "image/jpeg")
-        return FileResponse(
-            local, media_type=mime,
-            headers={
-                "Cache-Control": "public, max-age=31536000, immutable",
-                "Access-Control-Allow-Origin": "*",
-            },
-        )
-
-    # 3) Remote-URL aus DB durchreichen
+        mime = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
+                "webp": "image/webp", "gif": "image/gif"}.get(ext, "image/jpeg")
+        return FileResponse(local, media_type=mime,
+            headers={"Cache-Control": "public, max-age=31536000, immutable", "Access-Control-Allow-Origin": "*"})
     url = info.get("image_url") or ""
     if not url or url.startswith("/api/media/"):
         raise HTTPException(404, "Kein Bild konfiguriert")
     try:
-        req = urllib.request.Request(
-            url,
-            headers={"User-Agent": "Mozilla/5.0 CasinoHuntBot/1.0", "Accept": "image/*,*/*"},
-            method="GET",
-        )
+        req = urllib.request.Request(url,
+            headers={"User-Agent": "Mozilla/5.0 CasinoHuntBot/1.0", "Accept": "image/*,*/*"}, method="GET")
         with urllib.request.urlopen(req, timeout=12) as resp:
             data = resp.read()
             ctype = resp.headers.get("Content-Type") or "image/jpeg"
             if not ctype.startswith("image/"): ctype = "image/jpeg"
-            return Response(
-                content=data, media_type=ctype,
-                headers={
-                    "Cache-Control": "public, max-age=1800",
-                    "Access-Control-Allow-Origin": "*",
-                },
-            )
+            return Response(content=data, media_type=ctype,
+                headers={"Cache-Control": "public, max-age=1800", "Access-Control-Allow-Origin": "*"})
     except Exception as e:
         raise HTTPException(502, f"Bild konnte nicht geladen werden: {e}")
+
+
+@app.get("/api/voice/{card_id}")
+async def voice_proxy(card_id: int):
+    if card_id < 1 or card_id > 40:
+        raise HTTPException(404, "Nicht gefunden")
+    info = get_card_vip_info(card_id)
+    fid = info.get("tg_voice_file_id") or ""
+    if not fid:
+        raise HTTPException(404, "Keine Voice konfiguriert")
+    data = await tg_get_document_content(fid)
+    if not data:
+        raise HTTPException(502, "Voice konnte nicht geladen werden")
+    mime = "audio/ogg"
+    if data[:3] == b"ID3" or data[:2] == b"\xff\xfb": mime = "audio/mpeg"
+    elif data[:4] == b"RIFF": mime = "audio/wav"
+    return Response(content=data, media_type=mime,
+        headers={"Cache-Control": "public, max-age=3600", "Access-Control-Allow-Origin": "*"})
 
 
 class GrantCardReq(BaseModel):
@@ -1313,6 +1483,7 @@ def grant_card_api(req: GrantCardReq, uid: int = Depends(auth)):
     if cid not in CARD_RARITY:
         raise HTTPException(400, "Unbekannte Karte")
     is_new = grant_card(uid, cid)
+    if is_new: bump_catalog_version()
     return {"ok": True, "card_id": cid, "is_new": is_new}
 
 
@@ -1327,6 +1498,7 @@ def sync_collection(req: SyncCollectionReq, uid: int = Depends(auth)):
         try: cid = int(cid)
         except Exception: continue
         if grant_card(uid, cid): added += 1
+    if added: bump_catalog_version()
     return {"ok": True, "added": added, "collection": get_user_collection(uid)}
 
 
@@ -1336,7 +1508,7 @@ def api_collection(uid: int = Depends(auth)):
     owned_ids = {c["card_id"] for c in col}
     adm = is_admin(uid)
     catalog = []
-    for cid in range(1, 31):
+    for cid in range(1, 41):
         rarity = CARD_RARITY.get(cid, "common")
         info = get_card_vip_info(cid)
         owned = cid in owned_ids
@@ -1353,19 +1525,23 @@ def api_collection(uid: int = Depends(auth)):
             "paypal_link": info["paypal_link"] if info["is_vip_card"] else "",
             "buy_price": CARD_PRICES.get(rarity, 400),
             "vip_price": VIP_PRICES.get(rarity, 800),
+            "is_invite_card": cid >= 31,
         })
+    invite_owned = len([c for c in owned_ids if c >= 31])
     return {
         "collection": col,
         "catalog": catalog,
         "owned_count": len(owned_ids),
-        "total": 30,
+        "invite_owned_count": invite_owned,
+        "invite_total": len(INVITE_CARD_IDS),
+        "total": 40,
         "is_admin": is_admin(uid),
         "version": _catalog_version(),
     }
 
 
 # ═══════════════════════════════════════════════════════════
-# ADMIN: Karten-Bild per URL setzen
+# ADMIN
 # ═══════════════════════════════════════════════════════════
 class AdminImageReq(BaseModel):
     card_id: int
@@ -1388,24 +1564,19 @@ async def admin_card_image(req: AdminImageReq, uid: int = Depends(auth)):
     cid = req.card_id
     if cid not in CARD_RARITY:
         raise HTTPException(400, "Unbekannte Karte")
-
     url = (req.image_url or "").strip()
     if url:
         if url.startswith("//"): url = "https:" + url
         if not (url.startswith("https://") or url.startswith("http://")):
             raise HTTPException(400, "Bild-URL muss mit http(s):// beginnen")
-
     clink = (req.creator_link or "").strip()
     if clink and not (clink.startswith("https://t.me/") or clink.startswith("https://telegram.me/")):
         raise HTTPException(400, "creator_link muss https://t.me/... sein")
-
     plink = (req.paypal_link or "").strip()
     if plink and not plink.startswith("https://"):
         raise HTTPException(400, "paypal_link muss https:// sein")
-
     if url and not url.startswith("/api/media/"):
         _remove_local_card_files(cid)
-
     con = db()
     con.execute(
         "INSERT INTO card_media (card_id, image_url, creator_link, paypal_link, tg_file_id, updated_at) VALUES (?,?,?,?,?,?) "
@@ -1424,15 +1595,13 @@ async def admin_card_image(req: AdminImageReq, uid: int = Depends(auth)):
             "version": _catalog_version()}
 
 
-# ═══════════════════════════════════════════════════════════
-# ADMIN: Karten-Bild als Datei hochladen (→ Telegram Storage)
-# ═══════════════════════════════════════════════════════════
 @app.post("/api/admin/card_image_upload")
 async def admin_upload_image(
     card_id: int = Form(...),
     creator_link: str = Form(""),
     paypal_link: str = Form(""),
     file: UploadFile = File(...),
+    voice_file: Optional[UploadFile] = File(None),
     uid: int = Depends(auth),
 ):
     require_admin(uid)
@@ -1445,7 +1614,6 @@ async def admin_upload_image(
     if len(content) < 100:
         raise HTTPException(400, "Datei zu klein / leer")
 
-    # Echte Format-Erkennung via Magic Bytes
     ext = None
     magic = content[:12]
     if magic[:8] == b"\x89PNG\r\n\x1a\n": ext = "png"
@@ -1453,7 +1621,7 @@ async def admin_upload_image(
     elif magic[:6] in (b"GIF87a", b"GIF89a"): ext = "gif"
     elif magic[:4] == b"RIFF" and magic[8:12] == b"WEBP": ext = "webp"
     if not ext:
-        raise HTTPException(400, "Kein gültiges Bild (PNG/JPG/GIF/WebP)")
+        raise HTTPException(400, "Kein gültiges Bild")
 
     clink = (creator_link or "").strip()
     if clink and not (clink.startswith("https://t.me/") or clink.startswith("https://telegram.me/")):
@@ -1462,42 +1630,48 @@ async def admin_upload_image(
     if plink and not plink.startswith("https://"):
         raise HTTPException(400, "paypal_link muss https:// sein")
 
-    # Alte Dateien entfernen
     _remove_local_card_files(card_id)
 
-    # 1) Upload zu Telegram-Storage (falls konfiguriert)
     tg_file_id = ""
     if STORAGE_CHAT_ID and BOT_INSTANCE is not None:
         ts = int(time.time())
-        res = await tg_send_document(
-            content, f"card-{card_id}-{ts}.{ext}",
-            f"🃏 VIP Karte {card_id} · {time.strftime('%Y-%m-%d %H:%M', time.localtime(ts))}"
-        )
-        if res:
-            tg_file_id = res["file_id"]
-            print(f"✅ VIP-Bild Karte {card_id} zu Telegram hochgeladen: {tg_file_id[:30]}…")
-        else:
-            print("⚠️ Telegram-Upload fehlgeschlagen – Fallback auf lokalen Speicher")
-    else:
-        print("ℹ️ STORAGE_CHAT_ID nicht gesetzt – lokaler Speicher")
+        res = await tg_send_document(content, f"card-{card_id}-{ts}.{ext}",
+                                     f"🃏 Karte {card_id} · {time.strftime('%Y-%m-%d %H:%M', time.localtime(ts))}")
+        if res: tg_file_id = res["file_id"]
 
-    # 2) Fallback: lokal speichern (falls Telegram fehlschlägt oder nicht konfiguriert)
     local_path = None
     if not tg_file_id:
         local_path = os.path.join(CARDS_MEDIA_DIR, f"{card_id}.{ext}")
         with open(local_path, "wb") as f:
             f.write(content)
 
+    tg_voice_file_id = ""
+    if voice_file:
+        try:
+            vdata = await voice_file.read()
+            if len(vdata) > 3 * 1024 * 1024:
+                print(f"voice too large: {len(vdata)}")
+            elif len(vdata) > 100 and STORAGE_CHAT_ID and BOT_INSTANCE is not None:
+                ts = int(time.time())
+                vres = await tg_send_document(vdata, f"voice-{card_id}-{ts}.ogg",
+                                              f"🎙️ Voice Karte {card_id}")
+                if vres: tg_voice_file_id = vres["file_id"]
+        except Exception as e:
+            print(f"voice upload error: {e}")
+
     ts = int(time.time())
     image_url = f"/api/media/{card_id}?v={ts}"
 
     con = db()
     con.execute(
-        "INSERT INTO card_media (card_id, image_url, creator_link, paypal_link, tg_file_id, updated_at) VALUES (?,?,?,?,?,?) "
+        "INSERT INTO card_media (card_id, image_url, creator_link, paypal_link, tg_file_id, tg_voice_file_id, updated_at) "
+        "VALUES (?,?,?,?,?,?,?) "
         "ON CONFLICT(card_id) DO UPDATE SET image_url=excluded.image_url, "
         "creator_link=excluded.creator_link, paypal_link=excluded.paypal_link, "
-        "tg_file_id=excluded.tg_file_id, updated_at=excluded.updated_at",
-        (card_id, image_url, clink, plink, tg_file_id, ts),
+        "tg_file_id=excluded.tg_file_id, "
+        "tg_voice_file_id=CASE WHEN excluded.tg_voice_file_id != '' THEN excluded.tg_voice_file_id ELSE card_media.tg_voice_file_id END, "
+        "updated_at=excluded.updated_at",
+        (card_id, image_url, clink, plink, tg_file_id, tg_voice_file_id, ts),
     )
     con.commit(); con.close()
     save_media_backup()
@@ -1505,19 +1679,17 @@ async def admin_upload_image(
     mark_db_dirty()
     asyncio.create_task(tg_save_db_backup(force=True))
 
-    return {
-        "ok": True, "card_id": card_id,
-        "image_url": image_url,
-        "creator_link": clink, "paypal_link": plink,
-        "storage": "telegram" if tg_file_id else "local",
-        "version": _catalog_version(),
-    }
+    return {"ok": True, "card_id": card_id, "image_url": image_url,
+            "creator_link": clink, "paypal_link": plink,
+            "has_voice": bool(tg_voice_file_id),
+            "storage": "telegram" if tg_file_id else "local",
+            "version": _catalog_version()}
 
 
 @app.delete("/api/admin/card_image/{card_id}")
 async def admin_delete_image(card_id: int, uid: int = Depends(auth)):
     require_admin(uid)
-    if card_id < 1 or card_id > 30:
+    if card_id < 1 or card_id > 40:
         raise HTTPException(400, "Ungültige Karte")
     _remove_local_card_files(card_id)
     con = db()
@@ -1527,13 +1699,9 @@ async def admin_delete_image(card_id: int, uid: int = Depends(auth)):
     bump_catalog_version()
     mark_db_dirty()
     asyncio.create_task(tg_save_db_backup(force=True))
-    return {"ok": True, "card_id": card_id, "is_vip_card": False,
-            "version": _catalog_version()}
+    return {"ok": True, "card_id": card_id, "is_vip_card": False, "version": _catalog_version()}
 
 
-# ═══════════════════════════════════════════════════════════
-# ADMIN: manueller DB-Backup-Trigger
-# ═══════════════════════════════════════════════════════════
 @app.post("/api/admin/backup")
 async def admin_backup_now(uid: int = Depends(auth)):
     require_admin(uid)
@@ -1543,8 +1711,8 @@ async def admin_backup_now(uid: int = Depends(auth)):
         raise HTTPException(503, "Bot nicht bereit")
     ok = await tg_save_db_backup(force=True)
     if not ok:
-        raise HTTPException(500, "Backup fehlgeschlagen – siehe Logs")
-    return {"ok": True, "message": "DB-Backup in Telegram-Channel hochgeladen"}
+        raise HTTPException(500, "Backup fehlgeschlagen")
+    return {"ok": True, "message": "Backup in Telegram-Channel"}
 
 
 @app.get("/api/admin/storage_status")
@@ -1557,6 +1725,38 @@ async def admin_storage_status(uid: int = Depends(auth)):
         "db_dirty": _db_dirty,
         "backup_interval_s": DB_BACKUP_INTERVAL,
     }
+
+
+@app.post("/api/admin/restore_now")
+async def admin_restore_now(uid: int = Depends(auth)):
+    require_admin(uid)
+    if not STORAGE_CHAT_ID:
+        raise HTTPException(400, "STORAGE_CHAT_ID nicht gesetzt")
+    if BOT_INSTANCE is None:
+        raise HTTPException(503, "Bot nicht bereit")
+    try:
+        chat = await BOT_INSTANCE.get_chat(STORAGE_CHAT_ID)
+        pinned = getattr(chat, "pinned_message", None)
+        if not pinned or not pinned.document:
+            raise HTTPException(404, "Kein gepinntes Backup")
+        file_id = pinned.document.file_id
+        content = await tg_get_document_content(file_id)
+        if not content:
+            raise HTTPException(500, "Download fehlgeschlagen")
+        raw = gzip.decompress(content)
+        if not raw.startswith(b"SQLite format 3"):
+            raise HTTPException(400, "Ungültiges Backup")
+        if os.path.isfile(DB):
+            try: os.rename(DB, DB + f".{int(time.time())}.bak")
+            except Exception: pass
+        with open(DB, "wb") as f:
+            f.write(raw)
+        init_db()
+        return {"ok": True, "restored_bytes": len(raw)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Restore-Fehler: {e}")
 
 
 # ═══════════════════════════════════════════════════════════
@@ -1594,16 +1794,6 @@ async def shop_invoice(req: ShopInvoiceReq, uid: int = Depends(auth)):
             "coins": pack["coins"], "stars": pack["stars"]}
 
 
-@app.get("/api/leaderboard")
-def leaderboard(uid: int = Depends(auth)):
-    con = db()
-    rows = con.execute("SELECT user_id, coins FROM users ORDER BY coins DESC LIMIT 10").fetchall()
-    con.close()
-    entries = [{"user_id": r["user_id"], "coins": r["coins"], "is_me": r["user_id"] == uid} for r in rows]
-    idx = next((i for i, e in enumerate(entries) if e["is_me"]), None)
-    return {"entries": entries, "my_rank": idx + 1 if idx is not None else None}
-
-
 @app.get("/api/feed")
 def feed(uid: int = Depends(auth)):
     con = db()
@@ -1627,7 +1817,7 @@ def admin_stats(uid: int = Depends(auth)):
 
 
 # ═══════════════════════════════════════════════════════════
-# TELEGRAM BOT
+# BOT
 # ═══════════════════════════════════════════════════════════
 WELCOME = (
     "🎰 <b>Virtual Casino</b>\n"
@@ -1656,11 +1846,9 @@ async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_chatid(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Zeigt die Chat-ID – funktioniert im Channel und bei Weiterleitung."""
     msg = update.effective_message
     chat = update.effective_chat
-    if not msg:
-        return
+    if not msg: return
     lines = []
     if msg.forward_from_chat:
         fc = msg.forward_from_chat
@@ -1672,25 +1860,43 @@ async def cmd_chatid(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         lines.append(f"📌 Typ: <code>{chat.type}</code>")
         lines.append(f"🆔 ID: <code>{chat.id}</code>")
     lines.append("")
-    lines.append("💡 Diese ID als <code>STORAGE_CHAT_ID</code> in Render eintragen.")
+    lines.append("💡 Diese ID als <code>STORAGE_CHAT_ID</code> eintragen.")
     await msg.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
 
 
 async def cmd_backup(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Manueller DB-Backup-Trigger – nur für Admins."""
     uid = update.effective_user.id if update.effective_user else 0
     if uid not in ADMIN_IDS:
-        await update.message.reply_text("⛔ Kein Admin")
-        return
+        await update.message.reply_text("⛔ Kein Admin"); return
     if not STORAGE_CHAT_ID:
-        await update.message.reply_text("❌ STORAGE_CHAT_ID nicht gesetzt")
-        return
+        await update.message.reply_text("❌ STORAGE_CHAT_ID nicht gesetzt"); return
     await update.message.reply_text("⏳ Backup läuft…")
     ok = await tg_save_db_backup(force=True)
-    if ok:
-        await update.message.reply_text("✅ DB-Backup in Storage-Channel hochgeladen")
-    else:
-        await update.message.reply_text("❌ Backup fehlgeschlagen – siehe Logs")
+    await update.message.reply_text("✅ Backup hochgeladen" if ok else "❌ Fehlgeschlagen")
+
+
+async def cmd_restore(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id if update.effective_user else 0
+    if uid not in ADMIN_IDS:
+        await update.message.reply_text("⛔ Kein Admin"); return
+    if not STORAGE_CHAT_ID:
+        await update.message.reply_text("❌ STORAGE_CHAT_ID nicht gesetzt"); return
+    await update.message.reply_text("⏳ Restore läuft…")
+    try:
+        chat = await BOT_INSTANCE.get_chat(STORAGE_CHAT_ID)
+        pinned = getattr(chat, "pinned_message", None)
+        if not pinned or not pinned.document:
+            await update.message.reply_text("❌ Kein gepinntes Backup gefunden"); return
+        content = await tg_get_document_content(pinned.document.file_id)
+        if not content:
+            await update.message.reply_text("❌ Download fehlgeschlagen"); return
+        raw = gzip.decompress(content)
+        with open(DB, "wb") as f:
+            f.write(raw)
+        init_db()
+        await update.message.reply_text(f"✅ DB wiederhergestellt ({len(raw)} bytes)")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Fehler: {e}")
 
 
 async def on_precheckout(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -1707,8 +1913,7 @@ async def on_successful_payment(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     msg = update.message
     if not msg or not msg.successful_payment: return
     sp = msg.successful_payment
-    payload = sp.invoice_payload or ""
-    parts = payload.split(":")
+    parts = (sp.invoice_payload or "").split(":")
     if len(parts) < 3 or parts[0] != "stars": return
     try:
         uid = int(parts[1]); pack_id = parts[2]
@@ -1724,15 +1929,13 @@ async def on_successful_payment(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 async def post_init(bot_app):
-    await bot_app.bot.set_my_commands(
-        [
-            BotCommand("start", "Casino öffnen"),
-            BotCommand("help", "Hilfe"),
-            BotCommand("chatid", "Chat-ID anzeigen"),
-            BotCommand("backup", "DB-Backup (Admin)"),
-        ],
-        scope=BotCommandScopeDefault(),
-    )
+    await bot_app.bot.set_my_commands([
+        BotCommand("start", "Casino öffnen"),
+        BotCommand("help", "Hilfe"),
+        BotCommand("chatid", "Chat-ID anzeigen"),
+        BotCommand("backup", "DB-Backup (Admin)"),
+        BotCommand("restore", "DB-Restore (Admin)"),
+    ], scope=BotCommandScopeDefault())
     try:
         await bot_app.bot.set_chat_menu_button(
             menu_button=MenuButtonWebApp(text="🎮 Casino", web_app=WebAppInfo(url=WEBAPP_URL))
@@ -1753,6 +1956,7 @@ async def main():
             bot_app.add_handler(CommandHandler("help", cmd_help))
             bot_app.add_handler(CommandHandler("chatid", cmd_chatid))
             bot_app.add_handler(CommandHandler("backup", cmd_backup))
+            bot_app.add_handler(CommandHandler("restore", cmd_restore))
             bot_app.add_handler(PreCheckoutQueryHandler(on_precheckout))
             bot_app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, on_successful_payment))
             await bot_app.initialize()
@@ -1777,36 +1981,31 @@ async def main():
     else:
         print("ENABLE_BOT_POLLING=0 → nur API")
 
-    # ── Telegram-Storage: DB bei Bedarf wiederherstellen ──
     if BOT_INSTANCE is not None and STORAGE_CHAT_ID:
-        print(f"Telegram-Storage aktiv: chat_id={STORAGE_CHAT_ID}")
-        # Kleiner Delay, damit Bot die API-Verbindung aufgebaut hat
-        await asyncio.sleep(1.0)
+        print(f"✅ Telegram-Storage AKTIV: chat_id={STORAGE_CHAT_ID}")
+        await asyncio.sleep(2.0)
         try:
             await tg_restore_db()
         except Exception as e:
-            print(f"tg_restore_db: {e}")
-        # Backup-Loop starten
+            print(f"tg_restore_db crash: {e}")
         asyncio.create_task(db_backup_loop())
     elif STORAGE_CHAT_ID and BOT_INSTANCE is None:
-        print("⚠️ STORAGE_CHAT_ID gesetzt, aber Bot nicht bereit – Storage deaktiviert")
+        print("❌ STORAGE_CHAT_ID gesetzt, aber Bot nicht bereit")
     else:
-        print("ℹ️ STORAGE_CHAT_ID nicht gesetzt – keine Telegram-Persistenz")
+        print("❌ STORAGE_CHAT_ID NICHT GESETZT – keine Persistenz!")
 
     config = uvicorn.Config(app, host="0.0.0.0", port=PORT, log_level="info")
     server = uvicorn.Server(config)
     print(f"Server startet auf Port {PORT}")
     print(f"WebApp URL: {WEBAPP_URL}")
     print(f"DATA_DIR: {_DATA_DIR}")
-    print(f"STORAGE: {'Telegram (' + STORAGE_CHAT_ID + ')' if STORAGE_CHAT_ID else 'lokal (flüchtig)'}")
 
     try:
         await server.serve()
     finally:
-        # Letztes Backup vor dem Beenden
         if BOT_INSTANCE and STORAGE_CHAT_ID:
             try:
-                print("Beende – letztes DB-Backup…")
+                print("Beende – letztes Backup…")
                 await tg_save_db_backup(force=True)
             except Exception as e:
                 print(f"final backup: {e}")
