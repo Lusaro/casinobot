@@ -18,7 +18,7 @@ import sqlite3
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup,
     WebAppInfo, MenuButtonWebApp, BotCommand, BotCommandScopeDefault,
-    LinkPreviewOptions, LabeledPrice, PreCheckoutQuery, InputFile,
+    LinkPreviewOptions, LabeledPrice, InputFile,
 )
 from telegram.ext import PreCheckoutQueryHandler, MessageHandler, filters
 from telegram.constants import ParseMode
@@ -36,7 +36,8 @@ AUTH_MAX_AGE = 86400
 NO_PREVIEW = LinkPreviewOptions(is_disabled=True)
 
 STORAGE_CHAT_ID = os.environ.get("STORAGE_CHAT_ID", "").strip()
-DB_BACKUP_INTERVAL = int(os.environ.get("DB_BACKUP_INTERVAL", "120"))
+# FIX: 30s statt 120s - Backup häufiger
+DB_BACKUP_INTERVAL = int(os.environ.get("DB_BACKUP_INTERVAL", "30"))
 
 ADMIN_IDS = [6098272278]
 
@@ -55,10 +56,30 @@ bj_sessions = {}
 crash_sessions = {}
 _db_dirty = False
 
+# FIX: Backup-Trigger aus Sync-Code
+_main_loop: Optional[asyncio.AbstractEventLoop] = None
+_last_backup_request = 0.0
+
+
+def request_backup(debounce_s: float = 8.0, force: bool = False):
+    """Sichere DB zeitnah in Telegram – funktioniert aus Sync- UND Async-Code."""
+    global _last_backup_request
+    if _main_loop is None or BOT_INSTANCE is None or not STORAGE_CHAT_ID:
+        return
+    now = time.time()
+    if not force and (now - _last_backup_request) < debounce_s:
+        return
+    _last_backup_request = now
+    try:
+        asyncio.run_coroutine_threadsafe(tg_save_db_backup(force=True), _main_loop)
+    except Exception as e:
+        print(f"request_backup: {e}")
+
 
 def mark_db_dirty():
     global _db_dirty
     _db_dirty = True
+    request_backup()
 
 
 def default_card_image_url(card_id: int) -> str:
@@ -279,8 +300,22 @@ async def tg_restore_db():
         print("❌ Bot nicht erreichbar – Restore abgebrochen")
         return False
 
-    if os.path.isfile(DB) and os.path.getsize(DB) > 8192:
-        print(f"ℹ️ DB bereits vorhanden ({os.path.getsize(DB)} B) – kein Restore")
+    # FIX: Prüfe tatsächlichen Inhalt statt Dateigröße
+    should_restore = True
+    if os.path.isfile(DB):
+        try:
+            con = db()
+            n_users = con.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+            n_cards = con.execute("SELECT COUNT(*) FROM user_cards").fetchone()[0]
+            con.close()
+            if n_users > 0 or n_cards > 0:
+                print(f"ℹ️ DB hat Daten ({n_users} User, {n_cards} Karten) – kein Restore")
+                should_restore = False
+        except Exception:
+            # Tabelle fehlt o.ä. → restore versuchen
+            should_restore = True
+
+    if not should_restore:
         return False
 
     file_id = None
@@ -1016,6 +1051,7 @@ def daily_card(uid: int = Depends(auth)):
     today = time.strftime("%Y-%m-%d", time.localtime())
     last = state.get("dailyCardDate", "")
     if last == today:
+        con.close()
         return {"ok": False, "reason": "already_claimed"}
 
     owned = {r["card_id"] for r in con.execute("SELECT card_id FROM user_cards WHERE user_id=?", (uid,)).fetchall()}
@@ -1049,7 +1085,7 @@ def daily_card(uid: int = Depends(auth)):
     )
     con.commit(); con.close()
     mark_db_dirty()
-    asyncio.create_task(tg_save_db_backup(force=True))
+    # FIX: kein asyncio.create_task hier – mark_db_dirty triggert request_backup()
 
     return {"ok": True, "card_id": card_id, "is_new": is_new}
 
@@ -1062,7 +1098,6 @@ def today_offer(uid: int = Depends(auth)):
     rng = random.Random(h)
     card_id = rng.randint(1, 30)
     discount = rng.choice([0.3, 0.5])
-    # Skip wenn User Karte schon hat
     if user_has_card(uid, card_id):
         return {"ok": False, "reason": "already_owned"}
     rarity = CARD_RARITY.get(card_id, "common")
@@ -1589,7 +1624,6 @@ async def admin_card_image(req: AdminImageReq, uid: int = Depends(auth)):
     save_media_backup()
     bump_catalog_version()
     mark_db_dirty()
-    asyncio.create_task(tg_save_db_backup(force=True))
     return {"ok": True, "card_id": cid, "is_vip_card": True,
             "image_url": url, "creator_link": clink, "paypal_link": plink,
             "version": _catalog_version()}
@@ -1639,7 +1673,6 @@ async def admin_upload_image(
                                      f"🃏 Karte {card_id} · {time.strftime('%Y-%m-%d %H:%M', time.localtime(ts))}")
         if res: tg_file_id = res["file_id"]
 
-    local_path = None
     if not tg_file_id:
         local_path = os.path.join(CARDS_MEDIA_DIR, f"{card_id}.{ext}")
         with open(local_path, "wb") as f:
@@ -1677,7 +1710,6 @@ async def admin_upload_image(
     save_media_backup()
     bump_catalog_version()
     mark_db_dirty()
-    asyncio.create_task(tg_save_db_backup(force=True))
 
     return {"ok": True, "card_id": card_id, "image_url": image_url,
             "creator_link": clink, "paypal_link": plink,
@@ -1698,7 +1730,6 @@ async def admin_delete_image(card_id: int, uid: int = Depends(auth)):
     save_media_backup()
     bump_catalog_version()
     mark_db_dirty()
-    asyncio.create_task(tg_save_db_backup(force=True))
     return {"ok": True, "card_id": card_id, "is_vip_card": False, "version": _catalog_version()}
 
 
@@ -1725,6 +1756,28 @@ async def admin_storage_status(uid: int = Depends(auth)):
         "db_dirty": _db_dirty,
         "backup_interval_s": DB_BACKUP_INTERVAL,
     }
+
+
+# FIX: Neuer Health-Endpoint zur Diagnose
+@app.get("/api/admin/health")
+async def admin_health(uid: int = Depends(auth)):
+    require_admin(uid)
+    con = db()
+    stats = {
+        "users": con.execute("SELECT COUNT(*) FROM users").fetchone()[0],
+        "user_cards": con.execute("SELECT COUNT(*) FROM user_cards").fetchone()[0],
+        "user_state": con.execute("SELECT COUNT(*) FROM user_state").fetchone()[0],
+        "referrals": con.execute("SELECT COUNT(*) FROM referrals").fetchone()[0],
+        "wins": con.execute("SELECT COUNT(*) FROM wins").fetchone()[0],
+        "db_size": os.path.getsize(DB) if os.path.isfile(DB) else 0,
+        "db_dirty": _db_dirty,
+        "bot_ready": BOT_INSTANCE is not None,
+        "storage_chat": bool(STORAGE_CHAT_ID),
+        "backup_interval_s": DB_BACKUP_INTERVAL,
+        "main_loop_set": _main_loop is not None,
+    }
+    con.close()
+    return stats
 
 
 @app.post("/api/admin/restore_now")
@@ -1945,7 +1998,10 @@ async def post_init(bot_app):
 
 
 async def main():
-    global BOT_INSTANCE
+    global BOT_INSTANCE, _main_loop
+    # FIX: Event-Loop global setzen, damit request_backup() aus Sync-Endpoints funktioniert
+    _main_loop = asyncio.get_running_loop()
+
     enable_polling = os.environ.get("ENABLE_BOT_POLLING", "1").strip() not in ("0","false","False","no")
     bot_app = None
 
@@ -1993,6 +2049,19 @@ async def main():
         print("❌ STORAGE_CHAT_ID gesetzt, aber Bot nicht bereit")
     else:
         print("❌ STORAGE_CHAT_ID NICHT GESETZT – keine Persistenz!")
+
+    # FIX: Startup-Verifikation
+    try:
+        con = db()
+        n_users = con.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        n_cards = con.execute("SELECT COUNT(*) FROM user_cards").fetchone()[0]
+        n_state = con.execute("SELECT COUNT(*) FROM user_state").fetchone()[0]
+        con.close()
+        print(f"📊 Nach Restore: {n_users} User · {n_cards} Karten · {n_state} State-Rows")
+        if n_users == 0:
+            print("⚠️ WARNUNG: DB ist leer. Prüfe STORAGE_CHAT_ID + Bot-Polling!")
+    except Exception as e:
+        print(f"Startup-Verifikation fehlgeschlagen: {e}")
 
     config = uvicorn.Config(app, host="0.0.0.0", port=PORT, log_level="info")
     server = uvicorn.Server(config)
