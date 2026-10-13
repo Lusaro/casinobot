@@ -1071,16 +1071,21 @@ document.addEventListener("visibilitychange",()=>{
 });
 
 async function loadMeta(){
-  let merged = null;
+  let merged = null, serverEmpty = true;
   try{
     const res = await api("/api/user_state");
-    if(res && res.data && Object.keys(res.data).length)merged = res.data;
+    if(res && res.data && Object.keys(res.data).length){merged = res.data; serverEmpty = false;}
   }catch(e){}
-  if(!merged){
+  // WICHTIG: Wenn Server leer war → aus CloudStorage laden und zurückschreiben
+  if(serverEmpty){
     const raw = await cloudGet("meta");
     if(raw){try{merged = JSON.parse(raw);}catch(e){}}
   }
   if(merged)meta = {...meta,...merged};
+  // Server war leer, aber wir haben Cloud-Daten → zurück auf Server pushen
+  if(serverEmpty && merged && Object.keys(merged).length){
+    try{ await api("/api/user_state",{method:"POST",body:JSON.stringify({data:meta})}); }catch(e){}
+  }
   const today = todayKey();
   if(!meta.missions || meta.missions.date!==today){
     const picks = shuffle([...MISSION_POOL]).slice(0,3);
@@ -1747,7 +1752,6 @@ function renderFsCard(){
     else{favBtn.classList.remove("active");favBtn.textContent = "☆";}
   }else{favBtn.style.display = "none";}
   $("fs-slideshow").style.display = fsList.length>1?"block":"none";
-  // Voice-Button
   const voiceBtn = $("fs-voice");
   if(settings.voice && cat.is_vip_card){
     voiceBtn.style.display = "flex";
@@ -2456,7 +2460,6 @@ async function runSlotsSpin(bet,auto){
       if(!auto){
         await new Promise(r=>setTimeout(r,800));
       }
-      // Auto-Stop bei großem Gewinn
       if(auto && data.payout >= bet*8){
         if(info)info.textContent = `⚡ Auto-Stop: großer Gewinn!`;
         break;
@@ -2789,7 +2792,6 @@ function updateDailyBadge(){
 
 function renderDailyScreen(){
   const today = todayKey();
-  // Unendlicher Streak: kein Cap mehr
   let curDay;
   if(meta.dailyStreak.lastDate===today)curDay = meta.dailyStreak.days;
   else if(meta.dailyStreak.lastDate===yesterdayKey())curDay = meta.dailyStreak.days+1;
@@ -2797,7 +2799,6 @@ function renderDailyScreen(){
   const daysBox = $("streak-days");
   if(daysBox){
     const allDays = [...DAILY_STREAK];
-    // Bei sehr hohem Streak: zeige die nächsten 4 (rollierend)
     let slice = allDays;
     if(curDay>allDays.length){
       const extra = [];
@@ -2823,7 +2824,6 @@ function renderDailyScreen(){
     if(meta.dailyStreak.lastDate===today){claimBtn.disabled = true;claimBtn.textContent = "✅ Heute schon abgeholt";}
     else{claimBtn.disabled = false;claimBtn.textContent = "🎁 Tagesbonus abholen";}
   }
-  // Daily Card Status
   const dcWrap = $("daily-card-wrap");
   const dcBtn = $("daily-card-claim");
   const dcSub = $("daily-card-sub");
@@ -2852,7 +2852,6 @@ async function claimDaily(){
   let rewardAmount, rewardCard = false;
   if(newDays<=7){const d = DAILY_STREAK[newDays-1];rewardAmount = d.reward;rewardCard = !!d.card;}
   else{
-    // Skaliert weiter
     if(newDays===14){rewardAmount = 10000;}
     else if(newDays===30){rewardAmount = 25000;}
     else if(newDays===60){rewardAmount = 50000;}
@@ -3290,7 +3289,6 @@ $("logo").addEventListener("touchstart",()=>{
 });
 ["touchend","touchmove"].forEach(ev=>$("logo").addEventListener(ev,()=>clearTimeout(pressTimer)));
 
-// Ambient bei Erst-Interaktion
 document.body.addEventListener("touchstart",()=>{
   if(settings.ambient && !ambientNodes)startAmbient();
 },{once:true});
