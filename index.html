@@ -15,7 +15,6 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 .screen::-webkit-scrollbar{display:none}
 .screen.active{display:flex;animation:screenIn .28s cubic-bezier(.22,1,.36,1) both}
 @keyframes screenIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-/* TOPBAR – CLEAN, ohne schwarzen Balken */
 .topbar{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
 .row1{display:flex;justify-content:space-between;align-items:center;gap:8px;position:relative;z-index:2}
 .brand{font-weight:900;font-size:16px;letter-spacing:-.3px;background:linear-gradient(90deg,#fff,#c4b5fd 50%,#f0abfc 80%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;flex-shrink:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
@@ -65,12 +64,8 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 .hero-coin::before{content:'';position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.55),transparent 45%)}
 .hero-coin .sym{font-size:34px;z-index:1}
 @keyframes coinFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
-.balance-xl{font-size:26px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,#fff 10%,#ffd25e 45%,#ec4899 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
+.balance-xl{font-size:30px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,#fff 10%,#ffd25e 45%,#ec4899 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
 .balance-lbl{color:var(--hint);font-size:9px;letter-spacing:2.5px;text-transform:uppercase;font-weight:800}
-.hero-gems{display:flex;align-items:center;gap:5px;padding:5px 13px;border-radius:999px;background:linear-gradient(135deg,rgba(34,211,238,.25),rgba(59,130,246,.18));border:1.5px solid rgba(34,211,238,.55);box-shadow:0 0 18px rgba(34,211,238,.3);margin-top:2px}
-.hero-gems .gs-icon{font-size:15px;filter:drop-shadow(0 0 8px rgba(34,211,238,.9))}
-.hero-gems .gs-num{font-size:15px;font-weight:900;color:#22d3ee;text-shadow:0 0 12px rgba(34,211,238,.7);line-height:1}
-.hero-gems .gs-lbl{font-size:8px;font-weight:900;color:var(--hint);letter-spacing:2px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:6px 0 10px}
 .card{position:relative;cursor:pointer;text-align:center;padding:11px 6px 10px;border-radius:14px;background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.03));border:1px solid var(--stroke);transition:transform .12s,box-shadow .2s}
 .card:active{transform:scale(.95);box-shadow:0 0 24px rgba(124,58,237,.5)}
@@ -300,11 +295,11 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 .cd-pulse .hint{position:absolute;bottom:22%;left:0;right:0;font-size:12px;font-weight:900;letter-spacing:4px;color:rgba(255,255,255,.5);text-transform:uppercase}
 .cd-silhouette{opacity:0;transition:opacity .3s}
 .cd-silhouette.active{opacity:1}
-.cd-silhouette .sil{width:180px;height:252px;border-radius:18px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.35);box-shadow:0 0 40px rgba(255,255,255,.35),inset 0 0 40px rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:60px;animation:silShake .28s ease-in-out infinite}
+.cd-silhouette .sil{width:min(72vw,280px);aspect-ratio:.70;border-radius:18px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.35);box-shadow:0 0 40px rgba(255,255,255,.35),inset 0 0 40px rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:80px;animation:silShake .28s ease-in-out infinite}
 @keyframes silShake{0%,100%{transform:translate(0,0) rotate(0)}20%{transform:translate(-2px,1px) rotate(-1deg)}40%{transform:translate(2px,-1px) rotate(1deg)}60%{transform:translate(-1px,2px) rotate(-.5deg)}80%{transform:translate(1px,-2px) rotate(.5deg)}}
 .cd-reveal{opacity:0}
 .cd-reveal.active{opacity:1}
-.cd-reveal .reveal-card{width:180px;height:252px;border-radius:18px;overflow:hidden;background:#12081f;box-shadow:0 20px 60px rgba(0,0,0,.9);animation:revealBoom .7s cubic-bezier(.2,1.4,.4,1) forwards}
+.cd-reveal .reveal-card{width:min(72vw,280px);aspect-ratio:.70;border-radius:20px;overflow:hidden;background:#12081f;box-shadow:0 25px 70px rgba(0,0,0,.9);animation:revealBoom .7s cubic-bezier(.2,1.4,.4,1) forwards}
 @keyframes revealBoom{0%{transform:scale(.3) rotate(-8deg);opacity:0}60%{transform:scale(1.12) rotate(2deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
 .cd-reveal .reveal-card img{width:100%;height:100%;object-fit:cover;display:block}
 .cd-splash{position:absolute;inset:0;pointer-events:none;opacity:0}
@@ -376,19 +371,12 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 .toggle.on{background:linear-gradient(135deg,#7c3aed,#ec4899)}
 .toggle .toggle-knob{position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 2px 6px rgba(0,0,0,.4)}
 .toggle.on .toggle-knob{transform:translateX(20px)}
-.today-offer{margin:6px 0 10px;padding:12px;border-radius:14px;background:linear-gradient(135deg,rgba(255,50,110,.2),rgba(255,210,94,.15));border:2px solid rgba(255,50,110,.5);display:flex;align-items:center;gap:12px;animation:offerPulse 2s ease-in-out infinite;cursor:pointer}
-@keyframes offerPulse{0%,100%{box-shadow:0 0 20px rgba(255,50,110,.3)}50%{box-shadow:0 0 40px rgba(255,50,110,.6)}}
-.today-offer .to-icon{font-size:28px;flex-shrink:0}
-.today-offer .to-info{flex:1;min-width:0}
-.today-offer .to-lbl{font-size:9px;font-weight:900;letter-spacing:2px;color:#ff3366}
-.today-offer .to-title{font-size:13px;font-weight:900;color:#fff;margin-top:2px}
-.today-offer .to-sub{font-size:10px;color:var(--hint);font-weight:700;margin-top:2px}
 .daily-card-wrap{margin:14px 0 18px;padding:16px 14px;border-radius:18px;background:linear-gradient(160deg,rgba(255,210,94,.2),rgba(236,72,153,.12));border:1px solid rgba(255,210,94,.4);display:flex;flex-direction:column;gap:10px;text-align:center}
 .daily-card-wrap.claimed{opacity:.55}
 .daily-card-wrap h3{margin:0;font-size:14px;font-weight:900;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase}
 .daily-card-wrap .dc-sub{font-size:11px;color:var(--hint);font-weight:700;margin:0}
-#home-wallpaper{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;opacity:.12;filter:blur(20px) saturate(1.3);transition:background-image 1s ease-out,opacity .8s;pointer-events:none}
-#s-home{position:relative;overflow:hidden}
+#home-wallpaper{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;opacity:.30;filter:blur(10px) saturate(1.4);transition:background-image 1s ease-out,opacity .8s;pointer-events:none}
+#s-home{position:relative}
 #s-home > *:not(#home-wallpaper){position:relative;z-index:1}
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:100;padding:8px 8px 20px;display:flex;justify-content:space-around;align-items:center;background:linear-gradient(180deg,transparent,rgba(5,3,15,.9) 30%,rgba(5,3,15,.99));backdrop-filter:blur(18px);border-top:1px solid var(--stroke)}
 .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;cursor:pointer;color:var(--hint);transition:color .2s,transform .2s;position:relative}
@@ -457,6 +445,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
   <div class="fs-slide-hint">◀ wischen ▶</div>
   <div class="fs-bottom-bar">
     <button class="fs-fav-btn" id="fs-fav">☆</button>
+    <button class="fs-fav-btn" id="fs-wallpaper" title="Als Hintergrund">🖼️</button>
     <button class="btn secondary" id="fs-share">📤 Teilen</button>
     <button class="btn gold" id="fs-slideshow">▶️ Show</button>
   </div>
@@ -514,13 +503,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
       <div class="hero-coin"><div class="sym">🪙</div></div>
       <div class="balance-xl" id="balance-value" data-v="0">0</div>
       <div class="balance-lbl">Deine Coins</div>
-      <div class="hero-gems">
-        <span class="gs-icon">💎</span>
-        <span class="gs-num" id="balance-gems">0</span>
-        <span class="gs-lbl">GEMS</span>
-      </div>
     </div>
-    <div id="today-offer-container"></div>
     <div class="ticker" id="ticker"></div>
     <div class="grid">
       <div class="card" data-game="crash"><div class="icon">🚀</div><div class="ctitle">Crash</div><div class="sub">cash out!</div><div class="badge crash">NEU</div></div>
@@ -546,7 +529,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
       <button class="btn secondary" id="btn-share-fav">📤 Teilen</button>
     </div>
     <div class="fav-section" id="fav-section">
-      <div class="fav-title">⭐ Deine Favoriten</div>
+      <div class="fav-title">⭐ Deine Favoriten (Tippe 🖼️ für Hintergrund)</div>
       <div class="fav-row" id="fav-row"></div>
     </div>
     <div class="card-grid" id="card-grid"></div>
@@ -628,14 +611,6 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 
 <div class="toast" id="toast"></div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     SHOP MODAL
-     ═══════════════════════════════════════════════════════════
-     HIER KANNST DU DEINE BILDER EINTRAGEN:
-     - Coins→Gems Pakete: data-gem-coins attribut nicht ändern!
-     - Ersetze in <img src="..."> einfach deine Bildpfade
-     - Beispiele: "100.png", "coins-100.png", "https://dein-server.com/coin.png"
-     ═══════════════════════════════════════════════════════════ -->
 <div class="modal-backdrop" id="konto-modal">
   <div class="modal">
     <div class="modal-head"><div class="modal-title">🛒 Shop</div><div class="modal-close" id="konto-close">✕</div></div>
@@ -643,20 +618,17 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 
     <div style="font-size:12px;font-weight:900;color:var(--gold);margin:6px 0 8px;letter-spacing:1px">🔄 COINS → GEMS</div>
     <div class="shop-grid">
-      <!-- 10 Gems für 1.000 Coins -->
       <div class="shop-card" data-gem-coins="1000">
-        <div class="shop-img-wrap"><img src="gem.png" alt="10 Gems"></div>
+        <div class="shop-img-wrap"><img src="gem-10.png" alt="10 Gems"></div>
         <div class="shop-amount">💎 10</div>
         <div class="shop-coins-lbl">Für 1.000 Coins</div>
       </div>
-      <!-- 50 Gems für 5.000 Coins -->
       <div class="shop-card featured" data-gem-coins="5000">
         <div class="shop-badge rabatt">BELIEBT</div>
         <div class="shop-img-wrap"><img src="gem-50.png" alt="50 Gems"></div>
         <div class="shop-amount">💎 50</div>
         <div class="shop-coins-lbl">Für 5.000 Coins</div>
       </div>
-      <!-- 150 Gems für 15.000 Coins -->
       <div class="shop-card" data-gem-coins="15000">
         <div class="shop-img-wrap"><img src="gem-150.png" alt="150 Gems"></div>
         <div class="shop-amount">💎 150</div>
@@ -666,14 +638,12 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 
     <div style="font-size:12px;font-weight:900;color:var(--gold);margin:16px 0 8px;letter-spacing:1px">⭐ GEMS MIT STARS KAUFEN</div>
     <div class="shop-grid">
-      <!-- 50 Gems mit Stars -->
       <div class="shop-card" data-pack="gems_50">
         <div class="shop-img-wrap"><img src="gem-50.png" alt="50 Gems"></div>
         <div class="shop-amount">💎 50</div>
         <div class="shop-coins-lbl">Gems</div>
         <div class="shop-btn">⭐ 5</div>
       </div>
-      <!-- 150 Gems mit Stars -->
       <div class="shop-card featured" data-pack="gems_150">
         <div class="shop-badge neu">NEU</div>
         <div class="shop-img-wrap"><img src="gem-150.png" alt="150 Gems"></div>
@@ -681,7 +651,6 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
         <div class="shop-coins-lbl">Gems</div>
         <div class="shop-btn">⭐ 15</div>
       </div>
-      <!-- 300 Gems mit Stars -->
       <div class="shop-card best" data-pack="gems_300">
         <div class="shop-badge best">BEST</div>
         <div class="shop-img-wrap"><img src="gem-300.png" alt="300 Gems"></div>
@@ -1275,8 +1244,6 @@ function updateGems(){
     const el = $(id); if(!el)return;
     el.textContent = (state.gems||0).toLocaleString("de-DE");
   });
-  const big = $("balance-gems");
-  if(big)big.textContent = (state.gems||0).toLocaleString("de-DE");
   const pill = $("gems-top");
   if(pill){pill.classList.add("bump");setTimeout(()=>pill.classList.remove("bump"),200);}
 }
@@ -1321,7 +1288,6 @@ async function loadMe(){
   checkLevelUp(newLevel).catch(()=>{});
   renderDailyScreen();
   renderJackpot();
-  loadTodayOffer().catch(()=>{});
 }
 
 async function loadReferralCount(){
@@ -1465,6 +1431,19 @@ function updateWallpaper(){
   if(!hasCard(favId)){wp.style.backgroundImage="";return;}
   const url = vipImgSrc(favId);
   wp.style.backgroundImage = `url("${url}")`;
+}
+
+async function setAsWallpaper(cardId){
+  if(!hasCard(cardId))return;
+  const idx = favoriteIds.indexOf(cardId);
+  if(idx>0){ favoriteIds.splice(idx,1); favoriteIds.unshift(cardId); }
+  else if(idx<0){ favoriteIds.unshift(cardId); }
+  if(favoriteIds.length>6)favoriteIds = favoriteIds.slice(0,6);
+  await saveFavorites();
+  updateWallpaper();
+  renderCollection();
+  showToast("🖼️ Als Hintergrund gesetzt!");
+  hapticPattern.fav();
 }
 
 function renderCollection(){
@@ -1842,6 +1821,12 @@ function renderFsCard(){
     if(favoriteIds.includes(id)){favBtn.classList.add("active");favBtn.textContent = "★";}
     else{favBtn.classList.remove("active");favBtn.textContent = "☆";}
   }else{favBtn.style.display = "none";}
+  const wpBtn = $("fs-wallpaper");
+  if(hasCard(id)){
+    wpBtn.style.display = "flex";
+    if(favoriteIds[0]===id)wpBtn.classList.add("active");
+    else wpBtn.classList.remove("active");
+  }else{wpBtn.style.display = "none";}
   $("fs-slideshow").style.display = fsList.length>1?"block":"none";
   const voiceBtn = $("fs-voice");
   if(settings.voice && cat.is_vip_card){
@@ -1880,6 +1865,12 @@ $("fs-fav").addEventListener("click",async()=>{
   if(fsList.length===0)return;
   const id = fsList[fsIndex];
   await toggleFavorite(id);
+  renderFsCard();
+});
+$("fs-wallpaper").addEventListener("click",async()=>{
+  if(fsList.length===0)return;
+  const id = fsList[fsIndex];
+  await setAsWallpaper(id);
   renderFsCard();
 });
 $("fs-share").addEventListener("click",()=>{
@@ -2984,60 +2975,6 @@ async function claimDailyCard(){
     renderDailyScreen();
   }catch(e){showToast("Fehler: "+e.message);}
   finally{state.busy = false;}
-}
-
-let currentOffer = null;
-async function loadTodayOffer(){
-  try{
-    const r = await api("/api/today_offer");
-    const container = $("today-offer-container");
-    if(!container)return;
-    if(!r.ok){container.innerHTML = "";currentOffer = null;return;}
-    currentOffer = r;
-    const card = CARDS.find(c=>c.id===r.card_id);
-    if(!card)return;
-    container.innerHTML = `
-      <div class="today-offer" id="today-offer-btn">
-        <div class="to-icon">🔥</div>
-        <div class="to-info">
-          <div class="to-lbl">NUR HEUTE · -${r.discount_pct}%</div>
-          <div class="to-title">${card.name}</div>
-          <div class="to-sub">${r.price.toLocaleString("de-DE")} statt ${r.base_price.toLocaleString("de-DE")} Coins</div>
-        </div>
-        <div style="font-size:24px">💎</div>
-      </div>`;
-    $("today-offer-btn").addEventListener("click",()=>buyTodayOffer());
-  }catch(e){}
-}
-async function buyTodayOffer(){
-  if(!currentOffer || state.busy)return;
-  const card = CARDS.find(c=>c.id===currentOffer.card_id);
-  if(!card)return;
-  const doBuy = async()=>{
-    if(state.busy)return;
-    if(state.coins<currentOffer.price){showToast("Nicht genug Coins");SFX.lose();return;}
-    state.busy = true; haptic("medium");
-    try{
-      const r = await api("/api/buy_offer",{method:"POST",body:JSON.stringify({card_id:currentOffer.card_id})});
-      state.coins = r.coins; updateCoins();
-      cardsFirstSeen[card.id] = Date.now();
-      await saveCardsFirstSeen();
-      await loadCollection();
-      SFX.cardDrop(); notify("success");
-      showCardDrop(card,true,"🔥 TAGES-ANGEBOT");
-      showToast(`✅ ${card.name} gekauft!`);
-      setTimeout(()=>openFullscreenViewer(card.id),4800);
-      loadTodayOffer();
-    }catch(e){showToast("Fehler: "+e.message);}
-    finally{state.busy = false;}
-  };
-  try{
-    if(tg.showConfirm){
-      tg.showConfirm(`🔥 NUR HEUTE\n\n${card.name}\n${currentOffer.price} Coins statt ${currentOffer.base_price}\n\nJetzt kaufen?`,(ok)=>{if(ok)doBuy();});
-      return;
-    }
-  }catch(e){}
-  await doBuy();
 }
 
 setInterval(updateWheelTimer,1000);
