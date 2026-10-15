@@ -15,17 +15,21 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 .screen::-webkit-scrollbar{display:none}
 .screen.active{display:flex;animation:screenIn .28s cubic-bezier(.22,1,.36,1) both}
 @keyframes screenIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.topbar{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
-.row1{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.brand{font-weight:900;font-size:17px;letter-spacing:-.3px;background:linear-gradient(90deg,#fff,#c4b5fd 50%,#f0abfc 80%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.pill-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
-.coin-pill{display:flex;align-items:center;gap:6px;font-weight:800;font-size:14px;padding:8px 14px;border-radius:999px;background:linear-gradient(135deg,rgba(124,58,237,.55),rgba(236,72,153,.45));border:1px solid rgba(255,255,255,.18);box-shadow:0 4px 18px rgba(124,58,237,.35);transition:transform .2s;cursor:pointer}
-.coin-pill:active{transform:scale(.94)}
-.coin-pill.bump{transform:scale(1.08)}
+.topbar{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;position:sticky;top:0;z-index:100;background:linear-gradient(180deg,rgba(13,6,32,0.98) 0%,rgba(13,6,32,0.92) 80%,rgba(13,6,32,0) 100%);backdrop-filter:blur(12px);padding:8px 0 10px;margin-left:-14px;margin-right:-14px;padding-left:14px;padding-right:14px}
+#s-game .topbar{border-bottom:1px solid rgba(124,58,237,0.3);box-shadow:0 4px 20px rgba(0,0,0,0.5)}
+.row1{display:flex;justify-content:space-between;align-items:center;gap:10px;position:relative;z-index:2}
+.brand{font-weight:900;font-size:17px;letter-spacing:-.3px;background:linear-gradient(90deg,#fff,#c4b5fd 50%,#f0abfc 80%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;flex-shrink:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+#game-title{flex:1;min-width:0}
+.pill-row{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;justify-content:flex-end;flex-shrink:0}
+.coin-pill,.gem-pill{display:flex;align-items:center;gap:4px;font-weight:800;font-size:13px;padding:7px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.18);transition:transform .2s;cursor:pointer;white-space:nowrap}
+.coin-pill{background:linear-gradient(135deg,rgba(255,210,94,.55),rgba(255,159,28,.4));box-shadow:0 4px 18px rgba(255,159,28,.3);color:#2a0f00}
+.gem-pill{background:linear-gradient(135deg,rgba(34,211,238,.55),rgba(59,130,246,.45));box-shadow:0 4px 18px rgba(34,211,238,.35)}
+.coin-pill:active,.gem-pill:active{transform:scale(.94)}
+.coin-pill.bump,.gem-pill.bump{transform:scale(1.08)}
 .invite-pill{display:flex;align-items:center;gap:6px;font-weight:800;font-size:13px;padding:8px 12px;border-radius:999px;background:linear-gradient(135deg,rgba(59,130,246,.6),rgba(34,211,238,.5));border:1px solid rgba(255,255,255,.18);box-shadow:0 4px 18px rgba(59,130,246,.4);transition:transform .2s;cursor:pointer}
 .invite-pill:active{transform:scale(.94)}
-.game-level-badge{display:inline-flex;align-items:center;font-weight:900;font-size:11px;letter-spacing:.5px;padding:6px 10px;border-radius:999px;background:linear-gradient(135deg,#22d3ee,#7c3aed);box-shadow:0 0 14px rgba(34,211,238,.5);color:#fff}
-.xp-wrap{position:relative;height:22px;border-radius:999px;overflow:visible;background:rgba(255,255,255,.06);border:1px solid var(--stroke)}
+.game-level-badge{display:inline-flex;align-items:center;font-weight:900;font-size:10px;letter-spacing:.5px;padding:6px 9px;border-radius:999px;background:linear-gradient(135deg,#22d3ee,#7c3aed);box-shadow:0 0 14px rgba(34,211,238,.5);color:#fff;white-space:nowrap}
+.xp-wrap{position:relative;height:22px;border-radius:999px;overflow:visible;background:rgba(255,255,255,.06);border:1px solid var(--stroke);position:relative;z-index:1}
 .xp-fill{position:absolute;left:1px;top:1px;bottom:1px;border-radius:999px;width:0%;background:linear-gradient(90deg,var(--neon-3),var(--neon-1) 50%,var(--neon-2));box-shadow:0 0 14px rgba(124,58,237,.6);transition:width .55s cubic-bezier(.22,1,.36,1)}
 .xp-label{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center;padding:0 12px;font-size:10px;font-weight:800;letter-spacing:.4px;text-shadow:0 1px 2px rgba(0,0,0,.7);z-index:3;pointer-events:none}
 .xp-flame{position:absolute;right:-2px;top:50%;transform:translate(50%,-50%);width:28px;height:34px;z-index:5;pointer-events:none;opacity:0;transition:opacity .3s}
@@ -87,10 +91,27 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 .bet-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
 .bet-row .btn{margin-top:0;padding:12px 6px;font-size:14px}
 .stage{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:260px;position:relative}
-.reels{display:flex;gap:10px}
-.reel{width:80px;height:104px;border-radius:14px;background:linear-gradient(160deg,#1e1750,#120a33);border:2px solid rgba(196,181,253,.4);box-shadow:0 0 20px rgba(124,58,237,.4),inset 0 0 20px rgba(124,58,237,.15);display:flex;align-items:center;justify-content:center;font-size:46px}
-.reel.spinning{filter:blur(.5px);animation:reelShake .08s linear infinite}
-@keyframes reelShake{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+/* SLOTS NEW LOOK */
+.slots-machine{position:relative;padding:20px 16px 18px;border-radius:24px;background:linear-gradient(160deg,#1a0b3d 0%,#0d0620 100%);perspective:1000px;box-shadow:0 20px 60px rgba(0,0,0,.7),inset 0 0 40px rgba(0,0,0,.6)}
+.slots-machine::before{content:'';position:absolute;inset:-3px;border-radius:26px;background:linear-gradient(135deg,#22d3ee,#7c3aed 40%,#ec4899 75%,#ffd25e);z-index:-1;animation:borderGlow 3s linear infinite}
+@keyframes borderGlow{0%,100%{filter:blur(5px) brightness(1)}50%{filter:blur(8px) brightness(1.4)}}
+.slots-machine .top-lights{display:flex;justify-content:center;gap:8px;margin-bottom:14px}
+.slots-machine .top-lights .light{width:10px;height:10px;border-radius:50%;background:#ffd25e;box-shadow:0 0 12px #ffd25e;animation:lightBlink 1.2s ease-in-out infinite}
+.slots-machine .top-lights .light:nth-child(2){animation-delay:.15s;background:#ec4899;box-shadow:0 0 12px #ec4899}
+.slots-machine .top-lights .light:nth-child(3){animation-delay:.3s;background:#22d3ee;box-shadow:0 0 12px #22d3ee}
+.slots-machine .top-lights .light:nth-child(4){animation-delay:.45s;background:#22ff88;box-shadow:0 0 12px #22ff88}
+.slots-machine .top-lights .light:nth-child(5){animation-delay:.6s;background:#ffd25e;box-shadow:0 0 12px #ffd25e}
+@keyframes lightBlink{0%,100%{opacity:.3;transform:scale(.85)}50%{opacity:1;transform:scale(1.1)}}
+.reels{display:flex;gap:10px;padding:14px;border-radius:16px;background:linear-gradient(180deg,rgba(0,0,0,.7),rgba(0,0,0,.4));box-shadow:inset 0 8px 22px rgba(0,0,0,.95),inset 0 -8px 22px rgba(0,0,0,.95),0 0 30px rgba(124,58,237,.35)}
+.reel{position:relative;width:84px;height:124px;border-radius:14px;background:linear-gradient(180deg,#4a2a9a 0%,#1a0b3d 22%,#2a1360 50%,#1a0b3d 78%,#4a2a9a 100%);border:2px solid rgba(34,211,238,.55);box-shadow:inset 0 0 26px rgba(34,211,238,.35),inset 0 0 8px rgba(255,255,255,.12),0 6px 18px rgba(0,0,0,.7),0 0 22px rgba(34,211,238,.25);display:flex;align-items:center;justify-content:center;font-size:56px;overflow:hidden;text-shadow:0 0 24px currentColor,0 3px 6px rgba(0,0,0,.9);transition:transform .15s}
+.reel::before{content:'';position:absolute;top:0;left:0;right:0;height:38%;background:linear-gradient(180deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,0) 100%);border-radius:14px 14px 50% 50%;pointer-events:none;z-index:2}
+.reel::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 9px,rgba(0,0,0,.14) 9px 10px);border-radius:14px;pointer-events:none;z-index:1}
+.reel.spinning{animation:reelSpin .07s linear infinite}
+@keyframes reelSpin{0%{transform:translateY(-4px) scale(1.02);filter:blur(1.5px)}50%{transform:translateY(4px) scale(.98);filter:blur(2.5px)}100%{transform:translateY(-4px) scale(1.02);filter:blur(1.5px)}}
+.slot-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:340px;margin:14px 0 0}
+.slot-actions .btn{margin-top:0}
+.slot-auto-info{text-align:center;font-size:11px;font-weight:800;color:var(--gold);letter-spacing:1px;margin-top:8px}
+/* END SLOTS */
 .bowl-lane{position:relative;width:240px;height:360px;margin:6px auto 10px;background:linear-gradient(180deg,rgba(124,58,237,.25),rgba(30,15,70,.6));border:2px solid rgba(196,181,253,.35);border-radius:16px;box-shadow:inset 0 0 60px rgba(0,0,0,.5),0 0 24px rgba(124,58,237,.3);overflow:hidden}
 .pin{position:absolute;width:18px;height:34px;transform:translate(-50%,-50%);background:radial-gradient(ellipse at 30% 25%,#fff 0,#f0f0f8 55%,#b8b8cc 100%);border-radius:50% 50% 35% 35%/45% 45% 55% 55%;box-shadow:0 4px 6px rgba(0,0,0,.5);transition:transform .55s cubic-bezier(.2,.9,.3,1),opacity .55s;z-index:2}
 .pin::after{content:'';position:absolute;top:26%;left:0;right:0;height:5px;background:linear-gradient(180deg,#ff3355,#c80022)}
@@ -132,7 +153,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:999}
 #app.streak-mode{box-shadow:inset 0 0 0 3px rgba(255,90,20,.6),inset 0 0 40px rgba(255,90,20,.25);animation:streakPulse 1.2s ease-in-out infinite}
 @keyframes streakPulse{0%,100%{box-shadow:inset 0 0 0 3px rgba(255,90,20,.6),inset 0 0 40px rgba(255,90,20,.25)}50%{box-shadow:inset 0 0 0 3px rgba(255,90,20,1),inset 0 0 60px rgba(255,210,94,.4)}}
-.speed-indicator{position:fixed;top:60px;right:14px;z-index:150;font-size:10px;font-weight:900;padding:4px 10px;border-radius:999px;background:linear-gradient(135deg,#ff7a18,#ff3366);box-shadow:0 0 16px rgba(255,60,110,.7);color:#fff;display:none}
+.speed-indicator{position:fixed;top:100px;right:14px;z-index:150;font-size:10px;font-weight:900;padding:4px 10px;border-radius:999px;background:linear-gradient(135deg,#ff7a18,#ff3366);box-shadow:0 0 16px rgba(255,60,110,.7);color:#fff;display:none}
 .speed-indicator.show{display:block;animation:speedPulse .8s ease-in-out infinite}
 @keyframes speedPulse{50%{transform:scale(1.08);filter:brightness(1.2)}}
 .modal-backdrop{position:fixed;inset:0;z-index:950;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px}
@@ -145,6 +166,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 .modal-close{cursor:pointer;font-size:18px;color:var(--hint);width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.05)}
 .modal-sub{color:var(--hint);font-size:13px;margin-bottom:14px}
 .shop-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.shop-grid.single{grid-template-columns:1fr;gap:8px}
 .shop-card{position:relative;background:linear-gradient(160deg,#241352,#14093a);border:2px solid rgba(196,181,253,.25);border-radius:16px;padding:12px 8px 10px;text-align:center;cursor:pointer;transition:transform .12s,border-color .2s,box-shadow .2s}
 .shop-card:active{transform:scale(.94);border-color:#ffd25e;box-shadow:0 0 26px rgba(255,210,94,.55)}
 .shop-card.featured{border-color:rgba(236,72,153,.55);background:linear-gradient(160deg,#3a1550,#1a0530)}
@@ -220,7 +242,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 .card-slot .price-pill{position:absolute;bottom:6px;left:6px;right:6px;padding:6px 4px;border-radius:10px;text-align:center;font-size:10px;font-weight:900;background:linear-gradient(135deg,#ffd25e,#ff9f1c);color:#2a0f00;z-index:5;pointer-events:none}
 .card-slot .vip-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:3;pointer-events:none;text-align:center;padding:6px}
 .card-slot .vip-center .vip-big{font-size:26px;font-weight:900;letter-spacing:4px;background:linear-gradient(135deg,#fff,#ffd25e 50%,#ec4899);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 4px 12px rgba(0,0,0,.95))}
-.card-slot .paypal-pill{position:absolute;bottom:6px;left:6px;right:6px;padding:6px 4px;border-radius:10px;text-align:center;font-size:10px;font-weight:900;background:linear-gradient(135deg,#3b82f6,#22d3ee);color:#fff;z-index:5;pointer-events:none}
+.card-slot .gem-pill-card{position:absolute;bottom:6px;left:6px;right:6px;padding:6px 4px;border-radius:10px;text-align:center;font-size:11px;font-weight:900;background:linear-gradient(135deg,#22d3ee,#3b82f6);color:#fff;z-index:5;pointer-events:none}
 .card-slot .vip-badge{position:absolute;top:6px;left:6px;font-size:8px;font-weight:900;letter-spacing:1.2px;padding:3px 7px;border-radius:7px;background:linear-gradient(135deg,#ffd25e,#ff9f1c);color:#2a0f00;z-index:5;pointer-events:none}
 .card-slot .invite-badge{position:absolute;top:6px;left:6px;font-size:8px;font-weight:900;letter-spacing:1.2px;padding:3px 7px;border-radius:7px;background:linear-gradient(135deg,#22ff88,#0a5a2a);color:#fff;z-index:5;pointer-events:none}
 .card-slot .invite-pill{position:absolute;bottom:6px;left:6px;right:6px;padding:6px 4px;border-radius:10px;text-align:center;font-size:10px;font-weight:900;background:linear-gradient(135deg,#22ff88,#0a5a2a);color:#fff;z-index:5;pointer-events:none}
@@ -365,9 +387,6 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 .daily-card-wrap.claimed{opacity:.55}
 .daily-card-wrap h3{margin:0;font-size:14px;font-weight:900;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase}
 .daily-card-wrap .dc-sub{font-size:11px;color:var(--hint);font-weight:700;margin:0}
-.slot-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:340px;margin:12px 0 0}
-.slot-actions .btn{margin-top:0}
-.slot-auto-info{text-align:center;font-size:11px;font-weight:800;color:var(--gold);letter-spacing:1px;margin-top:8px}
 #home-wallpaper{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;opacity:.12;filter:blur(20px) saturate(1.3);transition:background-image 1s ease-out,opacity .8s;pointer-events:none}
 #s-home{position:relative;overflow:hidden}
 #s-home > *:not(#home-wallpaper){position:relative;z-index:1}
@@ -478,6 +497,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
         <div class="pill-row">
           <div class="invite-pill" id="settings-btn" style="padding:8px 10px">⚙️</div>
           <div class="invite-pill" id="invite-btn">👥 <span id="invite-top-count">0</span></div>
+          <div class="gem-pill" id="gems-top">💎 <span id="gems-top-num">0</span></div>
           <div class="coin-pill" id="coins-top">💰 <span id="coins-top-num">0</span></div>
         </div>
       </div>
@@ -525,7 +545,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
       <div class="fav-row" id="fav-row"></div>
     </div>
     <div class="card-grid" id="card-grid"></div>
-    <div class="disclaimer">Spielen · Sammeln · VIP per PayPal</div>
+    <div class="disclaimer">Spielen · Sammeln · VIP mit 💎 Gems</div>
   </div>
 
   <div class="screen" id="s-daily">
@@ -574,6 +594,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
         <div class="brand" id="game-title">Spiel</div>
         <div class="pill-row">
           <span class="game-level-badge" id="game-level">LVL 1</span>
+          <div class="gem-pill" id="gems-game">💎 <span id="gems-game-num">0</span></div>
           <div class="coin-pill" id="coins-game">💰 <span id="coins-game-num">0</span></div>
         </div>
       </div>
@@ -599,12 +620,18 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 <div class="modal-backdrop" id="konto-modal">
   <div class="modal">
     <div class="modal-head"><div class="modal-title">🛒 Shop</div><div class="modal-close" id="konto-close">✕</div></div>
-    <div class="modal-sub">Hol dir Coins mit Telegram Stars ⭐</div>
+    <div class="modal-sub">Tausche Coins in 💎 Gems oder kaufe Gems mit Telegram Stars ⭐</div>
+    <div style="font-size:12px;font-weight:900;color:var(--gold);margin:6px 0 8px;letter-spacing:1px">🔄 COINS → GEMS</div>
+    <div class="shop-grid single">
+      <div class="shop-card" data-gem-coins="1000"><div class="shop-amount">💎 10 Gems</div><div class="shop-coins-lbl">Für 1.000 Coins</div></div>
+      <div class="shop-card featured" data-gem-coins="5000"><div class="shop-badge rabatt">BELIEBT</div><div class="shop-amount">💎 50 Gems</div><div class="shop-coins-lbl">Für 5.000 Coins</div></div>
+      <div class="shop-card" data-gem-coins="15000"><div class="shop-amount">💎 150 Gems</div><div class="shop-coins-lbl">Für 15.000 Coins</div></div>
+    </div>
+    <div style="font-size:12px;font-weight:900;color:var(--gold);margin:16px 0 8px;letter-spacing:1px">⭐ GEMS MIT STARS KAUFEN</div>
     <div class="shop-grid">
-      <div class="shop-card" data-pack="100"><div class="shop-img-wrap"><img src="100.png" alt=""></div><div class="shop-amount">100</div><div class="shop-coins-lbl">Coins</div><div class="shop-old-price">0,99 €</div><div class="shop-save">MIT STERNEN</div><div class="shop-btn">⭐ 1</div></div>
-      <div class="shop-card" data-pack="1000"><div class="shop-badge rabatt">20% RABATT</div><div class="shop-img-wrap"><img src="1k.png" alt=""></div><div class="shop-amount">1.000</div><div class="shop-coins-lbl">Coins</div><div class="shop-old-price">4,99 €</div><div class="shop-save">MIT STERNEN</div><div class="shop-btn">⭐ 5</div></div>
-      <div class="shop-card featured" data-pack="5000"><div class="shop-badge neu">NEU</div><div class="shop-img-wrap"><img src="5k.png" alt=""></div><div class="shop-amount">5.000</div><div class="shop-coins-lbl">Coins</div><div class="shop-old-price">9,99 €</div><div class="shop-save">MIT STERNEN</div><div class="shop-btn">⭐ 15</div></div>
-      <div class="shop-card best" data-pack="10000"><div class="shop-badge best">50% RABATT</div><div class="shop-img-wrap"><img src="10k.png" alt=""></div><div class="shop-amount">10.000</div><div class="shop-coins-lbl">Coins</div><div class="shop-old-price">19,99 €</div><div class="shop-save">MIT STERNEN</div><div class="shop-btn">⭐ 25</div></div>
+      <div class="shop-card" data-pack="gems_50"><div class="shop-amount">💎 50</div><div class="shop-coins-lbl">Gems</div><div class="shop-btn">⭐ 5</div></div>
+      <div class="shop-card featured" data-pack="gems_150"><div class="shop-badge neu">NEU</div><div class="shop-amount">💎 150</div><div class="shop-coins-lbl">Gems</div><div class="shop-btn">⭐ 15</div></div>
+      <div class="shop-card best" data-pack="gems_300"><div class="shop-badge best">BEST</div><div class="shop-amount">💎 300</div><div class="shop-coins-lbl">Gems</div><div class="shop-btn">⭐ 25</div></div>
     </div>
   </div>
 </div>
@@ -691,6 +718,8 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 "use strict";
 const BOT_USERNAME = "Epiccasinoobot";
 const API = "https://casinobot-qhy1.onrender.com";
+const VIP_GEM_PRICES = {common:15,rare:40,epic:80,legendary:150};
+const COIN_GEM_RATES = {1000:10,5000:50,15000:150};
 
 const RARITY = {
   common:{name:"COMMON",color:"#8b86b8",glow:"rgba(139,134,184,.5)"},
@@ -779,7 +808,6 @@ async function waitForInit(maxMs = 2500){
   return INIT;
 }
 
-// Settings
 const SETTINGS_KEY = "ch_settings";
 let settings = { volume: 70, ambient: true, sfx: true, haptic: true, voice: true, wallpaper: true };
 
@@ -1036,14 +1064,15 @@ async function addCard(id){
   }catch(e){}
 }
 
-const state = {coins:0,max_bet:100,bet:25,game:null,level:1,streak:0,best_streak:0,wagered:0,won:0,busy:false,refCount:0};
+const state = {coins:0, gems:0, max_bet:100, bet:25, game:null, level:1, streak:0, best_streak:0, wagered:0, won:0, busy:false, refCount:0};
 let meta = {
   dailyStreak:{lastDate:"",days:0},
   missions:{date:"",tasks:[],progress:{}},
   wheel:{lastSpin:0},
   jackpot:0,
   crashWinsToday:0,
-  crashWinsDate:""
+  crashWinsDate:"",
+  dailyCardDate:""
 };
 const $ = id=>document.getElementById(id);
 
@@ -1076,13 +1105,11 @@ async function loadMeta(){
     const res = await api("/api/user_state");
     if(res && res.data && Object.keys(res.data).length){merged = res.data; serverEmpty = false;}
   }catch(e){}
-  // WICHTIG: Wenn Server leer war → aus CloudStorage laden und zurückschreiben
   if(serverEmpty){
     const raw = await cloudGet("meta");
     if(raw){try{merged = JSON.parse(raw);}catch(e){}}
   }
   if(merged)meta = {...meta,...merged};
-  // Server war leer, aber wir haben Cloud-Daten → zurück auf Server pushen
   if(serverEmpty && merged && Object.keys(merged).length){
     try{ await api("/api/user_state",{method:"POST",body:JSON.stringify({data:meta})}); }catch(e){}
   }
@@ -1189,6 +1216,15 @@ function updateCoins(){
   if(pill){pill.classList.add("bump");setTimeout(()=>pill.classList.remove("bump"),200);}
   renderJackpot();
 }
+function updateGems(){
+  const ids = ["gems-top-num","gems-game-num"];
+  ids.forEach(id=>{
+    const el = $(id); if(!el)return;
+    el.textContent = (state.gems||0).toLocaleString("de-DE");
+  });
+  const pill = $("gems-top");
+  if(pill){pill.classList.add("bump");setTimeout(()=>pill.classList.remove("bump"),200);}
+}
 async function renderJackpot(){
   try{const r = await api("/api/jackpot");meta.jackpot = r.jackpot||0;}catch(e){}
   const el = $("jackpot-val");
@@ -1200,10 +1236,13 @@ function goHome(){haptic();state.game=null;state.busy=false;show("s-home");loadM
 async function loadMe(){
   const me = await api("/api/me");
   if(me.is_admin!=null)isAdmin = !!me.is_admin;
-  state.coins = me.coins; state.max_bet = me.max_bet; state.wagered = me.wagered; state.won = me.won;
+  state.coins = me.coins;
+  state.gems = me.gems||0;
+  state.max_bet = me.max_bet; state.wagered = me.wagered; state.won = me.won;
   const newLevel = me.level||1;
   state.streak = me.streak||0; state.best_streak = me.best_streak||0;
   updateCoins();
+  updateGems();
   $("xp-fill").style.width = (me.xp_pct||0)+"%";
   $("xp-level").textContent = "LVL "+newLevel;
   $("xp-pct").textContent = (me.xp_pct||0)+"%";
@@ -1216,6 +1255,7 @@ async function loadMe(){
   updateStreakVisuals();
   $("stats-box").innerHTML = `
     <div class="row"><span>💰 Coins</span><span>${me.coins.toLocaleString("de-DE")}</span></div>
+    <div class="row"><span>💎 Gems</span><span>${(me.gems||0).toLocaleString("de-DE")}</span></div>
     <div class="row"><span>🎯 Gesetzt</span><span>${me.wagered.toLocaleString("de-DE")}</span></div>
     <div class="row"><span>🏆 Gewonnen</span><span>${me.won.toLocaleString("de-DE")}</span></div>
     <div class="row"><span>📚 Karten</span><span>${collection.length} / ${CARDS.length}</span></div>
@@ -1386,6 +1426,7 @@ function renderCollection(){
     const isVipCard = !!cat.is_vip_card;
     const vipUnlocked = !!cat.vip;
     const price = (cat.buy_price!=null?cat.buy_price:CARD_PRICES[card.rarity])||400;
+    const gemPrice = VIP_GEM_PRICES[card.rarity]||15;
     const isFav = favoriteIds.includes(card.id);
     const isNew = owned && isCardNew(card.id);
     let cls = "card-slot";
@@ -1395,7 +1436,7 @@ function renderCollection(){
       else{cls+=" locked invite-locked";overlay = `<div class="lock-center" style="font-size:34px">🎁</div><div class="invite-pill">👥 INVITE</div>`;}
     }else if(isVipCard){
       if(vipUnlocked){cls+=" vip-unlocked";overlay = `<div class="vip-badge">VIP</div><div class="card-name-lbl">${card.name}</div>`;}
-      else{cls+=" locked";overlay = `<div class="vip-center"><div class="vip-big">VIP</div></div><div class="paypal-pill">💳 PayPal</div>`;}
+      else{cls+=" locked";overlay = `<div class="vip-center"><div class="vip-big">VIP</div></div><div class="gem-pill-card">💎 ${gemPrice} Gems</div>`;}
     }else if(owned){cls+=" rarity-"+card.rarity;overlay = `<div class="card-name-lbl">${card.name}</div>`;}
     else{cls+=" locked";overlay = `<div class="lock-center">🔒</div><div class="price-pill">💰 ${Number(price).toLocaleString("de-DE")}</div>`;}
     if(isNew)cls+=" is-new";
@@ -1527,14 +1568,17 @@ function shareInvite(){
 async function openUnlockVip(cardId){
   const card = CARDS.find(c=>c.id===cardId);
   if(!card)return;
-  const cat = catalogMap[cardId]||{};
-  const paypal = (cat.paypal_link||"").trim();
-  if(!paypal){showToast("Kein PayPal-Link hinterlegt");return;}
+  const gemPrice = VIP_GEM_PRICES[card.rarity]||15;
+  const currentGems = state.gems||0;
+  const msg = `💎 VIP Karte freischalten\n\n${card.name}\n${RARITY[card.rarity].name}\n\nPreis: ${gemPrice} Gems\nDu hast: ${currentGems} Gems\n\n${currentGems>=gemPrice?"Jetzt freischalten?":"Nicht genug Gems – jetzt Gems kaufen?"}`;
+  const goShop = ()=>{openShop();};
   const doUnlock = async()=>{
     if(state.busy)return;
     state.busy = true; haptic("medium");
     try{
-      await api("/api/unlock_vip",{method:"POST",body:JSON.stringify({card_id:cardId})});
+      const r = await api("/api/unlock_vip",{method:"POST",body:JSON.stringify({card_id:cardId})});
+      state.gems = r.gems; state.coins = r.coins;
+      updateCoins(); updateGems();
       const data = await api("/api/collection");
       applyCollectionData(data);
       renderCollection();
@@ -1544,25 +1588,18 @@ async function openUnlockVip(cardId){
     }catch(e){showToast("Fehler: "+e.message);}
     finally{state.busy=false;}
   };
-  const openPayPal = ()=>{
-    haptic("medium");
-    try{if(tg.openLink)tg.openLink(paypal);else window.open(paypal,"_blank");}
-    catch(e){showToast(paypal);}
-    setTimeout(()=>{
-      try{
-        if(tg.showConfirm){
-          tg.showConfirm(`PayPal geöffnet.\n\nHast du bezahlt?\nDann VIP freischalten.`,(ok)=>{if(ok)doUnlock();});
-        }else if(confirm("PayPal bezahlt? VIP freischalten?")){doUnlock();}
-      }catch(e){doUnlock();}
-    },800);
-  };
   try{
     if(tg.showConfirm){
-      tg.showConfirm(`✨ VIP „${card.name}“\n\nFreischalten per PayPal.`,(ok)=>{if(ok)openPayPal();});
+      tg.showConfirm(msg,(ok)=>{
+        if(!ok)return;
+        if(currentGems>=gemPrice)doUnlock();
+        else goShop();
+      });
       return;
     }
   }catch(e){}
-  openPayPal();
+  if(currentGems>=gemPrice){if(confirm(msg))doUnlock();}
+  else{openShop();}
 }
 
 async function openBuyCard(cardId){
@@ -1631,7 +1668,6 @@ async function tryCardDrop(chance=0.15){
 }
 
 async function showCardDrop(card,isNew,customLabel){
-  const r = RARITY[card.rarity];
   const drop = $("card-drop");
   const phaseDark = $("cd-dark"), phasePulse = $("cd-pulse");
   const phaseSil = $("cd-silhouette"), phaseSplash = $("cd-splash");
@@ -1972,7 +2008,6 @@ $("btn-share-fav").addEventListener("click",async()=>{
   catch(e){showToast(text);}
 });
 
-// 3D Carousel
 let carouselItems = [], carouselIndex = 0;
 $("btn-carousel").addEventListener("click",()=>{
   haptic(); SFX.click();
@@ -2123,7 +2158,6 @@ function runGame(game,bet){
   if(game==="bowl")return playBowl(bet);
 }
 
-// CRASH
 let crashRaf = 0;
 function playCrash(bet){
   $("bet-row").innerHTML = "";
@@ -2418,7 +2452,10 @@ async function playSlots(bet){
   if(state.busy)return;
   state.busy = true; $("bet-row").innerHTML = "";
   $("stage").innerHTML = `
-    <div class="reels"><div class="reel" id="r0">🍒</div><div class="reel" id="r1">🍒</div><div class="reel" id="r2">🍒</div></div>
+    <div class="slots-machine">
+      <div class="top-lights"><div class="light"></div><div class="light"></div><div class="light"></div><div class="light"></div><div class="light"></div></div>
+      <div class="reels"><div class="reel" id="r0">🍒</div><div class="reel" id="r1">🍒</div><div class="reel" id="r2">🍒</div></div>
+    </div>
     <div class="slot-actions">
       <button class="btn secondary" id="slots-again">🔄 Nochmal</button>
       <button class="btn gold" id="slots-5x">⚡ 5×</button>
@@ -2863,8 +2900,8 @@ async function claimDaily(){
   try{
     const r = await api("/api/bonus",{method:"POST",body:JSON.stringify({amount:rewardAmount})});
     state.coins = r.coins; updateCoins();
-    showWinEffect(rewardAmount); SFX.daily();
-    showAlert(`🎁 Tag ${newDays} · +${rewardAmount} Coins${rewardCard?" + Gratis-Karte!":""}`);
+    showWinEffect(rewardAmount);
+    SFX.daily();
     if(rewardCard)await grantRandomCard("🎁 TAG "+newDays);
     renderDailyScreen(); loadMe().catch(()=>{});
   }catch(e){showToast("Fehler: "+e.message);}
@@ -2894,7 +2931,6 @@ async function claimDailyCard(){
   finally{state.busy = false;}
 }
 
-// TODAY OFFER
 let currentOffer = null;
 async function loadTodayOffer(){
   try{
@@ -3028,7 +3064,7 @@ async function spinWheel(){
     if(seg.type==="coins"){
       const r = await api("/api/bonus",{method:"POST",body:JSON.stringify({amount:seg.value})});
       state.coins = r.coins; updateCoins();
-      showWinEffect(seg.value); showAlert(`🎡 +${seg.value} Coins`);
+      showWinEffect(seg.value);
     }else if(seg.type==="card"){
       await grantRandomCard("🎡 GLÜCKSRAD");
     }
@@ -3052,14 +3088,32 @@ document.querySelectorAll(".tab").forEach(t=>{
 
 const kontoModal = $("konto-modal");
 function openShop(){if(state.busy)return;haptic();SFX.click();kontoModal.classList.add("show");}
-$("coins-top").addEventListener("click",openShop);
-$("coins-game").addEventListener("click",openShop);
-$("coins-daily").addEventListener("click",openShop);
-$("coins-spin").addEventListener("click",openShop);
+["coins-top","coins-game","coins-daily","coins-spin","gems-top","gems-game"].forEach(id=>{
+  const el = $(id); if(el)el.addEventListener("click",openShop);
+});
 $("konto-close").addEventListener("click",()=>{haptic();kontoModal.classList.remove("show");});
 kontoModal.addEventListener("click",(e)=>{if(e.target===kontoModal)kontoModal.classList.remove("show");});
 
-document.querySelectorAll(".shop-card").forEach(btn=>{
+document.querySelectorAll(".shop-card[data-gem-coins]").forEach(btn=>{
+  btn.addEventListener("click",async()=>{
+    if(state.busy)return;
+    const coinAmount = parseInt(btn.dataset.gemCoins,10);
+    const gemAdd = COIN_GEM_RATES[coinAmount];
+    if(!coinAmount || !gemAdd)return;
+    if(state.coins<coinAmount){showToast(`Nicht genug Coins (${state.coins.toLocaleString("de-DE")}/${coinAmount.toLocaleString("de-DE")})`);return;}
+    state.busy = true; haptic("medium"); SFX.click();
+    try{
+      const r = await api("/api/shop/buy_gems",{method:"POST",body:JSON.stringify({coin_amount:coinAmount})});
+      state.coins = r.coins; state.gems = r.gems;
+      updateCoins(); updateGems();
+      showToast(`💎 +${r.gems_added} Gems!`);
+      SFX.daily(); notify("success");
+    }catch(e){showToast("Fehler: "+e.message);}
+    finally{state.busy=false;}
+  });
+});
+
+document.querySelectorAll(".shop-card[data-pack]").forEach(btn=>{
   btn.addEventListener("click",async()=>{
     if(state.busy)return;
     const packId = btn.dataset.pack; if(!packId)return;
@@ -3071,7 +3125,7 @@ document.querySelectorAll(".shop-card").forEach(btn=>{
         tg.openInvoice(inv.invoice_url,(status)=>{
           state.busy = false;
           if(status==="paid"){
-            showToast("✅ Zahlung ok – Coins werden gutgeschrieben…");
+            showToast("✅ Zahlung ok – Gems werden gutgeschrieben…");
             SFX.daily();
             setTimeout(()=>loadMe().catch(()=>{}),1200);
             setTimeout(()=>loadMe().catch(()=>{}),3000);
@@ -3132,7 +3186,6 @@ $("invite-copy").addEventListener("click",async()=>{
   catch(e){showToast("Link: "+link);}
 });
 
-// SETTINGS
 const settingsModal = $("settings-modal");
 $("settings-btn").addEventListener("click",()=>{haptic();SFX.click();settingsModal.classList.add("show");applySettingsUI();});
 $("settings-close").addEventListener("click",()=>{haptic();settingsModal.classList.remove("show");});
@@ -3175,7 +3228,6 @@ $("spin-back-btn").addEventListener("click",()=>{haptic();show("s-daily");render
 window.addEventListener("resize",()=>{if($("s-spin").classList.contains("active"))renderWheelCanvas();});
 try{tg.BackButton.onClick(goHome);}catch(e){}
 
-// ADMIN
 const adminPanel = $("admin-panel");
 let adminFileBuffer = null, adminVoiceBuffer = null;
 function openAdminPanel(){haptic("heavy");adminPanel.classList.add("show");resetAdminUpload();}
