@@ -17,18 +17,18 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 @keyframes screenIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .topbar{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;position:sticky;top:0;z-index:100;background:linear-gradient(180deg,rgba(13,6,32,0.98) 0%,rgba(13,6,32,0.92) 80%,rgba(13,6,32,0) 100%);backdrop-filter:blur(12px);padding:8px 0 10px;margin-left:-14px;margin-right:-14px;padding-left:14px;padding-right:14px}
 #s-game .topbar{border-bottom:1px solid rgba(124,58,237,0.3);box-shadow:0 4px 20px rgba(0,0,0,0.5)}
-.row1{display:flex;justify-content:space-between;align-items:center;gap:10px;position:relative;z-index:2}
-.brand{font-weight:900;font-size:17px;letter-spacing:-.3px;background:linear-gradient(90deg,#fff,#c4b5fd 50%,#f0abfc 80%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;flex-shrink:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+.row1{display:flex;justify-content:space-between;align-items:center;gap:8px;position:relative;z-index:2}
+.brand{font-weight:900;font-size:16px;letter-spacing:-.3px;background:linear-gradient(90deg,#fff,#c4b5fd 50%,#f0abfc 80%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;flex-shrink:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
 #game-title{flex:1;min-width:0}
-.pill-row{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;justify-content:flex-end;flex-shrink:0}
-.coin-pill,.gem-pill{display:flex;align-items:center;gap:4px;font-weight:800;font-size:13px;padding:7px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.18);transition:transform .2s;cursor:pointer;white-space:nowrap}
+.pill-row{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;justify-content:flex-end;flex-shrink:0}
+.coin-pill,.gem-pill{display:flex;align-items:center;gap:3px;font-weight:800;font-size:12px;padding:6px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.18);transition:transform .2s;cursor:pointer;white-space:nowrap}
 .coin-pill{background:linear-gradient(135deg,rgba(255,210,94,.55),rgba(255,159,28,.4));box-shadow:0 4px 18px rgba(255,159,28,.3);color:#2a0f00}
-.gem-pill{background:linear-gradient(135deg,rgba(34,211,238,.55),rgba(59,130,246,.45));box-shadow:0 4px 18px rgba(34,211,238,.35)}
+.gem-pill{background:linear-gradient(135deg,rgba(34,211,238,.65),rgba(59,130,246,.55));box-shadow:0 4px 18px rgba(34,211,238,.45);color:#fff}
 .coin-pill:active,.gem-pill:active{transform:scale(.94)}
 .coin-pill.bump,.gem-pill.bump{transform:scale(1.08)}
-.invite-pill{display:flex;align-items:center;gap:6px;font-weight:800;font-size:13px;padding:8px 12px;border-radius:999px;background:linear-gradient(135deg,rgba(59,130,246,.6),rgba(34,211,238,.5));border:1px solid rgba(255,255,255,.18);box-shadow:0 4px 18px rgba(59,130,246,.4);transition:transform .2s;cursor:pointer}
+.invite-pill{display:flex;align-items:center;gap:5px;font-weight:800;font-size:12px;padding:6px 10px;border-radius:999px;background:linear-gradient(135deg,rgba(59,130,246,.6),rgba(34,211,238,.5));border:1px solid rgba(255,255,255,.18);box-shadow:0 4px 18px rgba(59,130,246,.4);transition:transform .2s;cursor:pointer}
 .invite-pill:active{transform:scale(.94)}
-.game-level-badge{display:inline-flex;align-items:center;font-weight:900;font-size:10px;letter-spacing:.5px;padding:6px 9px;border-radius:999px;background:linear-gradient(135deg,#22d3ee,#7c3aed);box-shadow:0 0 14px rgba(34,211,238,.5);color:#fff;white-space:nowrap}
+.game-level-badge{display:inline-flex;align-items:center;font-weight:900;font-size:10px;letter-spacing:.5px;padding:5px 8px;border-radius:999px;background:linear-gradient(135deg,#22d3ee,#7c3aed);box-shadow:0 0 14px rgba(34,211,238,.5);color:#fff;white-space:nowrap}
 .xp-wrap{position:relative;height:22px;border-radius:999px;overflow:visible;background:rgba(255,255,255,.06);border:1px solid var(--stroke);position:relative;z-index:1}
 .xp-fill{position:absolute;left:1px;top:1px;bottom:1px;border-radius:999px;width:0%;background:linear-gradient(90deg,var(--neon-3),var(--neon-1) 50%,var(--neon-2));box-shadow:0 0 14px rgba(124,58,237,.6);transition:width .55s cubic-bezier(.22,1,.36,1)}
 .xp-label{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center;padding:0 12px;font-size:10px;font-weight:800;letter-spacing:.4px;text-shadow:0 1px 2px rgba(0,0,0,.7);z-index:3;pointer-events:none}
@@ -60,13 +60,17 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 .jackpot-lbl{font-size:10px;font-weight:900;letter-spacing:2px;color:var(--gold);text-transform:uppercase}
 .jackpot-val{font-size:22px;font-weight:900;background:linear-gradient(135deg,#fff,#ffd25e 40%,#ff3366);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1;animation:jackpotPulse 1.5s ease-in-out infinite}
 @keyframes jackpotPulse{50%{transform:scale(1.05)}}
-.hero{position:relative;margin:6px 0 12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
-.hero-coin{width:130px;height:130px;border-radius:50%;position:relative;background:radial-gradient(circle at 35% 30%,#fff5cc 0 6%,#ffd25e 18%,#ff9f1c 45%,#b45309 70%,#4c1d00 100%);box-shadow:0 0 40px rgba(255,159,28,.5),inset 0 -10px 24px rgba(0,0,0,.5),inset 0 8px 20px rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;animation:coinFloat 3.6s ease-in-out infinite}
+.hero{position:relative;margin:6px 0 12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
+.hero-coin{width:120px;height:120px;border-radius:50%;position:relative;background:radial-gradient(circle at 35% 30%,#fff5cc 0 6%,#ffd25e 18%,#ff9f1c 45%,#b45309 70%,#4c1d00 100%);box-shadow:0 0 40px rgba(255,159,28,.5),inset 0 -10px 24px rgba(0,0,0,.5),inset 0 8px 20px rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;animation:coinFloat 3.6s ease-in-out infinite}
 .hero-coin::before{content:'';position:absolute;inset:10px;border-radius:50%;background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.55),transparent 45%)}
-.hero-coin .sym{font-size:56px;z-index:1}
+.hero-coin .sym{font-size:52px;z-index:1}
 @keyframes coinFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-.balance-xl{font-size:40px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,#fff 10%,#ffd25e 45%,#ec4899 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.balance-xl{font-size:38px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,#fff 10%,#ffd25e 45%,#ec4899 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .balance-lbl{color:var(--hint);font-size:10px;letter-spacing:2.5px;text-transform:uppercase;font-weight:800}
+.hero-gems{display:flex;align-items:center;gap:8px;padding:8px 18px;border-radius:999px;background:linear-gradient(135deg,rgba(34,211,238,.25),rgba(59,130,246,.18));border:1.5px solid rgba(34,211,238,.55);box-shadow:0 0 20px rgba(34,211,238,.3);margin-top:4px}
+.hero-gems .gs-icon{font-size:22px;filter:drop-shadow(0 0 8px rgba(34,211,238,.9))}
+.hero-gems .gs-num{font-size:22px;font-weight:900;color:#22d3ee;text-shadow:0 0 12px rgba(34,211,238,.7);line-height:1}
+.hero-gems .gs-lbl{font-size:9px;font-weight:900;color:var(--hint);letter-spacing:2px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 14px}
 .card{position:relative;cursor:pointer;text-align:center;padding:16px 10px 14px;border-radius:18px;background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.03));border:1px solid var(--stroke);transition:transform .12s,box-shadow .2s}
 .card:active{transform:scale(.95);box-shadow:0 0 24px rgba(124,58,237,.5)}
@@ -493,7 +497,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
       <div class="row1">
         <div class="brand" id="logo">🎰 CASINO HUNT</div>
         <div class="pill-row">
-          <div class="invite-pill" id="settings-btn" style="padding:8px 10px">⚙️</div>
+          <div class="invite-pill" id="settings-btn" style="padding:6px 9px">⚙️</div>
           <div class="invite-pill" id="invite-btn">👥 <span id="invite-top-count">0</span></div>
           <div class="gem-pill" id="gems-top">💎 <span id="gems-top-num">0</span></div>
           <div class="coin-pill" id="coins-top">💰 <span id="coins-top-num">0</span></div>
@@ -512,6 +516,11 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
       <div class="hero-coin"><div class="sym">🪙</div></div>
       <div class="balance-xl" id="balance-value" data-v="0">0</div>
       <div class="balance-lbl">Deine Coins</div>
+      <div class="hero-gems">
+        <span class="gs-icon">💎</span>
+        <span class="gs-num" id="balance-gems">0</span>
+        <span class="gs-lbl">GEMS</span>
+      </div>
     </div>
     <div id="today-offer-container"></div>
     <div class="ticker" id="ticker"></div>
@@ -783,7 +792,7 @@ const tg = window.Telegram && window.Telegram.WebApp;
 if(!tg){document.body.innerHTML='<div style="padding:40px;text-align:center;color:#fff;font-family:sans-serif"><h2>Bitte in Telegram öffnen</h2></div>';throw new Error("no telegram");}
 try{tg.ready();}catch(e){}
 try{tg.expand();}catch(e){}
-try{tg.enableClosingConfirmation();}catch(e){}
+// KEIN enableClosingConfirmation() – Daten werden in Cloud + Backend gesichert
 try{tg.setHeaderColor&&tg.setHeaderColor("#05030f");}catch(e){}
 try{tg.setBackgroundColor&&tg.setBackgroundColor("#05030f");}catch(e){}
 
@@ -1224,6 +1233,8 @@ function updateGems(){
     const el = $(id); if(!el)return;
     el.textContent = (state.gems||0).toLocaleString("de-DE");
   });
+  const big = $("balance-gems");
+  if(big)big.textContent = (state.gems||0).toLocaleString("de-DE");
   const pill = $("gems-top");
   if(pill){pill.classList.add("bump");setTimeout(()=>pill.classList.remove("bump"),200);}
 }
