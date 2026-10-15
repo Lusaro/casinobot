@@ -647,14 +647,14 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
       <div class="shop-card featured" data-pack="gems_100">
         <div class="shop-badge neu">NEU</div>
         <div class="shop-img-wrap"><img src="gem-100.png" alt="100 Gems"></div>
-        <div class="shop-amount">💎 150</div>
+        <div class="shop-amount">💎 100</div>
         <div class="shop-coins-lbl">Gems</div>
         <div class="shop-btn">⭐ 15</div>
       </div>
       <div class="shop-card best" data-pack="gems_150">
         <div class="shop-badge best">BEST</div>
         <div class="shop-img-wrap"><img src="gem-150.png" alt="150 Gems"></div>
-        <div class="shop-amount">💎 300</div>
+        <div class="shop-amount">💎 150</div>
         <div class="shop-coins-lbl">Gems</div>
         <div class="shop-btn">⭐ 25</div>
       </div>
@@ -1604,7 +1604,10 @@ async function openUnlockVip(cardId){
   if(!card)return;
   const gemPrice = VIP_GEM_PRICES[card.rarity]||15;
   const currentGems = state.gems||0;
-  const msg = `💎 VIP Karte freischalten\n\n${card.name}\n${RARITY[card.rarity].name}\n\nPreis: ${gemPrice} Gems\nDu hast: ${currentGems} Gems\n\n${currentGems>=gemPrice?"Jetzt freischalten?":"Nicht genug Gems – jetzt Gems kaufen?"}`;
+  const free = isAdmin;
+  const msg = free
+    ? `💎 VIP Karte freischalten\n\n${card.name}\n${RARITY[card.rarity].name}\n\n🛠️ ADMIN-MODUS: GRATIS\n\nJetzt freischalten?`
+    : `💎 VIP Karte freischalten\n\n${card.name}\n${RARITY[card.rarity].name}\n\nPreis: ${gemPrice} Gems\nDu hast: ${currentGems} Gems\n\n${currentGems>=gemPrice?"Jetzt freischalten?":"Nicht genug Gems – jetzt Gems kaufen?"}`;
   const goShop = ()=>{openShop();};
   const doUnlock = async()=>{
     if(state.busy)return;
@@ -1617,7 +1620,7 @@ async function openUnlockVip(cardId){
       applyCollectionData(data);
       renderCollection();
       SFX.cardDrop(); notify("success");
-      showToast(`✨ VIP freigeschaltet: ${card.name}`);
+      showToast(r.admin_free ? `✨ (Admin) VIP freigeschaltet: ${card.name}` : `✨ VIP freigeschaltet: ${card.name}`);
       openFullscreenViewer(cardId);
     }catch(e){showToast("Fehler: "+e.message);}
     finally{state.busy=false;}
@@ -1626,13 +1629,13 @@ async function openUnlockVip(cardId){
     if(tg.showConfirm){
       tg.showConfirm(msg,(ok)=>{
         if(!ok)return;
-        if(currentGems>=gemPrice)doUnlock();
+        if(free || currentGems>=gemPrice)doUnlock();
         else goShop();
       });
       return;
     }
   }catch(e){}
-  if(currentGems>=gemPrice){if(confirm(msg))doUnlock();}
+  if(free || currentGems>=gemPrice){if(confirm(msg))doUnlock();}
   else{openShop();}
 }
 
