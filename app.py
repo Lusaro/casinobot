@@ -46,13 +46,9 @@ CARDS_IMAGE_EXT = os.environ.get("CARDS_IMAGE_EXT", "png").lstrip(".")
 # ═══════════════════════════════════════════════════════════
 # GEM SYSTEM
 # ═══════════════════════════════════════════════════════════
-# Coins -> Gems Exchange-Raten (Coin-Betrag: Gem-Betrag)
 COIN_GEM_RATES = {1000: 10, 5000: 50, 15000: 150}
-
-# VIP-Karten Preise in Gems pro Seltenheit
 VIP_GEM_PRICES = {"common": 15, "rare": 40, "epic": 80, "legendary": 150}
 
-# Star-Packs (Gem-Packs gegen Telegram Stars)
 SHOP_PACKS = {
     "gems_50":  {"gems": 50,  "stars": 5,  "title": "50 Gems"},
     "gems_150": {"gems": 150, "stars": 15, "title": "150 Gems"},
@@ -194,16 +190,14 @@ def init_db():
                     if isinstance(val, dict):
                         url = str(val.get("image_url", "")).strip()
                         clink = str(val.get("creator_link", "")).strip()
-                        plink = str(val.get("paypal_link", "")).strip()
                     else:
-                        url = str(val).strip(); clink = ""; plink = ""
+                        url = str(val).strip(); clink = ""
                     if cid in range(1, 41):
                         con.execute(
-                            "INSERT INTO card_media (card_id, image_url, creator_link, paypal_link, updated_at) VALUES (?,?,?,?,?) "
+                            "INSERT INTO card_media (card_id, image_url, creator_link, updated_at) VALUES (?,?,?,?) "
                             "ON CONFLICT(card_id) DO UPDATE SET image_url=excluded.image_url, "
-                            "creator_link=excluded.creator_link, paypal_link=excluded.paypal_link, "
-                            "updated_at=excluded.updated_at",
-                            (cid, url, clink, plink, int(time.time())),
+                            "creator_link=excluded.creator_link, updated_at=excluded.updated_at",
+                            (cid, url, clink, int(time.time())),
                         )
                 except Exception: pass
             print(f"VIP_IMAGES seeded: {len(vip_map)} entries")
@@ -435,7 +429,6 @@ def get_card_vip_info(card_id: int) -> dict:
         row = con.execute(
             "SELECT COALESCE(image_url,'') AS image_url, "
             "COALESCE(creator_link,'') AS creator_link, "
-            "COALESCE(paypal_link,'') AS paypal_link, "
             "COALESCE(tg_file_id,'') AS tg_file_id, "
             "COALESCE(tg_voice_file_id,'') AS tg_voice_file_id FROM card_media WHERE card_id=?",
             (card_id,)
@@ -444,7 +437,6 @@ def get_card_vip_info(card_id: int) -> dict:
         row = None
     con.close()
 
-    default_paypal = os.environ.get("PAYPAL_VIP_LINK", "").strip()
     local_exists = get_local_card_file(card_id) is not None
 
     if not row:
@@ -453,7 +445,6 @@ def get_card_vip_info(card_id: int) -> dict:
                 "is_vip_card": False,
                 "image_url": default_card_image_url(card_id),
                 "creator_link": "",
-                "paypal_link": "",
                 "tg_file_id": "",
                 "tg_voice_file_id": "",
             }
@@ -461,7 +452,6 @@ def get_card_vip_info(card_id: int) -> dict:
             "is_vip_card": True,
             "image_url": f"/api/media/{card_id}",
             "creator_link": "",
-            "paypal_link": default_paypal,
             "tg_file_id": "",
             "tg_voice_file_id": "",
         }
@@ -474,7 +464,6 @@ def get_card_vip_info(card_id: int) -> dict:
         "is_vip_card": True,
         "image_url": img,
         "creator_link": (row["creator_link"] or "").strip(),
-        "paypal_link": (row["paypal_link"] or "").strip() or default_paypal,
         "tg_file_id": (row["tg_file_id"] or "").strip(),
         "tg_voice_file_id": (row["tg_voice_file_id"] or "").strip(),
     }
@@ -500,7 +489,6 @@ def get_user_collection(uid: int) -> list:
             "is_vip_card": info["is_vip_card"],
             "image_url": info["image_url"],
             "creator_link": info["creator_link"] if ((vip_unlocked or adm) and info["is_vip_card"]) else "",
-            "paypal_link": info["paypal_link"] if info["is_vip_card"] else "",
         })
     return out
 
@@ -511,7 +499,6 @@ def get_media_rows() -> dict:
         rows = con.execute(
             "SELECT card_id, COALESCE(image_url,'') AS image_url, "
             "COALESCE(creator_link,'') AS creator_link, "
-            "COALESCE(paypal_link,'') AS paypal_link, "
             "COALESCE(tg_file_id,'') AS tg_file_id, "
             "COALESCE(tg_voice_file_id,'') AS tg_voice_file_id FROM card_media"
         ).fetchall()
@@ -526,7 +513,6 @@ def get_media_rows() -> dict:
         out[cid] = {
             "image_url": (r["image_url"] or "").strip(),
             "creator_link": (r["creator_link"] or "").strip(),
-            "paypal_link": (r["paypal_link"] or "").strip(),
             "tg_file_id": (r["tg_file_id"] or "").strip(),
             "tg_voice_file_id": (r["tg_voice_file_id"] or "").strip(),
         }
@@ -543,7 +529,6 @@ def save_media_backup():
         payload = {str(k): {
             "image_url": v["image_url"],
             "creator_link": v.get("creator_link") or "",
-            "paypal_link": v.get("paypal_link") or "",
             "tg_file_id": v.get("tg_file_id") or "",
             "tg_voice_file_id": v.get("tg_voice_file_id") or "",
         } for k, v in media.items()}
@@ -568,21 +553,20 @@ def load_media_backup():
                 if isinstance(val, dict):
                     url = str(val.get("image_url") or "").strip()
                     clink = str(val.get("creator_link") or "").strip()
-                    plink = str(val.get("paypal_link") or "").strip()
                     tfid = str(val.get("tg_file_id") or "").strip()
                     tvfid = str(val.get("tg_voice_file_id") or "").strip()
                 else:
-                    url = str(val).strip(); clink = ""; plink = ""; tfid = ""; tvfid = ""
+                    url = str(val).strip(); clink = ""; tfid = ""; tvfid = ""
                 if cid < 1 or cid > 40:
                     continue
                 con.execute(
-                    "INSERT INTO card_media (card_id, image_url, creator_link, paypal_link, tg_file_id, tg_voice_file_id, updated_at) "
-                    "VALUES (?,?,?,?,?,?,?) "
+                    "INSERT INTO card_media (card_id, image_url, creator_link, tg_file_id, tg_voice_file_id, updated_at) "
+                    "VALUES (?,?,?,?,?,?) "
                     "ON CONFLICT(card_id) DO UPDATE SET image_url=excluded.image_url, "
-                    "creator_link=excluded.creator_link, paypal_link=excluded.paypal_link, "
+                    "creator_link=excluded.creator_link, "
                     "tg_file_id=excluded.tg_file_id, tg_voice_file_id=excluded.tg_voice_file_id, "
                     "updated_at=excluded.updated_at",
-                    (cid, url, clink, plink, tfid, tvfid, int(time.time())),
+                    (cid, url, clink, tfid, tvfid, int(time.time())),
                 )
                 n += 1
             except Exception:
@@ -1383,7 +1367,6 @@ def crash_loss(uid: int = Depends(auth)):
 
 
 CARD_PRICES = {"common": 400, "rare": 1200, "epic": 3500, "legendary": 9000}
-VIP_PRICES  = {"common": 800, "rare": 2500, "epic": 6000, "legendary": 15000}
 CARD_RARITY = {i: ("common" if i <= 18 else "rare" if i <= 26 else "epic" if i <= 29 else "legendary")
                for i in range(1, 31)}
 CARD_RARITY.update({
@@ -1435,7 +1418,6 @@ def unlock_vip(req: UnlockVipReq, uid: int = Depends(auth)):
     u = get_user(uid)
     current_gems = u.get("gems") or 0
 
-    # Prüfen ob schon freigeschaltet
     con = db()
     row = con.execute("SELECT vip FROM user_cards WHERE user_id=? AND card_id=?", (uid, cid)).fetchone()
     con.close()
@@ -1448,7 +1430,6 @@ def unlock_vip(req: UnlockVipReq, uid: int = Depends(auth)):
     if current_gems < gem_price:
         raise HTTPException(400, f"Nicht genug Gems ({current_gems}/{gem_price})")
 
-    # Stelle sicher dass Karte im Besitz ist (auch wenn nicht unlocked)
     if not user_has_card(uid, cid):
         grant_card(uid, cid)
 
@@ -1569,9 +1550,7 @@ def api_collection(uid: int = Depends(auth)):
             "is_vip_card": info["is_vip_card"],
             "image_url": info["image_url"],
             "creator_link": info["creator_link"] if ((vip_unlocked or adm) and info["is_vip_card"]) else "",
-            "paypal_link": info["paypal_link"] if info["is_vip_card"] else "",
             "buy_price": CARD_PRICES.get(rarity, 400),
-            "vip_price": VIP_GEM_PRICES.get(rarity, 15),
             "vip_gem_price": VIP_GEM_PRICES.get(rarity, 15),
             "is_invite_card": cid >= 31,
         })
@@ -1592,7 +1571,6 @@ class AdminImageReq(BaseModel):
     card_id: int
     image_url: Optional[str] = ""
     creator_link: Optional[str] = None
-    paypal_link: Optional[str] = None
 
 
 def _remove_local_card_files(card_id: int):
@@ -1617,25 +1595,21 @@ async def admin_card_image(req: AdminImageReq, uid: int = Depends(auth)):
     clink = (req.creator_link or "").strip()
     if clink and not (clink.startswith("https://t.me/") or clink.startswith("https://telegram.me/")):
         raise HTTPException(400, "creator_link muss https://t.me/... sein")
-    plink = (req.paypal_link or "").strip()
-    if plink and not plink.startswith("https://"):
-        raise HTTPException(400, "paypal_link muss https:// sein")
     if url and not url.startswith("/api/media/"):
         _remove_local_card_files(cid)
     con = db()
     con.execute(
-        "INSERT INTO card_media (card_id, image_url, creator_link, paypal_link, tg_file_id, updated_at) VALUES (?,?,?,?,?,?) "
+        "INSERT INTO card_media (card_id, image_url, creator_link, tg_file_id, updated_at) VALUES (?,?,?,?,?) "
         "ON CONFLICT(card_id) DO UPDATE SET image_url=excluded.image_url, "
-        "creator_link=excluded.creator_link, paypal_link=excluded.paypal_link, "
-        "tg_file_id='', updated_at=excluded.updated_at",
-        (cid, url, clink, plink, "", int(time.time())),
+        "creator_link=excluded.creator_link, tg_file_id='', updated_at=excluded.updated_at",
+        (cid, url, clink, "", int(time.time())),
     )
     con.commit(); con.close()
     save_media_backup()
     bump_catalog_version()
     mark_db_dirty()
     return {"ok": True, "card_id": cid, "is_vip_card": True,
-            "image_url": url, "creator_link": clink, "paypal_link": plink,
+            "image_url": url, "creator_link": clink,
             "version": _catalog_version()}
 
 
@@ -1643,7 +1617,6 @@ async def admin_card_image(req: AdminImageReq, uid: int = Depends(auth)):
 async def admin_upload_image(
     card_id: int = Form(...),
     creator_link: str = Form(""),
-    paypal_link: str = Form(""),
     file: UploadFile = File(...),
     voice_file: Optional[UploadFile] = File(None),
     uid: int = Depends(auth),
@@ -1670,9 +1643,6 @@ async def admin_upload_image(
     clink = (creator_link or "").strip()
     if clink and not (clink.startswith("https://t.me/") or clink.startswith("https://telegram.me/")):
         raise HTTPException(400, "creator_link muss https://t.me/... sein")
-    plink = (paypal_link or "").strip()
-    if plink and not plink.startswith("https://"):
-        raise HTTPException(400, "paypal_link muss https:// sein")
 
     _remove_local_card_files(card_id)
 
@@ -1707,14 +1677,14 @@ async def admin_upload_image(
 
     con = db()
     con.execute(
-        "INSERT INTO card_media (card_id, image_url, creator_link, paypal_link, tg_file_id, tg_voice_file_id, updated_at) "
-        "VALUES (?,?,?,?,?,?,?) "
+        "INSERT INTO card_media (card_id, image_url, creator_link, tg_file_id, tg_voice_file_id, updated_at) "
+        "VALUES (?,?,?,?,?,?) "
         "ON CONFLICT(card_id) DO UPDATE SET image_url=excluded.image_url, "
-        "creator_link=excluded.creator_link, paypal_link=excluded.paypal_link, "
+        "creator_link=excluded.creator_link, "
         "tg_file_id=excluded.tg_file_id, "
         "tg_voice_file_id=CASE WHEN excluded.tg_voice_file_id != '' THEN excluded.tg_voice_file_id ELSE card_media.tg_voice_file_id END, "
         "updated_at=excluded.updated_at",
-        (card_id, image_url, clink, plink, tg_file_id, tg_voice_file_id, ts),
+        (card_id, image_url, clink, tg_file_id, tg_voice_file_id, ts),
     )
     con.commit(); con.close()
     save_media_backup()
@@ -1722,7 +1692,7 @@ async def admin_upload_image(
     mark_db_dirty()
 
     return {"ok": True, "card_id": card_id, "image_url": image_url,
-            "creator_link": clink, "paypal_link": plink,
+            "creator_link": clink,
             "has_voice": bool(tg_voice_file_id),
             "storage": "telegram" if tg_file_id else "local",
             "version": _catalog_version()}
@@ -1981,14 +1951,11 @@ async def on_successful_payment(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not pack: return
     u = get_user(uid)
     gems_add = pack.get("gems", 0)
-    coins_add = pack.get("coins", 0)
     new_gems = (u.get("gems") or 0) + gems_add
-    new_coins = u["coins"] + coins_add
-    update_user(uid, coins=new_coins, gems=new_gems)
-    print(f"Stars payment OK uid={uid} +{gems_add}gems +{coins_add}coins")
+    update_user(uid, gems=new_gems)
+    print(f"Stars payment OK uid={uid} +{gems_add} gems")
     try:
-        txt = f"✅ +{gems_add} 💎 Gems" if gems_add else f"✅ +{coins_add} Coins"
-        await msg.reply_text(txt + " gutgeschrieben!")
+        await msg.reply_text(f"✅ +{gems_add} 💎 Gems gutgeschrieben!")
     except Exception: pass
 
 
