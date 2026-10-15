@@ -173,8 +173,6 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 .shop-card:active{transform:scale(.94);border-color:#ffd25e;box-shadow:0 0 26px rgba(255,210,94,.55)}
 .shop-card.featured{border-color:rgba(236,72,153,.55);background:linear-gradient(160deg,#3a1550,#1a0530)}
 .shop-card.best{border-color:rgba(255,210,94,.7);background:linear-gradient(160deg,#3d2a0a,#1a0f00);box-shadow:0 0 24px rgba(255,210,94,.25)}
-.shop-img-wrap{width:70px;height:70px;margin:2px auto 8px;position:relative;display:flex;align-items:center;justify-content:center}
-.shop-img-wrap img{max-width:100%;max-height:100%;object-fit:contain}
 .shop-badge{position:absolute;top:6px;right:6px;font-size:9px;font-weight:900;padding:3px 8px;border-radius:999px;color:#fff;z-index:3;text-transform:uppercase}
 .shop-badge.neu{background:linear-gradient(135deg,#22d3ee,#7c3aed);animation:pulseBadge 1.6s ease-in-out infinite}
 .shop-badge.rabatt{background:linear-gradient(135deg,#ff3366,#a10033)}
@@ -182,8 +180,6 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 @keyframes pulseBadge{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
 .shop-amount{font-size:19px;font-weight:900;background:linear-gradient(135deg,#fff,#ffd25e 60%,#ff9f1c);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1}
 .shop-coins-lbl{font-size:10px;font-weight:800;color:var(--hint);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px}
-.shop-old-price{font-size:11px;color:#6b648a;text-decoration:line-through;margin-top:6px}
-.shop-save{font-size:8px;font-weight:900;letter-spacing:1px;color:#ff3366;margin-top:2px}
 .shop-btn{margin-top:8px;padding:7px 0;border-radius:10px;font-size:12px;font-weight:900;color:#2a0f00;background:linear-gradient(135deg,#ffd25e,#ff9f1c);box-shadow:0 4px 12px rgba(255,159,28,.5)}
 .invite-link-box{background:linear-gradient(135deg,rgba(59,130,246,.18),rgba(34,211,238,.14));border:1px solid rgba(59,130,246,.35);border-radius:12px;padding:12px;margin-bottom:12px;font-size:11px;font-weight:700;word-break:break-all;color:#a5d8ff;text-align:center;line-height:1.5}
 .invite-count-box{text-align:center;margin-bottom:12px}
@@ -792,9 +788,9 @@ const tg = window.Telegram && window.Telegram.WebApp;
 if(!tg){document.body.innerHTML='<div style="padding:40px;text-align:center;color:#fff;font-family:sans-serif"><h2>Bitte in Telegram öffnen</h2></div>';throw new Error("no telegram");}
 try{tg.ready();}catch(e){}
 try{tg.expand();}catch(e){}
-// KEIN enableClosingConfirmation() – Daten werden in Cloud + Backend gesichert
 try{tg.setHeaderColor&&tg.setHeaderColor("#05030f");}catch(e){}
 try{tg.setBackgroundColor&&tg.setBackgroundColor("#05030f");}catch(e){}
+/* enableClosingConfirmation() NICHT aktiviert → keine Warnung mehr */
 
 function readInitData(){
   let data = "";
