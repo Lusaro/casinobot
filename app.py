@@ -36,7 +36,6 @@ AUTH_MAX_AGE = 86400
 NO_PREVIEW = LinkPreviewOptions(is_disabled=True)
 
 STORAGE_CHAT_ID = os.environ.get("STORAGE_CHAT_ID", "").strip()
-# FIX: 30s statt 120s - Backup häufiger
 DB_BACKUP_INTERVAL = int(os.environ.get("DB_BACKUP_INTERVAL", "30"))
 
 ADMIN_IDS = [6098272278]
@@ -44,11 +43,20 @@ ADMIN_IDS = [6098272278]
 CARDS_IMAGE_BASE = os.environ.get("CARDS_IMAGE_BASE", "").strip().rstrip("/")
 CARDS_IMAGE_EXT = os.environ.get("CARDS_IMAGE_EXT", "png").lstrip(".")
 
+# ═══════════════════════════════════════════════════════════
+# GEM SYSTEM
+# ═══════════════════════════════════════════════════════════
+# Coins -> Gems Exchange-Raten (Coin-Betrag: Gem-Betrag)
+COIN_GEM_RATES = {1000: 10, 5000: 50, 15000: 150}
+
+# VIP-Karten Preise in Gems pro Seltenheit
+VIP_GEM_PRICES = {"common": 15, "rare": 40, "epic": 80, "legendary": 150}
+
+# Star-Packs (Gem-Packs gegen Telegram Stars)
 SHOP_PACKS = {
-    "100":   {"coins": 100,   "stars": 1,  "title": "100 Coins"},
-    "1000":  {"coins": 1000,  "stars": 5,  "title": "1.000 Coins"},
-    "5000":  {"coins": 5000,  "stars": 15, "title": "5.000 Coins"},
-    "10000": {"coins": 10000, "stars": 25, "title": "10.000 Coins"},
+    "gems_50":  {"gems": 50,  "stars": 5,  "title": "50 Gems"},
+    "gems_150": {"gems": 150, "stars": 15, "title": "150 Gems"},
+    "gems_300": {"gems": 300, "stars": 25, "title": "300 Gems"},
 }
 
 BOT_INSTANCE = None
@@ -56,13 +64,11 @@ bj_sessions = {}
 crash_sessions = {}
 _db_dirty = False
 
-# FIX: Backup-Trigger aus Sync-Code
 _main_loop: Optional[asyncio.AbstractEventLoop] = None
 _last_backup_request = 0.0
 
 
 def request_backup(debounce_s: float = 8.0, force: bool = False):
-    """Sichere DB zeitnah in Telegram – funktioniert aus Sync- UND Async-Code."""
     global _last_backup_request
     if _main_loop is None or BOT_INSTANCE is None or not STORAGE_CHAT_ID:
         return
@@ -100,6 +106,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS users (
         user_id INTEGER PRIMARY KEY,
         coins INTEGER DEFAULT 1000,
+        gems INTEGER DEFAULT 0,
         last_daily INTEGER DEFAULT 0,
         max_bet INTEGER DEFAULT 100,
         self_excluded_until INTEGER DEFAULT 0,
@@ -148,7 +155,11 @@ def init_db():
     );
     """)
     cols = [r[1] for r in con.execute("PRAGMA table_info(users)").fetchall()]
-    for col, ddl in [("win_streak", "INTEGER DEFAULT 0"), ("best_streak", "INTEGER DEFAULT 0")]:
+    for col, ddl in [
+        ("win_streak", "INTEGER DEFAULT 0"),
+        ("best_streak", "INTEGER DEFAULT 0"),
+        ("gems", "INTEGER DEFAULT 0"),
+    ]:
         if col not in cols:
             try: con.execute(f"ALTER TABLE users ADD COLUMN {col} {ddl}")
             except Exception: pass
@@ -204,9 +215,6 @@ def init_db():
     except Exception as e: print(f"load_media_backup: {e}")
 
 
-# ═══════════════════════════════════════════════════════════
-# TELEGRAM STORAGE
-# ═══════════════════════════════════════════════════════════
 async def tg_send_document(content: bytes, filename: str, caption: str = "") -> Optional[dict]:
     if not STORAGE_CHAT_ID or BOT_INSTANCE is None:
         return None
@@ -300,7 +308,6 @@ async def tg_restore_db():
         print("❌ Bot nicht erreichbar – Restore abgebrochen")
         return False
 
-    # FIX: Prüfe tatsächlichen Inhalt statt Dateigröße
     should_restore = True
     if os.path.isfile(DB):
         try:
@@ -312,7 +319,6 @@ async def tg_restore_db():
                 print(f"ℹ️ DB hat Daten ({n_users} User, {n_cards} Karten) – kein Restore")
                 should_restore = False
         except Exception:
-            # Tabelle fehlt o.ä. → restore versuchen
             should_restore = True
 
     if not should_restore:
@@ -371,9 +377,6 @@ async def db_backup_loop():
             print(f"backup loop: {e}")
 
 
-# ═══════════════════════════════════════════════════════════
-# CARD HELPERS
-# ═══════════════════════════════════════════════════════════
 def get_local_card_file(card_id: int):
     for ext in ("png", "jpg", "jpeg", "webp", "gif"):
         p = os.path.join(CARDS_MEDIA_DIR, f"{card_id}.{ext}")
@@ -630,9 +633,6 @@ def calc_level(wagered: int):
     return level, max(0, min(100, pct))
 
 
-# ═══════════════════════════════════════════════════════════
-# HOUSE-EDGE ENGINE
-# ═══════════════════════════════════════════════════════════
 HOUSE_EDGE = 0.15
 TARGET_RTP = 1.0 - HOUSE_EDGE
 RED = {1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36}
@@ -754,9 +754,6 @@ def record_outcome(uid, won, game, win_amount):
         mark_db_dirty()
 
 
-# ═══════════════════════════════════════════════════════════
-# AUTH
-# ═══════════════════════════════════════════════════════════
 def validate_init_data(init_data: str) -> dict:
     if not init_data:
         raise HTTPException(401, "initData fehlt")
@@ -814,6 +811,7 @@ def me(uid: int = Depends(auth)):
     level, xp_pct = calc_level(u["total_wagered"])
     return {
         "coins": u["coins"],
+        "gems": u.get("gems") or 0,
         "max_bet": max(u["max_bet"], u["coins"]),
         "wagered": u["total_wagered"],
         "won": u["total_won"],
@@ -829,9 +827,9 @@ def me(uid: int = Depends(auth)):
 
 @app.post("/api/reset")
 def reset_session(uid: int = Depends(auth)):
-    update_user(uid, coins=1000, total_wagered=0, total_won=0,
+    update_user(uid, coins=1000, gems=0, total_wagered=0, total_won=0,
                 win_streak=0, best_streak=0, last_daily=0)
-    return {"ok": True, "coins": 1000}
+    return {"ok": True, "coins": 1000, "gems": 0}
 
 
 class PlayReq(BaseModel):
@@ -953,9 +951,6 @@ def get_referrals(uid: int = Depends(auth)):
     return {"count": count}
 
 
-# ═══════════════════════════════════════════════════════════
-# INVITE-KARTEN BELOHNUNG
-# ═══════════════════════════════════════════════════════════
 INVITE_CARD_IDS = list(range(31, 41))
 
 def maybe_grant_invite_reward(referred_uid: int):
@@ -996,9 +991,6 @@ def maybe_grant_invite_reward(referred_uid: int):
         return {"referrer_id": referrer_id, "card_id": None, "duplicate": True, "bonus_coins": 500}
 
 
-# ═══════════════════════════════════════════════════════════
-# USER STATE
-# ═══════════════════════════════════════════════════════════
 class UserStateReq(BaseModel):
     data: dict
 
@@ -1036,12 +1028,8 @@ def set_user_state(req: UserStateReq, uid: int = Depends(auth)):
     return {"ok": True, "data": existing}
 
 
-# ═══════════════════════════════════════════════════════════
-# DAILY CARD + TODAY OFFER
-# ═══════════════════════════════════════════════════════════
 @app.post("/api/daily_card")
 def daily_card(uid: int = Depends(auth)):
-    """Gratis-Karte 1× pro Tag. Prüft via user_state."""
     con = db()
     row = con.execute("SELECT data FROM user_state WHERE user_id=?", (uid,)).fetchone()
     state = {}
@@ -1085,14 +1073,12 @@ def daily_card(uid: int = Depends(auth)):
     )
     con.commit(); con.close()
     mark_db_dirty()
-    # FIX: kein asyncio.create_task hier – mark_db_dirty triggert request_backup()
 
     return {"ok": True, "card_id": card_id, "is_new": is_new}
 
 
 @app.get("/api/today_offer")
 def today_offer(uid: int = Depends(auth)):
-    """Ein zufälliges Tages-Angebot basierend auf Datum + User."""
     seed_str = f"{uid}-{time.strftime('%Y-%m-%d')}"
     h = int(hashlib.md5(seed_str.encode()).hexdigest(), 16)
     rng = random.Random(h)
@@ -1141,8 +1127,32 @@ def buy_offer(req: BuyOfferReq, uid: int = Depends(auth)):
 
 
 # ═══════════════════════════════════════════════════════════
-# GLOBAL JACKPOT + CATALOG VERSION
+# GEM SHOP ENDPOINTS
 # ═══════════════════════════════════════════════════════════
+class BuyGemsReq(BaseModel):
+    coin_amount: int
+
+
+@app.post("/api/shop/buy_gems")
+def buy_gems_with_coins(req: BuyGemsReq, uid: int = Depends(auth)):
+    gem_add = COIN_GEM_RATES.get(req.coin_amount)
+    if not gem_add:
+        raise HTTPException(400, "Ungültiges Coin-Paket")
+    u = get_user(uid)
+    if u["coins"] < req.coin_amount:
+        raise HTTPException(400, "Nicht genug Coins")
+    new_coins = u["coins"] - req.coin_amount
+    new_gems = (u.get("gems") or 0) + gem_add
+    update_user(uid, coins=new_coins, gems=new_gems)
+    return {
+        "ok": True,
+        "coins": new_coins,
+        "gems": new_gems,
+        "gems_added": gem_add,
+        "coin_cost": req.coin_amount,
+    }
+
+
 def _bump_jackpot(amount: int) -> int:
     con = db()
     row = con.execute("SELECT value FROM globals WHERE key='jackpot'").fetchone()
@@ -1171,9 +1181,6 @@ def get_catalog_version():
     return {"version": _catalog_version()}
 
 
-# ═══════════════════════════════════════════════════════════
-# BLACKJACK
-# ═══════════════════════════════════════════════════════════
 def new_deck():
     ranks = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"]
     suits = ["♠","♥","♦","♣"]
@@ -1276,9 +1283,6 @@ def bj_stand(uid: int = Depends(auth)):
             "state": "win" if payout > s["bet"] else "push" if payout == s["bet"] else "lose"}
 
 
-# ═══════════════════════════════════════════════════════════
-# ROULETTE
-# ═══════════════════════════════════════════════════════════
 class RouletteReq(BaseModel):
     bet: int
     bet_type: str
@@ -1316,9 +1320,6 @@ def roulette(req: RouletteReq, uid: int = Depends(auth)):
     return {"number": n, "color": color, "payout": payout, "delta": delta, "coins": new_coins}
 
 
-# ═══════════════════════════════════════════════════════════
-# CRASH
-# ═══════════════════════════════════════════════════════════
 class CrashStartReq(BaseModel):
     bet: int
 
@@ -1381,9 +1382,6 @@ def crash_loss(uid: int = Depends(auth)):
     return {"ok": True, "coins": u["coins"]}
 
 
-# ═══════════════════════════════════════════════════════════
-# CARDS / COLLECTION
-# ═══════════════════════════════════════════════════════════
 CARD_PRICES = {"common": 400, "rare": 1200, "epic": 3500, "legendary": 9000}
 VIP_PRICES  = {"common": 800, "rare": 2500, "epic": 6000, "legendary": 15000}
 CARD_RARITY = {i: ("common" if i <= 18 else "rare" if i <= 26 else "epic" if i <= 29 else "legendary")
@@ -1406,7 +1404,7 @@ def buy_card(req: BuyCardReq, uid: int = Depends(auth)):
         raise HTTPException(400, "Unbekannte Karte")
     info = get_card_vip_info(cid)
     if info["is_vip_card"]:
-        raise HTTPException(400, "VIP-Karte – nur per PayPal freischaltbar")
+        raise HTTPException(400, "VIP-Karte – nur mit Gems freischaltbar")
     if user_has_card(uid, cid):
         raise HTTPException(400, "Karte bereits vorhanden")
     rarity = CARD_RARITY[cid]
@@ -1433,22 +1431,36 @@ def unlock_vip(req: UnlockVipReq, uid: int = Depends(auth)):
     info = get_card_vip_info(cid)
     if not info["is_vip_card"]:
         raise HTTPException(400, "Diese Karte ist keine VIP-Karte")
-    grant_card(uid, cid)
+
+    u = get_user(uid)
+    current_gems = u.get("gems") or 0
+
+    # Prüfen ob schon freigeschaltet
     con = db()
     row = con.execute("SELECT vip FROM user_cards WHERE user_id=? AND card_id=?", (uid, cid)).fetchone()
+    con.close()
     if row and row["vip"]:
-        con.close()
         return {"ok": True, "already": True, "card_id": cid,
-                "image_url": info["image_url"],
-                "creator_link": info["creator_link"] or None,
-                "coins": get_user(uid)["coins"]}
+                "coins": u["coins"], "gems": current_gems}
+
+    rarity = CARD_RARITY.get(cid, "common")
+    gem_price = VIP_GEM_PRICES.get(rarity, 15)
+    if current_gems < gem_price:
+        raise HTTPException(400, f"Nicht genug Gems ({current_gems}/{gem_price})")
+
+    # Stelle sicher dass Karte im Besitz ist (auch wenn nicht unlocked)
+    if not user_has_card(uid, cid):
+        grant_card(uid, cid)
+
+    new_gems = current_gems - gem_price
+    update_user(uid, gems=new_gems)
+    con = db()
     con.execute("UPDATE user_cards SET vip=1 WHERE user_id=? AND card_id=?", (uid, cid))
     con.commit(); con.close()
     mark_db_dirty()
+    bump_catalog_version()
     return {"ok": True, "card_id": cid,
-            "image_url": info["image_url"],
-            "creator_link": info["creator_link"] or None,
-            "coins": get_user(uid)["coins"], "via": "paypal"}
+            "coins": u["coins"], "gems": new_gems, "gem_price": gem_price}
 
 
 @app.get("/api/media/{card_id}")
@@ -1559,7 +1571,8 @@ def api_collection(uid: int = Depends(auth)):
             "creator_link": info["creator_link"] if ((vip_unlocked or adm) and info["is_vip_card"]) else "",
             "paypal_link": info["paypal_link"] if info["is_vip_card"] else "",
             "buy_price": CARD_PRICES.get(rarity, 400),
-            "vip_price": VIP_PRICES.get(rarity, 800),
+            "vip_price": VIP_GEM_PRICES.get(rarity, 15),
+            "vip_gem_price": VIP_GEM_PRICES.get(rarity, 15),
             "is_invite_card": cid >= 31,
         })
     invite_owned = len([c for c in owned_ids if c >= 31])
@@ -1575,9 +1588,6 @@ def api_collection(uid: int = Depends(auth)):
     }
 
 
-# ═══════════════════════════════════════════════════════════
-# ADMIN
-# ═══════════════════════════════════════════════════════════
 class AdminImageReq(BaseModel):
     card_id: int
     image_url: Optional[str] = ""
@@ -1758,7 +1768,6 @@ async def admin_storage_status(uid: int = Depends(auth)):
     }
 
 
-# FIX: Neuer Health-Endpoint zur Diagnose
 @app.get("/api/admin/health")
 async def admin_health(uid: int = Depends(auth)):
     require_admin(uid)
@@ -1812,13 +1821,12 @@ async def admin_restore_now(uid: int = Depends(auth)):
         raise HTTPException(500, f"Restore-Fehler: {e}")
 
 
-# ═══════════════════════════════════════════════════════════
-# SHOP
-# ═══════════════════════════════════════════════════════════
 @app.get("/api/shop/packs")
 def shop_packs(uid: int = Depends(auth)):
-    return {"packs": [{"id": k, "coins": v["coins"], "stars": v["stars"], "title": v["title"]}
-                      for k, v in SHOP_PACKS.items()]}
+    return {"packs": [
+        {"id": k, "gems": v["gems"], "stars": v["stars"], "title": v["title"]}
+        for k, v in SHOP_PACKS.items()
+    ]}
 
 
 class ShopInvoiceReq(BaseModel):
@@ -1837,14 +1845,14 @@ async def shop_invoice(req: ShopInvoiceReq, uid: int = Depends(auth)):
     try:
         link = await BOT_INSTANCE.create_invoice_link(
             title=pack["title"],
-            description=f"{pack['coins']} Spiel-Coins für Casino Hunt (kein Echtgeld-Gewinn).",
+            description=f"{pack['gems']} Gems für Casino Hunt (kein Echtgeld-Gewinn).",
             payload=payload, currency="XTR",
             prices=[LabeledPrice(label=pack["title"], amount=pack["stars"])],
         )
     except Exception as e:
         raise HTTPException(500, f"Invoice-Fehler: {e}")
     return {"ok": True, "invoice_url": link, "pack_id": req.pack_id,
-            "coins": pack["coins"], "stars": pack["stars"]}
+            "gems": pack["gems"], "stars": pack["stars"]}
 
 
 @app.get("/api/feed")
@@ -1862,16 +1870,14 @@ def admin_stats(uid: int = Depends(auth)):
     con = db()
     users = con.execute("SELECT COUNT(*) FROM users").fetchone()[0]
     coins = con.execute("SELECT COALESCE(SUM(coins),0) FROM users").fetchone()[0]
+    gems = con.execute("SELECT COALESCE(SUM(gems),0) FROM users").fetchone()[0]
     wag = con.execute("SELECT COALESCE(SUM(total_wagered),0) FROM users").fetchone()[0]
     won = con.execute("SELECT COALESCE(SUM(total_won),0) FROM users").fetchone()[0]
     con.close()
-    return {"users": users, "coins_in_circulation": coins, "total_wagered": wag,
-            "total_won": won, "house_edge": wag - won}
+    return {"users": users, "coins_in_circulation": coins, "gems_in_circulation": gems,
+            "total_wagered": wag, "total_won": won, "house_edge": wag - won}
 
 
-# ═══════════════════════════════════════════════════════════
-# BOT
-# ═══════════════════════════════════════════════════════════
 WELCOME = (
     "🎰 <b>Virtual Casino</b>\n"
     "━━━━━━━━━━━━━━━━━━━━\n"
@@ -1974,10 +1980,15 @@ async def on_successful_payment(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     pack = SHOP_PACKS.get(pack_id)
     if not pack: return
     u = get_user(uid)
-    update_user(uid, coins=u["coins"] + pack["coins"])
-    print(f"Stars payment OK uid={uid} +{pack['coins']}")
+    gems_add = pack.get("gems", 0)
+    coins_add = pack.get("coins", 0)
+    new_gems = (u.get("gems") or 0) + gems_add
+    new_coins = u["coins"] + coins_add
+    update_user(uid, coins=new_coins, gems=new_gems)
+    print(f"Stars payment OK uid={uid} +{gems_add}gems +{coins_add}coins")
     try:
-        await msg.reply_text(f"✅ +{pack['coins']} Coins gutgeschrieben!")
+        txt = f"✅ +{gems_add} 💎 Gems" if gems_add else f"✅ +{coins_add} Coins"
+        await msg.reply_text(txt + " gutgeschrieben!")
     except Exception: pass
 
 
@@ -1999,7 +2010,6 @@ async def post_init(bot_app):
 
 async def main():
     global BOT_INSTANCE, _main_loop
-    # FIX: Event-Loop global setzen, damit request_backup() aus Sync-Endpoints funktioniert
     _main_loop = asyncio.get_running_loop()
 
     enable_polling = os.environ.get("ENABLE_BOT_POLLING", "1").strip() not in ("0","false","False","no")
@@ -2050,7 +2060,6 @@ async def main():
     else:
         print("❌ STORAGE_CHAT_ID NICHT GESETZT – keine Persistenz!")
 
-    # FIX: Startup-Verifikation
     try:
         con = db()
         n_users = con.execute("SELECT COUNT(*) FROM users").fetchone()[0]
