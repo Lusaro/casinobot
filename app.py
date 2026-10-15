@@ -1393,14 +1393,20 @@ def buy_card(req: BuyCardReq, uid: int = Depends(auth)):
     rarity = CARD_RARITY[cid]
     price = CARD_PRICES[rarity]
     u = get_user(uid)
-    if u["coins"] < price:
+    adm = is_admin(uid)
+
+    # ADMIN BYPASS: keine Coins nötig
+    if not adm and u["coins"] < price:
         raise HTTPException(400, "Nicht genug Coins")
-    new_coins = u["coins"] - price
-    update_user(uid, coins=new_coins)
+
+    new_coins = u["coins"] if adm else u["coins"] - price
+    if not adm:
+        update_user(uid, coins=new_coins)
+
     grant_card(uid, cid)
     bump_catalog_version()
-    return {"ok": True, "card_id": cid, "price": price, "rarity": rarity, "coins": new_coins}
-
+    return {"ok": True, "card_id": cid, "price": 0 if adm else price,
+            "rarity": rarity, "coins": new_coins, "admin_free": adm}
 
 class UnlockVipReq(BaseModel):
     card_id: int
@@ -1417,6 +1423,7 @@ def unlock_vip(req: UnlockVipReq, uid: int = Depends(auth)):
 
     u = get_user(uid)
     current_gems = u.get("gems") or 0
+    adm = is_admin(uid)
 
     con = db()
     row = con.execute("SELECT vip FROM user_cards WHERE user_id=? AND card_id=?", (uid, cid)).fetchone()
@@ -1427,21 +1434,26 @@ def unlock_vip(req: UnlockVipReq, uid: int = Depends(auth)):
 
     rarity = CARD_RARITY.get(cid, "common")
     gem_price = VIP_GEM_PRICES.get(rarity, 15)
-    if current_gems < gem_price:
+
+    # ADMIN BYPASS: keine Gems nötig
+    if not adm and current_gems < gem_price:
         raise HTTPException(400, f"Nicht genug Gems ({current_gems}/{gem_price})")
 
     if not user_has_card(uid, cid):
         grant_card(uid, cid)
 
-    new_gems = current_gems - gem_price
-    update_user(uid, gems=new_gems)
+    new_gems = current_gems if adm else current_gems - gem_price
+    if not adm:
+        update_user(uid, gems=new_gems)
+
     con = db()
     con.execute("UPDATE user_cards SET vip=1 WHERE user_id=? AND card_id=?", (uid, cid))
     con.commit(); con.close()
     mark_db_dirty()
     bump_catalog_version()
     return {"ok": True, "card_id": cid,
-            "coins": u["coins"], "gems": new_gems, "gem_price": gem_price}
+            "coins": u["coins"], "gems": new_gems, "gem_price": gem_price,
+            "admin_free": adm}
 
 
 @app.get("/api/media/{card_id}")
