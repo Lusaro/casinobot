@@ -91,7 +91,6 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 .bet-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
 .bet-row .btn{margin-top:0;padding:12px 6px;font-size:14px}
 .stage{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:260px;position:relative}
-/* SLOTS NEW LOOK */
 .slots-machine{position:relative;padding:20px 16px 18px;border-radius:24px;background:linear-gradient(160deg,#1a0b3d 0%,#0d0620 100%);perspective:1000px;box-shadow:0 20px 60px rgba(0,0,0,.7),inset 0 0 40px rgba(0,0,0,.6)}
 .slots-machine::before{content:'';position:absolute;inset:-3px;border-radius:26px;background:linear-gradient(135deg,#22d3ee,#7c3aed 40%,#ec4899 75%,#ffd25e);z-index:-1;animation:borderGlow 3s linear infinite}
 @keyframes borderGlow{0%,100%{filter:blur(5px) brightness(1)}50%{filter:blur(8px) brightness(1.4)}}
@@ -111,7 +110,6 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
 .slot-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:340px;margin:14px 0 0}
 .slot-actions .btn{margin-top:0}
 .slot-auto-info{text-align:center;font-size:11px;font-weight:800;color:var(--gold);letter-spacing:1px;margin-top:8px}
-/* END SLOTS */
 .bowl-lane{position:relative;width:240px;height:360px;margin:6px auto 10px;background:linear-gradient(180deg,rgba(124,58,237,.25),rgba(30,15,70,.6));border:2px solid rgba(196,181,253,.35);border-radius:16px;box-shadow:inset 0 0 60px rgba(0,0,0,.5),0 0 24px rgba(124,58,237,.3);overflow:hidden}
 .pin{position:absolute;width:18px;height:34px;transform:translate(-50%,-50%);background:radial-gradient(ellipse at 30% 25%,#fff 0,#f0f0f8 55%,#b8b8cc 100%);border-radius:50% 50% 35% 35%/45% 45% 55% 55%;box-shadow:0 4px 6px rgba(0,0,0,.5);transition:transform .55s cubic-bezier(.2,.9,.3,1),opacity .55s;z-index:2}
 .pin::after{content:'';position:absolute;top:26%;left:0;right:0;height:5px;background:linear-gradient(180deg,#ff3355,#c80022)}
@@ -552,7 +550,10 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
     <div class="topbar">
       <div class="row1">
         <div class="brand">🎁 Daily & Missionen</div>
-        <div class="coin-pill" id="coins-daily">💰 <span id="coins-daily-num">0</span></div>
+        <div class="pill-row">
+          <div class="gem-pill" id="gems-daily">💎 <span id="gems-daily-num">0</span></div>
+          <div class="coin-pill" id="coins-daily">💰 <span id="coins-daily-num">0</span></div>
+        </div>
       </div>
     </div>
     <div class="daily-card-wrap" id="daily-card-wrap">
@@ -574,7 +575,10 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
     <div class="topbar">
       <div class="row1">
         <div class="brand" id="spin-back">⬅️ Glücksrad</div>
-        <div class="coin-pill" id="coins-spin">💰 <span id="coins-spin-num">0</span></div>
+        <div class="pill-row">
+          <div class="gem-pill" id="gems-spin">💎 <span id="gems-spin-num">0</span></div>
+          <div class="coin-pill" id="coins-spin">💰 <span id="coins-spin-num">0</span></div>
+        </div>
       </div>
     </div>
     <div class="wheel-canvas-wrap">
@@ -676,7 +680,6 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
     <div class="admin-section active" data-section="upload">
       <div class="admin-row"><label>Karten-ID (1–40)</label><input class="admin-input" type="number" id="up-card-id" min="1" max="40" value="30"></div>
       <div class="admin-row"><label>Creator Telegram-Link (optional)</label><input class="admin-input" type="text" id="up-creator" placeholder="https://t.me/deinname"></div>
-      <div class="admin-row"><label>PayPal-Link (optional)</label><input class="admin-input" type="text" id="up-paypal" placeholder="https://paypal.me/deinname"></div>
       <div class="admin-row"><label>Bild auswählen (max 6 MB)</label><label class="admin-file-btn" for="up-file">📁 Bild wählen</label><input type="file" id="up-file" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none"><div class="admin-file-info" id="up-file-info"></div><img class="admin-preview" id="up-preview" alt=""></div>
       <div class="admin-row"><label>Voice-File (optional, max 3 MB)</label><label class="admin-file-btn" for="up-voice">🎙️ Voice wählen</label><input type="file" id="up-voice" accept="audio/*" style="display:none"><div class="admin-file-info" id="up-voice-info"></div></div>
       <div class="admin-actions"><button class="btn secondary" id="up-cancel">Abbrechen</button><button class="btn gold" id="up-submit">⬆️ Hochladen</button></div>
@@ -685,7 +688,6 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--txt);backgr
       <div class="admin-row"><label>Karten-ID (1–40)</label><input class="admin-input" type="number" id="url-card-id" min="1" max="40" value="30"></div>
       <div class="admin-row"><label>Bild-URL</label><input class="admin-input" type="text" id="url-image" placeholder="https://…"></div>
       <div class="admin-row"><label>Creator Telegram-Link (optional)</label><input class="admin-input" type="text" id="url-creator" placeholder="https://t.me/…"></div>
-      <div class="admin-row"><label>PayPal-Link (optional)</label><input class="admin-input" type="text" id="url-paypal" placeholder="https://paypal.me/…"></div>
       <div class="admin-actions"><button class="btn secondary" id="url-cancel">Abbrechen</button><button class="btn gold" id="url-submit">💾 Setzen</button></div>
     </div>
     <div class="admin-section" data-section="remove">
@@ -1217,7 +1219,7 @@ function updateCoins(){
   renderJackpot();
 }
 function updateGems(){
-  const ids = ["gems-top-num","gems-game-num"];
+  const ids = ["gems-top-num","gems-game-num","gems-daily-num","gems-spin-num"];
   ids.forEach(id=>{
     const el = $(id); if(!el)return;
     el.textContent = (state.gems||0).toLocaleString("de-DE");
@@ -3088,7 +3090,7 @@ document.querySelectorAll(".tab").forEach(t=>{
 
 const kontoModal = $("konto-modal");
 function openShop(){if(state.busy)return;haptic();SFX.click();kontoModal.classList.add("show");}
-["coins-top","coins-game","coins-daily","coins-spin","gems-top","gems-game"].forEach(id=>{
+["coins-top","coins-game","coins-daily","coins-spin","gems-top","gems-game","gems-daily","gems-spin"].forEach(id=>{
   const el = $(id); if(el)el.addEventListener("click",openShop);
 });
 $("konto-close").addEventListener("click",()=>{haptic();kontoModal.classList.remove("show");});
@@ -3275,13 +3277,11 @@ $("up-submit").addEventListener("click",async()=>{
   if(!(cardId>=1 && cardId<=40)){showToast("Ungültige Karten-ID");return;}
   if(!adminFileBuffer){showToast("Bitte Bild auswählen");return;}
   const creator = $("up-creator").value.trim();
-  const paypal = $("up-paypal").value.trim();
   const btn = $("up-submit"); btn.disabled = true; btn.textContent = "⏳ Lädt hoch…";
   try{
     const fd = new FormData();
     fd.append("card_id",String(cardId));
     fd.append("creator_link",creator);
-    fd.append("paypal_link",paypal);
     fd.append("file",adminFileBuffer,adminFileBuffer.name||`card${cardId}.png`);
     if(adminVoiceBuffer)fd.append("voice_file",adminVoiceBuffer,adminVoiceBuffer.name||`voice${cardId}.ogg`);
     const res = await fetch(API+"/api/admin/card_image_upload",{
@@ -3301,10 +3301,9 @@ $("url-submit").addEventListener("click",async()=>{
   const imageUrl = $("url-image").value.trim();
   if(!imageUrl){showToast("Bild-URL fehlt");return;}
   const creator = $("url-creator").value.trim();
-  const paypal = $("url-paypal").value.trim();
   const btn = $("url-submit"); btn.disabled = true; btn.textContent = "⏳ …";
   try{
-    await api("/api/admin/card_image",{method:"POST",body:JSON.stringify({card_id:cardId,image_url:imageUrl,creator_link:creator||null,paypal_link:paypal||null})});
+    await api("/api/admin/card_image",{method:"POST",body:JSON.stringify({card_id:cardId,image_url:imageUrl,creator_link:creator||null})});
     showToast(`✅ Karte ${cardId} aktualisiert`);
     closeAdminPanel();
     await loadCollection();
@@ -3333,7 +3332,7 @@ $("logo").addEventListener("touchstart",()=>{
     haptic("heavy");
     try{
       const r = await api("/api/admin/stats");
-      showToast(`👥 ${r.users} · 💰 ${r.coins_in_circulation} · 🏦 ${r.house_edge}`);
+      showToast(`👥 ${r.users} · 💰 ${r.coins_in_circulation} · 💎 ${r.gems_in_circulation||0}`);
       if(isAdmin)openAdminPanel();
       else showToast("Kein Admin-Zugriff");
     }catch(e){showToast("Kein Zugriff.");}
