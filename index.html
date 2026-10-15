@@ -1643,9 +1643,10 @@ async function openBuyCard(cardId){
   if(cat.is_vip_card){openUnlockVip(cardId);return;}
   const price = (cat.buy_price!=null?cat.buy_price:CARD_PRICES[card.rarity])||400;
   const r = RARITY[card.rarity];
+  const free = isAdmin;
   const doBuy = async()=>{
     if(state.busy)return;
-    if(state.coins<price){showToast("Nicht genug Coins");SFX.lose();return;}
+    if(!free && state.coins<price){showToast("Nicht genug Coins");SFX.lose();return;}
     state.busy = true; haptic("medium");
     try{
       const res = await api("/api/buy_card",{method:"POST",body:JSON.stringify({card_id:cardId})});
@@ -1656,19 +1657,22 @@ async function openBuyCard(cardId){
       await saveCardsFirstSeen();
       renderCollection();
       SFX.cardDrop(); notify("success");
-      showCardDrop(card,true,"🛒 GEKAUFT");
-      showToast(`✅ ${card.name} freigeschaltet!`);
+      showCardDrop(card,true,free?"🛠️ ADMIN":( "🛒 GEKAUFT"));
+      showToast(res.admin_free ? `✅ (Admin) ${card.name} freigeschaltet!` : `✅ ${card.name} freigeschaltet!`);
       setTimeout(()=>openFullscreenViewer(cardId),4800);
     }catch(e){showToast("Fehler: "+e.message);SFX.lose();}
     finally{state.busy=false;}
   };
   try{
     if(tg.showConfirm){
-      tg.showConfirm(`${card.name}\n${r.name}\n\n${price.toLocaleString("de-DE")} Coins kaufen?`,(ok)=>{if(ok)doBuy();});
+      const m = free
+        ? `🛠️ ADMIN-MODUS\n\n${card.name}\n${r.name}\n\nGRATIS freischalten?`
+        : `${card.name}\n${r.name}\n\n${price.toLocaleString("de-DE")} Coins kaufen?`;
+      tg.showConfirm(m,(ok)=>{if(ok)doBuy();});
       return;
     }
   }catch(e){}
-  if(state.coins<price){showToast(`🔒 ${card.name} · ${price} Coins nötig`);return;}
+  if(!free && state.coins<price){showToast(`🔒 ${card.name} · ${price} Coins nötig`);return;}
   await doBuy();
 }
 
